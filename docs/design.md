@@ -1,0 +1,93 @@
+# Design
+
+> 目标：在**不替换官方 UI**、**不新增 session 事件类型**的前提下，为 DSH 提供批量审批、风险提示和可追溯的决策账本。
+
+## Goals
+
+- 一次批准一批已声明的操作，减少串行打断。
+- 列表简明，可展开看原因/后果/建议。
+- 依赖关系按阶段展示，并在执行时门控。
+- 关键操作重点标出；需要审批时桌面提醒。
+- 决策内容可追溯、可导出。
+
+## Non-goals
+
+- 不做“永久允许”或“全部放行”。
+- 不自动推断未声明的因果依赖。
+- 不替代官方审批卡/问题卡/计划卡。
+- 不保证零风险；只做“有界、可回退、失败关闭”。
+
+## Architecture
+
+```
+agent
+  └─ request_approvals (tool)
+       └─ plan-review question (official UI)
+            └─ user approves
+                 └─ grants (session, turn-scoped)
+                      └─ approval/request (prepend listener)
+                           ├─ plan gate + risk gate → allowed-once
+                           └─ otherwise → official approval UI
+```
+
+审计：
+
+```
+session log (facts) + tool/result.meta (plan decision) + audit store (per-call rationale)
+  └─ approval-audit projection
+       ├─ /approvals audit
+       └─ wire.view (plan doc / sidebar)
+```
+
+## Plan tool
+
+`request_approvals` 的 schema 见 `HANDOFF.md`。校验：
+
+- id 唯一、依赖无环、tool 已注册；
+- 路径绝对化、拒绝 `..` 逃逸/UNC/ADS/设备名；
+- 命令长度上限、控制符/脚本标记；
+- 总数/单项 uses 上限；
+- 只允许主会话（子会话无人类 answerer）。
+
+计划文档：
+
+- 第一行标题（含风险计数）；
+- 第一段两行摘要；
+- 清单表（编号/操作/风险/依赖）；
+- 每项详情（是什么/为什么/批准后/系统判断/模型说明/建议）。
+
+## Grants
+
+- 按 session、按 turn；内存态；不持久化。
+- 字段：`planId`、`itemId`、`tool`、`kind`、`mode`、`scope`、`usesLeft`、`deps`、`state`。
+- 匹配成功同步消费一次；依赖全部 used 才 ready。
+- `turn/end`、`agent/disposed`、插件卸载、重启全部撤销。
+
+## Risk policy
+
+| Level | Auto? |
+|---|---|
+| medium | yes（仅数据类文件写入） |
+| high | manual；opt-in + second confirm |
+| critical | never |
+| unknown | manual |
+
+风险引擎是确定性的、advisory；`unknown` 不猜。详细规则见 `docs/threat-model.md`。
+
+## Audit
+
+见 `docs/audit.md`。核心：不新增事件类型；`tool/result.meta` + 插件账本 + 投影；账本只存元数据，不存参数/reason。
+
+## UI
+
+- 单条：官方卡 + 标题摘要 + 头部详情弹窗；不改 `conversation.approval.detail`。
+- 批量：官方 plan-review + 侧栏全文。
+- 多选：官方 question + `ask_choices` 结构化内容。
+- 提醒：Host Win32 flash + 页面红点。
+
+## Release plan
+
+- 0.1.0：observe（只记录本应放行，不实际放行）+ 计划 + 审计。
+- 0.2.0：medium 自动放行 + 详情弹窗 + 闪烁。
+- 0.3.0：high opt-in + 二次确认 + `ask_choices` + 跨会话只读列表。
+- 1.0.0：API/审计格式稳定。

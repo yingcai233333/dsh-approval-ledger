@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Approval Ledger (dsh-approval-ledger)",
+    "description": "Batch approvals with a risk gate and an auditable decision ledger for DeepSeek Harness."
+  }
+}

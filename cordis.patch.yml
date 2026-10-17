@@ -1,0 +1,4 @@
+# Bundle patch layer: the row loads the package main entry as the Host half.
+- insert:
+    - id: approval-ledger
+      name: dsh-approval-ledger

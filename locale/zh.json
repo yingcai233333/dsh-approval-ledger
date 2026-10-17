@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "审批账本 (dsh-approval-ledger)",
+    "description": "为 DeepSeek Harness 提供批量审批、风险分级与可追溯的决策账本。"
+  }
+}

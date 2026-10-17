@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/yingcai233333/dsh-approval-ledger/schema/audit-v1.json",
+  "title": "Approval Ledger audit record (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sessionId",
+    "callId",
+    "tool",
+    "risk",
+    "outcome",
+    "time"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "callId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "planId": {
+      "type": "string"
+    },
+    "itemId": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk": {
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "unknown"
+      ]
+    },
+    "mode": {
+      "type": "string"
+    },
+    "targetHash": {
+      "type": "string"
+    },
+    "targetSummary": {
+      "type": "string"
+    },
+    "matchedBy": {
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "allowed-once",
+        "rejected",
+        "cancelled",
+        "unavailable"
+      ]
+    },
+    "matcherVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "riskPolicyVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "time": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
