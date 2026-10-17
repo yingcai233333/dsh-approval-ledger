@@ -223,3 +223,13 @@ dsh-approval-ledger/
 ## 9. 给新会话的第一句话
 
 > 先读 `HANDOFF.md` 和 `docs/design.md`；项目在 Sprint 0，先把纯匹配器/风险引擎/审计回放和单测做出来，不要先装插件。安装/发布前按用户的插件安全审查规矩逐条确认。
+
+## 10. 构建注意（重要）
+
+- DSH 的内部包没有完整发布到 npm：`pnpm install` 解析 `@deepseek-ai/dsh-type-meta` 会 404。
+- 因此 Sprint 0 的 `package.json` **没有**把 `@deepseek-ai/*` 放进 devDependencies/peerDependencies；`src/index.ts` 暂时用 `unknown` 作为 Context 类型。
+- 实现阶段需要 DSH 类型时，优先：
+  1. 在 `types/` 写最小本地声明；或
+  2. 用 DSH checkout 的 `.d.ts` 做只读参考；
+  3. 不要把未发布的 `@deepseek-ai/*` 加回依赖，否则 CI 会挂。
+- CI 已通过：Ubuntu/Windows × Node 22/24 全绿。

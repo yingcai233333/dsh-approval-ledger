@@ -24,3 +24,7 @@ pnpm build
 - Add or update tests.
 - Update `CHANGELOG.md` for user-visible changes.
 - State which P0 spike or compatibility check was run.
+
+## DSH package availability
+
+Some internal DSH packages (for example `@deepseek-ai/dsh-type-meta`) are not published to npm. Do not add `@deepseek-ai/*` packages to `dependencies`, `devDependencies`, or `peerDependencies` in this scaffold: `pnpm install` will fail with a 404. Use a local minimal type surface in `types/` or a DSH checkout for reference until the packages are fully published.
