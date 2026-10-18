@@ -80,6 +80,16 @@ window.__ModuleLoader__.load({
         return () => window.removeEventListener('keydown', onKey)
       }, [open])
 
+      React.useEffect(() => {
+        if (approval === undefined) return undefined
+        const previous = document.title
+        const prefix = '● '
+        if (!previous.startsWith(prefix)) document.title = prefix + previous
+        return () => {
+          if (document.title.startsWith(prefix)) document.title = document.title.slice(prefix.length)
+        }
+      }, [approval])
+
       const ctx = props.__ctx
       const locale = ctx === undefined ? 'en' : ctx.locale.getLocale()?.id
       const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
