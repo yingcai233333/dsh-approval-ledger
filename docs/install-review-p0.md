@@ -145,7 +145,11 @@ Also verified automatically:
 - plan-card `要求修改` returned `cancelled`, created no file, and audit showed plan `P-73b32c5a` cancelled;
 - a subagent calling `request_approvals` received `request_approvals requires the main session; include the plan in your final result instead` (`DELEGATED_CALLER`).
 
-Only sibling `approval/request` prepend ordering is still untested: it needs a second approval plugin in the same profile.
+Only sibling `approval/request` prepend ordering remains untested live (it needs a second approval plugin in the same profile). The FakeContext suite now asserts that the plugin's prepended listener rewrites `displayReason` before an earlier sibling listener.
+
+## 8. Sprint 2 client slice
+
+Added `client.js` plus `dsh.client` metadata and the header slot registration. In the isolated Web UI, the session header shows the localized “审批详情” button, and opening it produced a read-only modal with the pending tool, callId, Host-rewritten summary (`write · …\p0-a.md · danger-full-access`), original reason, and a close action. The modal has no allow/reject controls. Not yet implemented: Windows flash, page-title red dot, and active medium-by-default policy.
 
 The earlier `p0-test/a.md` write in the desktop session was a **manual/conversational** write, not a plugin grant; it is not accepted as P0 evidence.
 

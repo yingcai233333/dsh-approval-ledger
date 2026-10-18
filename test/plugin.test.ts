@@ -342,6 +342,29 @@ describe('host plugin integration', () => {
     assert.equal(approval.outcome, 'rejected')
   })
 
+  it('prepends its approval hook before an earlier sibling listener', async () => {
+    const ctx = new FakeContext()
+    let siblingSummary = ''
+    ctx.on('approval/request', async (request, next) => {
+      const reason = request.displayReason as { en?: string } | undefined
+      siblingSummary = reason?.en ?? ''
+      return next()
+    })
+    apply(ctx as unknown as Context, { mode: 'observe' })
+    const session = makeSession('session-order', [makeEvent(1, 'turn/start', { turn: 1 })])
+    const agent = makeAgent(session)
+    const outcome = await ctx.emitApproval({
+      agent,
+      toolName: 'write',
+      callId: 'call-order',
+      reason: 'escalate sandbox to danger-full-access: order test',
+      displayReason: { en: 'original', zh: '原始' },
+    } as never)
+    assert.equal(outcome, 'rejected')
+    assert.notEqual(siblingSummary, 'original')
+    assert.match(siblingSummary, /write/)
+  })
+
   it('rejects an invalid plan without calling ask', async () => {
     const { ctx, agent } = setup()
     await assert.rejects(
