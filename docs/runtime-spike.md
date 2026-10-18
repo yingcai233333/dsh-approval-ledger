@@ -10,7 +10,7 @@
 > `Tool`, `Config`). Line numbers are exact for the asar build listed above.
 >
 > **Version caveat:** the installed build is `@deepseek-ai/dsh-desktop-runtime` **0.2.1-rc.2**
-> (`dsh/package.json:4`), while the repo targets `0.2.0-rc.2`. Treat all of this as
+> (`dsh/package.json:4`), and the repo targets `0.2.1-rc.2`. Treat all of this as
 > "0.2.1-rc.2", then re-check on the target release.
 
 ---
@@ -721,7 +721,7 @@ the session-log fold for 0.1; use this only if cross-restart persistence is mand
    confirm the Loader contains a plugin load failure instead of taking down the Host.
 9. **Windows flash helper** (Sprint 2): PowerShell resident process, EDR/ConstrainedLanguage
    failure, fallback to title/favicon. Untouched by this spike.
-10. **Version pin.** Re-verify the inspected shapes on the targeted `0.2.0-rc.2` before release;
+10. **Version pin.** Re-verify the inspected shapes on the targeted `0.2.1-rc.2` before release;
     this checkout is `0.2.1-rc.2`.
 
 ---

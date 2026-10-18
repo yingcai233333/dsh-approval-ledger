@@ -30,7 +30,7 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-Not yet. `0.1.0-beta.1` will be published after the live P0 pass (card copy, plan-review rendering, meta round-trip) and the install security review.
+Installed locally with `link:` into a temporary profile and the desktop profile for live P0. The npm package is **not published yet**; the command below is the planned install path once the release security review is approved.
 
 ```sh
 # planned

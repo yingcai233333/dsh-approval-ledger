@@ -238,4 +238,4 @@ dsh-approval-ledger/
   3. 不要把未发布的 `@deepseek-ai/*` 加回依赖，否则 CI 会挂。
 - 测试：`pnpm test` 先 `tsc -p tsconfig.test.json` 输出到 `lib-test/`，再用 Node 自带测试运行器（`--test-isolation=none`）执行；这样不依赖 esbuild 子进程，沙箱内也能跑。`vitest` 仍在 devDependencies，留给后续客户端测试。
 - 本地验证：267 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub CI 需推送后再确认。
-- **版本注意**：静态核对的是安装包 `0.2.1-rc.2`，仓库目标写的是 `0.2.0-rc.2`；发布前必须按目标版本复验 `docs/runtime-spike.md` 的接口。
+- **版本注意**：静态核对和仓库目标都是安装包 `0.2.1-rc.2`；发布前仍要在该目标版本复验 `docs/runtime-spike.md` 的接口。
