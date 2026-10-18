@@ -19,7 +19,8 @@
     },
     "sessionId": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 256
     },
     "seq": {
       "type": "integer",
@@ -27,17 +28,21 @@
     },
     "callId": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 256
     },
     "planId": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 128
     },
     "itemId": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 128
     },
     "tool": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 128
     },
     "risk": {
       "enum": [
@@ -49,16 +54,20 @@
       ]
     },
     "mode": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 64
     },
     "targetHash": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
     },
     "targetSummary": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 200
     },
     "matchedBy": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 160
     },
     "outcome": {
       "enum": [

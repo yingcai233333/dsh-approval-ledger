@@ -2,7 +2,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：Sprint 0 脚手架。** 还没有可用的审批功能；第一个版本是 `0.1.0`（observe 模式，只记录不实际放行）。
+> **状态：Sprint 1 Host 代码已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择和 session-log 审计投影已实现并有用例；**尚未发布**，默认配置是 observe-only。版本为 `0.1.0-beta.1`。
 
 ## 为什么
 
@@ -13,26 +13,48 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 - **一批一个计划**：agent 调用 `request_approvals` 交清单，你一次批准。
 - **依赖阶段**：计划项可声明 `dependsOn`；依赖消耗完才解锁下游。
 - **风险门控**：每次实际调用重新判风险；critical 永不自动；high 默认手动，显式开启后还要二次确认；unknown 一律手动。
-- **决策账本**：自动/手动决定都能通过 session log + 元数据账本追溯。
+- **决策账本**：自动/手动决定可通过 session log、计划级 `tool/result.meta` 和内存账本追溯；`/approvals audit` 对缺失记录从持久事实派生，不猜。
 - **官方 UI 优先**：不替换自带的审批卡、问题卡、计划卡。
+
+当前 observe-only 配置下，计划会被审查，但每次实际调用仍然走官方审批卡；grant 只做模拟并记为 `would-allow`。medium 自动放行是下一个发布步骤。
 
 ## 安全模型
 
 - `critical` **永不**自动放行。
 - `unknown` 一律手动。
 - 自动放行要过 **两道门**：计划范围匹配 **且** 实际调用风险等级允许。
+- 路径匹配会解析 symlink/junction 的真实目标；硬链接文件按高风险处理（手动）。
 - grant 只在内存、按 session、按 turn；turn 结束、卸载、重启即失效。
 - 任何异常、解析失败、不匹配，一律回退官方审批。
 - 账本不记录完整参数、命令、reason 或密钥。
 
 ## 安装
 
-还没发布。`0.1.0` 会在 observe 模式实现和第一轮兼容验证之后发布。
+还没发布。`0.1.0-beta.1` 会在 live P0（卡片文案、plan-review 渲染、meta 回读）和安装安全审查之后发布。
 
 ```sh
 # 计划中
 dsh plugin --profile <profile> add dsh-approval-ledger
 ```
+
+## Sprint 0 纯核心
+
+Host 侧核心本身不依赖 DSH 类型；插件入口在它之上注册：
+
+- `normalizePath` / `matchPathScope`：大小写归一、realpath 最近已存在祖先、硬链接检测；拒绝 UNC/ADS/8.3/设备名；目录范围只在确认是目录时生效。
+- `normalizeCommand` / `matchCommandScope`：空白归一；含 shell 元字符、解释器、脚本、下载、编码命令的调用不参与自动匹配。
+- `matchArgsScope`：有界 JSON 校验 + 精确子集匹配；数组必须完全一致。
+- `assessRisk`：确定性、只给建议；`critical` 和 `unknown` 永不自动。
+- `validatePlan`：id 唯一、依赖无环、阶段计算、使用次数上限、范围归一、风险计数、稳定 plan hash。
+- `AuditLedger` / `replayAudit` / `renderAuditReport`：只存元数据；目标只存 hash/摘要；append-only 序号校验；回放对缺失/冲突证据标状态，不猜。
+
+## Sprint 1 Host 接线
+
+- `request_approvals` 注册普通 DSH 工具定义，只发一条官方 plan-review 问题；批准后再发一条官方多选问题，让你只授权想授权的项，未勾选项保持 manual。
+- grants 按 `(session, turn)` 存在内存；前置 `approval/request` 钩子执行计划门 + 每次调用的风险门，并把卡片的 `displayReason` 改写成真实 mode + 目标摘要。
+- 默认 observe：消费模拟的 grant 并记录 `would-allow`，但绝不返回 `allowed-once`。
+- `/approvals [audit [--json] | grants]` 折叠持久 session 事件 + 计划元数据；缺失的每次调用记录由 `tool/call` 参数派生并标记 `derived-session-log`，不猜。
+- `ctx.storageDomain` 是 schema 校验的 KV，不是 append-only 日志；Sprint 1 有意使用 session log + 内存账本，跨会话留存推迟。
 
 ## 开发
 
@@ -45,6 +67,8 @@ pnpm test
 pnpm build
 ```
 
+`pnpm test` 先把 `src/` 和 `test/` 编译到 `lib-test/`，再用 Node 自带测试运行器执行；`pnpm build` 把 Host 半部输出到 `lib/`。
+
 这是一个 Cordis bundle：`cordis.patch.yml` 插入 `approval-ledger` 行；`lib/index.js` 是 Host 半部。
 
 ## 文档
@@ -53,6 +77,7 @@ pnpm build
 - [威胁模型](docs/threat-model.md)
 - [审计/决策账本](docs/audit.md)
 - [运行时笔记](docs/runtime-notes.md)
+- [运行时核对（0.2.1-rc.2）](docs/runtime-spike.md)
 - [兼容性](docs/compatibility.md)
 - [交接文档](HANDOFF.md)
 

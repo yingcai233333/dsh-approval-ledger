@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import assert from 'node:assert/strict'
+import { describe, it } from 'node:test'
 
 describe('scaffold', () => {
   it('has a working test harness', () => {
-    expect(true).toBe(true)
+    assert.equal(true, true)
   })
 })

@@ -14,16 +14,17 @@ Include:
 
 ## Scope
 
-This plugin is a Host Cordis plugin with full Node.js access. It reads session/tool metadata, registers an `approval/request` listener, writes a metadata-only audit store, and may spawn a fixed PowerShell helper for Windows taskbar flashing.
+This plugin is a Host Cordis plugin with full Node.js access. It reads session/tool metadata, registers `request_approvals`, an `/approvals` command, and an `approval/request` listener, and keeps a metadata-only in-memory per-call ledger. The durable evidence remains the session log and plan-level `tool/result.meta`.
 
-It does **not**:
+It does **not** (as of 0.1.0-beta.1):
 
 - add new session event types;
 - replace the official approval/question/plan UI;
 - modify the Electron main process;
 - modify system environment variables;
 - install native dependencies;
-- send telemetry or network requests.
+- send telemetry or network requests;
+- spawn a PowerShell/notification helper (planned for Sprint 2).
 
 ## Design principles
 

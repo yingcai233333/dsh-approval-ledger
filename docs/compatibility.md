@@ -2,9 +2,15 @@
 
 ## DSH
 
-- 主要目标：`0.2.0-rc.2`（Windows 桌面）。
-- `package.json` 的 `dsh.compatibility.dshReleases` 先只写 `0.2.0-rc.2`。
+- 主要目标：`0.2.1-rc.2`（Windows 桌面）。
+- 当前安装包静态核对的是 `0.2.1-rc.2`；发布前要在目标版本做 live P0 复验 `docs/runtime-spike.md` 的接口。
+- `package.json` 的 `dsh.compatibility.dshReleases` 先只写 `0.2.1-rc.2`。
 - 升级 DSH 后先跑 P0 spike + 手工 smoke，再更新兼容表。
+
+## Tests
+
+- Node 22.8+ / 24；`pnpm test` 先编译到 `lib-test/`，再用 `node --test --test-isolation=none` 执行。
+- 不使用 esbuild 子进程，因此在 DSH 沙箱（禁止命名管道）下也能跑。
 
 ## OS
 

@@ -44,8 +44,8 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 `request_approvals` 的 schema 见 `HANDOFF.md`。校验：
 
 - id 唯一、依赖无环、tool 已注册；
-- 路径绝对化、拒绝 `..` 逃逸/UNC/ADS/设备名；
-- 命令长度上限、控制符/脚本标记；
+- 路径绝对化、realpath 最近已存在祖先、拒绝 `..` 逃逸/UNC/ADS/8.3/设备名/尾点空格；硬链接（`nlink > 1`）按 high/manual；
+- 命令长度上限、控制符/脚本标记；含元字符/解释器/脚本/下载的命令不自动匹配；
 - 总数/单项 uses 上限；
 - 只允许主会话（子会话无人类 answerer）。
 
@@ -76,7 +76,7 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 
 ## Audit
 
-见 `docs/audit.md`。核心：不新增事件类型；`tool/result.meta` + 插件账本 + 投影；账本只存元数据，不存参数/reason。
+见 `docs/audit.md`。核心：不新增事件类型；`tool/result.meta` + 内存账本 + 投影；账本只存元数据，不存参数/reason。`ctx.storageDomain` 是 KV 而不是 append-only 日志，Sprint 1 的持久事实来自 session log，跨会话留存推迟。
 
 ## UI
 
@@ -87,7 +87,7 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 
 ## Release plan
 
-- 0.1.0：observe（只记录本应放行，不实际放行）+ 计划 + 审计。
+- 0.1.0-beta.1：observe（只记录本应放行，不实际放行）+ 计划 + 审计（目标 DSH 0.2.1-rc.2）。
 - 0.2.0：medium 自动放行 + 详情弹窗 + 闪烁。
 - 0.3.0：high opt-in + 二次确认 + `ask_choices` + 跨会话只读列表。
 - 1.0.0：API/审计格式稳定。

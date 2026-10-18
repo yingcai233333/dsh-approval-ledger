@@ -17,7 +17,8 @@
 
 | Threat | Impact | Control |
 |---|---|---|
-| 路径逃逸（`..`/symlink/junction/UNC/ADS/8.3） | 写到批准范围外 | 绝对化 + realpath 最近祖先 + 大小写归一 + 拒绝特殊路径 + 专项测试 |
+| 路径逃逸（`..`/symlink/junction/hardlink/UNC/ADS/8.3） | 写到批准范围外 | 绝对化 + realpath 最近祖先 + 大小写归一 + 拒绝特殊路径 + 硬链接（nlink > 1）按 high/manual + 专项测试 |
+| 检查后替换（TOCTOU） | 审批的是 A、落盘到 B | 调用时重新 realpath + 风险门；残余竞态明确记录，不承诺零风险 |
 | 命令链（`;`/`&&`/换行/wrapper/脚本） | 批准的 A 变成 A+B | 整串精确；控制符/脚本/解释器不自动；完整展示 |
 | critical 夹带在批量里 | 系统被改 | critical 永不自动；按风险排序；单独标注 |
 | 风险引擎漏判 | 危险操作被当 medium | unknown 一律 manual；保守规则；只建议不自动拒绝 |
@@ -34,6 +35,8 @@
 ## Residual risks
 
 - 路径授权不绑定写入内容；代码/配置类默认 manual，数据类才批量。
+- 硬链接无法通过路径区分目标；只能检测 `nlink > 1` 并降为 manual。创建硬链接的权限由 OS 决定。
+- 检查与实际写入之间仍有 TOCTOU 窗口；同一卷上的并发替换不在纯匹配器能消除的范围内。
 - 任意 shell 命令语义无法静态判定；unknown 一律 manual。
 - 模型文本可社会工程；系统判断和模型说明分离只能降低。
 - 未来审批层策略可能被前置放行跳过；当前策略在更上游（pre-execute/guard）。

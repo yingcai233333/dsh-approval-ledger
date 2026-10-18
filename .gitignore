@@ -1,6 +1,16 @@
 node_modules/
 lib/
+lib-test/
+lib-test-*/
 coverage/
+.acl-recovery/
+.p0-backup/
+.p0-bin/
+.p0-plugin-diag.log
+.p0-test/
+.p0-dump.yml
+.p0-session-*.jsonl
+p0-test/
 *.log
 winget-install.log
 .DS_Store

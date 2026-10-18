@@ -37,7 +37,7 @@ DSH 不允许 live append 未知事件类型：未知事件只有在存储时带
 }
 ```
 
-3. **插件账本（每次调用）**：`ctx.storageDomain`，按 session 分区，append-only。
+3. **插件账本（每次调用）**：Sprint 1 使用**内存** `MemoryAuditStore`，按 session 分区；记录只活到 session 卸载/重启。`ctx.storageDomain` 是 schema 校验的 KV（`put/delete/entries`），**不是** append-only 日志；跨会话持久化推迟，避免为了 KV 引入 `zod` 运行时依赖。
 
 ```json
 {
@@ -62,7 +62,23 @@ DSH 不允许 live append 未知事件类型：未知事件只有在存储时带
 - 不存完整参数/reason/命令；只存 hash/摘要/等级/归属。
 - 完整内容在 session log 里，授权读者可查。
 
-4. **`approval-audit` 投影**：join 1–3 层，按 `callId`/`seq` 关联；按 turn/plan 分组；缺失记录标 `unattributed`；`/approvals audit [--json]` 输出；`wire.view` 给客户端。
+4. **`approval-audit` 投影**：join 1–2 层 + 内存账本，按 `callId`/`seq` 关联；缺失的每次调用记录从持久 `tool/call.arguments` + 当前 risk policy 派生，标 `derived-session-log`；无法解析则 `unattributed`。`/approvals audit [--json]` 输出；不猜。
+
+## Replay states
+
+| 状态 | 含义 |
+|---|---|
+| `verified` | 审批事实、账本记录、版本、结果、工具一致 |
+| `unattributed` | 有审批决定，但找不到对应的账本记录；不猜归属 |
+| `unverifiable` | 记录存在，但版本不匹配/缺失、session 不符、或缺计划元数据 |
+| `mismatch` | 账本结果或工具与审批事实不一致 |
+| `orphan` | 账本有记录，但 session log 里没有对应审批事实 |
+| `pending` | 有 `approval/asked`，但没有 `approval/decided` |
+
+- 版本字段（`schemaVersion` / `matcherVersion` / `riskPolicyVersion`）不匹配或缺失，一律 `unverifiable`。
+- 重启后由 `tool/call` 参数派生的记录 `matchedBy = derived-session-log`；风险用当前 policy 重算，是解释性证据，不是历史策略的证明。
+- 报告只展示摘要和 hash 前缀；原始 reason、参数、命令不进入报告。
+- 解析失败的事实/账本行记为 issue 并跳过，不让整份报告崩溃。
 
 ## Report
 

@@ -1,15 +1,18 @@
 # HANDOFF — dsh-approval-ledger
 
-> 从设计会话迁移的交接文档。新会话先读这一份，再读 `docs/design.md` 和 `docs/runtime-notes.md`。
+> 从设计会话迁移的交接文档。新会话先读这一份，再读 `docs/design.md`、`docs/runtime-spike.md` 和 `docs/runtime-notes.md`。
 
 ## 0. 当前状态
 
-- 阶段：**Sprint 0**（脚手架 + 设计定稿），还没有可用的审批功能。
+- 阶段：**Sprint 1 Host 代码已实现 + 临时 profile live P0 主流程/审批卡/取消/子代理已自动验证 + desktop 已安装本地 P0 构建**（`request_approvals`、`/approvals`、`approval/request` 钩子、plan-review 文档、逐项授权选择、grants、session-log 审计投影 + 267 个单测）。**未发布**；默认 observe-only。版本 `0.1.0-beta.1`。
+- 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
+- live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
+- desktop 安装：用户明确同意后，已用 `plugin_manager` 把 `link:D:\AIworkspace\dsh-approval-ledger` 装进 `desktop`；`package.json`/bundle、junction、`cordis.yml` 已更新，当前会话已能看到 `request_approvals`。备份在 `.p0-backup\desktop-preinstall\`；`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。只差 sibling `approval/request` prepend ordering 未测。
 - 仓库：<https://github.com/yingcai233333/dsh-approval-ledger>
 - 包名 / Loader row id：`dsh-approval-ledger` / `approval-ledger`
 - License：MIT
 - 作者：`yingcai233333`
-- 目标 DSH：`0.2.0-rc.2`（Windows 桌面；macOS/Linux 只保证非闪烁功能）
+- 目标 DSH：`0.2.1-rc.2`（Windows 桌面；macOS/Linux 只保证非闪烁功能）
 - 工作区：`D:\AIworkspace\dsh-approval-ledger`
 
 ## 1. 要解决的问题
@@ -99,7 +102,7 @@ ctx.on('approval/request', async (req, next) => {
 
 **第一道门：计划门**
 - 同 session、同 tool、同 kind、同 mode、有剩余 uses、依赖已满足；
-- paths 用 `realpath` 最近已存在祖先 + 大小写归一 + 拒绝 UNC/ADS/8.3/设备名/尾点空格；
+- paths 用 `realpath` 最近已存在祖先 + 大小写归一 + 拒绝 UNC/ADS/8.3/设备名/尾点空格；硬链接（nlink > 1）一律按 high/manual；
 - commands 整串精确匹配；含控制符/换行/脚本/解释器的不自动放行；
 - args 精确子集匹配。
 
@@ -125,8 +128,8 @@ ctx.on('approval/request', async (req, next) => {
 
 1. **session log（事实）**：`tool/call`、`tool/result`、`approval/asked`、`approval/decided`、`user-question-reply`、`turn/end`。自动放行也会留下 asked/decided。
 2. **`tool/result.meta`（计划级决策）**：`request_approvals` 返回时写入 planId、approved/manual、items、grants、`schemaVersion`/`matcherVersion`/`riskPolicyVersion`。不进模型上下文，不花 token。
-3. **插件审计账本（每次调用的理由）**：`ctx.storageDomain` 按 session 分区，append-only；只存 `callId`、`planId`、`itemId`、`tool`、`risk`、`mode`、`targetHash`、`targetSummary`、`outcome`、`matchedBy`、版本、时间。**不存完整参数/reason/命令。**
-4. **`approval-audit` 投影 + 报告**：join 1–3 层，按 turn/plan 分组；`/approvals audit [--json]` 输出；`wire.view` 给客户端侧栏/计划文档。缺失记录标 `unattributed`，不猜。
+3. **插件审计账本（每次调用的理由）**：Sprint 1 用**内存** `MemoryAuditStore` 按 session 分区；只存 `callId`、`planId`、`itemId`、`tool`、`risk`、`mode`、`targetHash`、`targetSummary`、`outcome`、`matchedBy`、版本、时间。**不存完整参数/reason/命令。** 重启后由第 4 层从持久 session log 派生。
+4. **`approval-audit` 投影 + 报告**：join 1–2 层 + 内存账本；`/approvals audit [--json]` 输出。缺失的每次调用记录用 `tool/call.arguments` + risk 重算派生，标 `derived-session-log`；无法解析则 `unattributed`，不猜。`ctx.storageDomain` 是 schema 校验 KV、不是 append-only，跨会话留存推迟到后续版本。
 
 可选第 5 层：`auditNotices: "plan"` 每个计划一条对话内提示；`"all"` 每次自动放行一条（默认关，避免刷屏和 token）。
 
@@ -164,37 +167,38 @@ ctx.on('approval/request', async (req, next) => {
 
 ## 5. P0 spike 清单（实现前先验）
 
-1. `displayReason` 在 `approval/request` 前置监听器里改写，客户端卡片是否显示新文案；对象是否被冻结。
-2. plan-review intent 在**非 plan 模式**是否渲染；`查看全文` 是否打开侧栏临时文档。
-3. `conversation.approval.detail` 单槽冲突（已知会抛错，确认即可）。
-4. 客户端 `useChat` 能否按 callId 取到 `argsRaw`；`useSessionStatus` 能否拿到 pending approval。
-5. `tool/result.meta` 是否持久化、投影是否可读；`ctx.storageDomain` 账本读写。
-6. `request_approvals` / `ask_choices` / `/approvals` 是否与现有插件重名。
-7. `approval/request` prepend + `next()` 的行为；`allowed-once` 是否仍写 asked/decided。
-8. Windows flash helper：PowerShell 常驻、EDR/ConstrainedLanguage 下是否失败、失败降级。
+1. `displayReason` 在 `approval/request` 前置监听器里改写，客户端卡片是否显示新文案；对象是否被冻结。**静态 likely；live 未验。**
+2. plan-review intent 在**非 plan 模式**是否渲染；`查看全文` 是否打开侧栏临时文档。**静态 verified；live 未验。**
+3. `conversation.approval.detail` 单槽冲突（已知会抛错，确认即可）。**静态 verified。**
+4. 客户端 `useChat` 能否按 callId 取到 `argsRaw`；`useSessionStatus` 能否拿到 pending approval。**静态 likely；live 未验。**
+5. `tool/result.meta` 是否持久化、投影是否可读；`ctx.storageDomain` 是 KV 不是 append-only。**静态 verified；Sprint 1 改用 session log + 内存账本。**
+6. `request_approvals` / `ask_choices` / `/approvals` 是否与现有插件重名。**静态 verified：前两者/命令可用。**
+7. `approval/request` prepend + `next()` 的行为；`allowed-once` 是否仍写 asked/decided。**静态 verified。**
+8. Windows flash helper：PowerShell 常驻、EDR/ConstrainedLanguage 下是否失败、失败降级。**Sprint 2。**
 
 ## 6. 目录与下一步
 
 ```
 dsh-approval-ledger/
-  package.json
+  AGENTS.md
+  package.json / tsconfig.json / tsconfig.test.json
   cordis.patch.yml
   README.md / README.zh.md
   LICENSE / SECURITY.md / CONTRIBUTING.md / CHANGELOG.md
   HANDOFF.md
   icon.svg
   locale/{en,zh}.json
-  docs/{design,threat-model,audit,runtime-notes,compatibility}.md
+  docs/{design,threat-model,audit,runtime-notes,runtime-spike,compatibility}.md
   schema/audit-v1.json
-  src/
+  src/{core,path,command,args,risk,plan,audit}/
   test/
   .github/workflows/ci.yml
 ```
 
 下一步：
 
-1. **Sprint 0**：纯匹配器（path/command/args）、风险引擎、计划 schema/校验、审计 schema/回放 + 单测。无 UI、无安装。
-2. **Sprint 1**：observe 模式、`request_approvals`、plan-review 文档、审计账本/投影、`/approvals` 命令；发 `0.1.0-beta.1`（`next` tag）。
+1. ~~**Sprint 0**：纯匹配器（path/command/args）、风险引擎、计划 schema/校验、审计 schema/回放 + 单测。无 UI、无安装。~~ **已完成（0.0.2）**。
+2. **Sprint 1**：observe 模式、`request_approvals`、plan-review 文档、审计账本/投影、`/approvals` 命令。**Host 代码已完成（0.1.0-beta.1）**；剩余 live P0（卡片文案、plan-review 渲染、meta 回读、subagent 行为）和安装安全审查，之后才能发布。
 3. **Sprint 2**：medium 自动放行、头部详情按钮/弹窗、Windows 闪烁；发 `0.2.0`。
 4. **Sprint 3**：high opt-in + 二次确认、`ask_choices`、跨会话只读列表；发 `0.3.0`。
 5. **1.0.0**：API/审计格式冻结、兼容矩阵。
@@ -222,14 +226,16 @@ dsh-approval-ledger/
 
 ## 9. 给新会话的第一句话
 
-> 先读 `HANDOFF.md` 和 `docs/design.md`；项目在 Sprint 0，先把纯匹配器/风险引擎/审计回放和单测做出来，不要先装插件。安装/发布前按用户的插件安全审查规矩逐条确认。
+> 先读 `HANDOFF.md`、`docs/design.md`、`docs/runtime-spike.md`；Sprint 1 Host 代码已完成（默认 observe），下一步是 live P0 + 安装安全审查，不要先装插件。安装/发布前按用户的插件安全审查规矩逐条确认。
 
 ## 10. 构建注意（重要）
 
 - DSH 的内部包没有完整发布到 npm：`pnpm install` 解析 `@deepseek-ai/dsh-type-meta` 会 404。
-- 因此 Sprint 0 的 `package.json` **没有**把 `@deepseek-ai/*` 放进 devDependencies/peerDependencies；`src/index.ts` 暂时用 `unknown` 作为 Context 类型。
+- 因此 `package.json` **没有**把 `@deepseek-ai/*` 放进 devDependencies/peerDependencies；插件使用 `src/types/dsh-runtime.ts` 的最小结构性声明，值导入只有本地模块和 Node 内置模块。
 - 实现阶段需要 DSH 类型时，优先：
-  1. 在 `types/` 写最小本地声明；或
+  1. 在 `src/types/` 写最小本地声明；或
   2. 用 DSH checkout 的 `.d.ts` 做只读参考；
   3. 不要把未发布的 `@deepseek-ai/*` 加回依赖，否则 CI 会挂。
-- CI 已通过：Ubuntu/Windows × Node 22/24 全绿。
+- 测试：`pnpm test` 先 `tsc -p tsconfig.test.json` 输出到 `lib-test/`，再用 Node 自带测试运行器（`--test-isolation=none`）执行；这样不依赖 esbuild 子进程，沙箱内也能跑。`vitest` 仍在 devDependencies，留给后续客户端测试。
+- 本地验证：267 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub CI 需推送后再确认。
+- **版本注意**：静态核对的是安装包 `0.2.1-rc.2`，仓库目标写的是 `0.2.0-rc.2`；发布前必须按目标版本复验 `docs/runtime-spike.md` 的接口。
