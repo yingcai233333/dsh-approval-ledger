@@ -3,6 +3,7 @@ import { sha256Tag } from '../core/hash.js'
 import { RISK_RANK } from '../core/types.js'
 import type { RiskLevel } from '../core/types.js'
 import { extractApprovalTarget } from '../approval/target.js'
+import type { PathPlatform } from '../path/types.js'
 import { canonicalTargetValue } from './record.js'
 import {
   MATCHER_VERSION,
@@ -96,6 +97,8 @@ export interface ReplayInput {
   planMetas?: readonly unknown[]
   /** Session cwd used to canonicalize relative tool-call targets. */
   cwd?: string
+  /** Path platform used for target hashing; defaults to the host platform. */
+  platform?: PathPlatform
   now?: number
   versions?: ReplayVersions
 }
@@ -175,6 +178,7 @@ function parseFacts(
   facts: readonly unknown[],
   issues: AuditIssue[],
   cwd?: string,
+  platform?: PathPlatform,
 ): ParsedFacts {
   const parsed: ParsedFacts = {
     asked: [],
@@ -232,7 +236,7 @@ function parseFacts(
       case 'tool/call': {
         if (callId !== undefined) {
           if (toolName !== undefined) parsed.toolNames.set(callId, toolName)
-          const target = extractApprovalTarget({ args: raw.args, cwd })
+          const target = extractApprovalTarget({ args: raw.args, cwd, platform })
           const targetHash =
             target.value === undefined
               ? undefined
@@ -413,7 +417,7 @@ export function replayAudit(input: ReplayInput): AuditReplay {
       riskPolicyVersion: input.versions?.riskPolicyVersion ?? RISK_POLICY_VERSION,
     }
 
-    const parsed = parseFacts(input.facts, issues, input.cwd)
+    const parsed = parseFacts(input.facts, issues, input.cwd, input.platform)
 
     const recordsByCall = new Map<string, AuditRecord>()
     for (const raw of input.ledger) {

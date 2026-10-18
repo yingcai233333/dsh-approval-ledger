@@ -27,7 +27,7 @@ export class FakeContext {
   readonly warnings: string[] = []
   readonly askCalls: AskUserQuestionRequest[] = []
   readonly effects: Array<() => void> = []
-  readonly cwd = 'C:\\ws'
+  readonly cwd = process.platform === 'win32' ? 'C:\\ws' : '/ws'
   askError: unknown
   askHandler: (request: AskUserQuestionRequest) => Promise<AskUserQuestionAnswer> = async (request) => ({
     answers: request.questions.map((question) => ({

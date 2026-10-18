@@ -384,6 +384,7 @@ describe('audit replay', () => {
     const replay = replayAudit({
       sessionId: SESSION,
       cwd: 'C:\\ws',
+      platform: 'win32',
       facts,
       ledger: [],
       planMetas: [planMeta],
@@ -451,6 +452,7 @@ describe('audit replay', () => {
     const replay = replayAudit({
       sessionId: SESSION,
       cwd: 'C:\\ws',
+      platform: 'win32',
       facts,
       ledger: [record],
       planMetas: [planMeta],

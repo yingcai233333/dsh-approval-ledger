@@ -24,5 +24,6 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm exec tsc -p tsconfig.test.json
+      - run: node --test lib-test/test/*.test.js
       - run: pnpm build

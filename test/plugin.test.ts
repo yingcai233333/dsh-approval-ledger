@@ -10,6 +10,9 @@ import {
   toolExec,
 } from './helpers/fake-context.js'
 
+const IS_WIN = process.platform === 'win32'
+const REPORT = IS_WIN ? 'C:\\ws\\out\\report.md' : '/ws/out/report.md'
+
 const PLAN = {
   summary: 'Write a report and run tests',
   items: [
@@ -17,7 +20,7 @@ const PLAN = {
       id: 'A',
       tool: 'write',
       title: 'write report',
-      scope: { paths: ['C:\\ws\\out\\report.md'] },
+      scope: { paths: [REPORT] },
     },
     {
       id: 'B',
@@ -162,7 +165,7 @@ describe('host plugin integration', () => {
         seq: 10,
         callId: 'write-call',
         tool: 'write',
-        args: { path: 'C:\\ws\\out\\report.md' },
+        args: { path: REPORT },
         reason: 'write a report',
       },
       'rejected',
@@ -198,7 +201,7 @@ describe('host plugin integration', () => {
         seq: 30,
         callId: 'write-call',
         tool: 'write',
-        args: { path: 'C:\\ws\\out\\report.md' },
+        args: { path: REPORT },
       },
       'rejected',
     )
@@ -228,7 +231,7 @@ describe('host plugin integration', () => {
         seq: 40,
         callId: 'write-call',
         tool: 'write',
-        args: { path: 'C:\\ws\\out\\report.md' },
+        args: { path: REPORT },
       },
       'rejected',
     )
@@ -332,7 +335,7 @@ describe('host plugin integration', () => {
         seq: 52,
         callId: 'write-call',
         tool: 'write',
-        args: { path: 'C:\\ws\\out\\report.md' },
+        args: { path: REPORT },
       },
       'rejected',
     )

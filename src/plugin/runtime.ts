@@ -571,6 +571,7 @@ function auditText(ctx: Context, runtime: LedgerRuntime, agent: Agent): string {
   const replay = replayAudit({
     sessionId: agent.id,
     cwd: workingDirectoryOf(ctx, agent.session),
+    platform: currentPlatform(),
     facts,
     ledger: [...recorded, ...derived],
   })
@@ -606,6 +607,7 @@ export function registerApprovalsCommand(
           const replay = replayAudit({
             sessionId: invocation.agent.id,
             cwd: workingDirectoryOf(ctx, invocation.agent.session),
+            platform: currentPlatform(),
             facts,
             ledger: [...recorded, ...derived],
           })
