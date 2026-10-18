@@ -4,7 +4,7 @@
 
 ## 0. 当前状态
 
-- 阶段：**Sprint 1 Host 代码已实现 + 临时 profile live P0 主流程/审批卡/取消/子代理已自动验证 + desktop 已安装本地 P0 构建 + Sprint 2 客户端“审批详情”按钮/只读弹窗已实现**（`request_approvals`、`/approvals`、`approval/request` 钩子、plan-review 文档、逐项授权选择、grants、session-log 审计投影、client half + 268 个单测）。**未发布**；默认 observe-only。版本 `0.1.0-beta.1`。
+- 阶段：**Sprint 1 Host 代码已实现 + 临时 profile live P0 主流程/审批卡/取消/子代理已自动验证 + desktop 已安装本地 P0 构建 + Sprint 2 客户端“审批详情”按钮/只读弹窗 + Windows flash helper 已实现**（`request_approvals`、`/approvals`、`approval/request` 钩子、plan-review 文档、逐项授权选择、grants、session-log 审计投影、client half、flash + 272 个单测）。**未发布**；默认 observe-only。版本 `0.1.0-beta.1`。
 - 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
 - live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
 - desktop 安装：用户明确同意后，已用 `plugin_manager` 把 `link:D:\AIworkspace\dsh-approval-ledger` 装进 `desktop`；`package.json`/bundle、junction、`cordis.yml` 已更新，当前会话已能看到 `request_approvals`。备份在 `.p0-backup\desktop-preinstall\`；`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。只差 sibling `approval/request` prepend ordering 未测。
@@ -237,5 +237,5 @@ dsh-approval-ledger/
   2. 用 DSH checkout 的 `.d.ts` 做只读参考；
   3. 不要把未发布的 `@deepseek-ai/*` 加回依赖，否则 CI 会挂。
 - 测试：`pnpm test` 先 `tsc -p tsconfig.test.json` 输出到 `lib-test/`，再用 Node 自带测试运行器（`--test-isolation=none`）执行；这样不依赖 esbuild 子进程，沙箱内也能跑。`vitest` 仍在 devDependencies，留给后续客户端测试。
-- 本地验证：268 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub Actions 在 Ubuntu/Windows × Node 22/24 四组全部通过（run 39135436206）。
+- 本地验证：272 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub Actions 在 Ubuntu/Windows × Node 22/24 四组全部通过（run 39135436206）。
 - **版本注意**：静态核对和仓库目标都是安装包 `0.2.1-rc.2`；发布前仍要在该目标版本复验 `docs/runtime-spike.md` 的接口。

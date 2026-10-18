@@ -52,6 +52,7 @@ Host 侧核心本身不依赖 DSH 类型；插件入口在它之上注册：
 
 - `request_approvals` 注册普通 DSH 工具定义，只发一条官方 plan-review 问题；批准后再发一条官方多选问题，让你只授权想授权的项，未勾选项保持 manual。
 - 客户端半会在会话头部加一个本地化“审批详情”按钮：有待审批时显示红点，点开是只读弹窗，展示 Host 改写后的摘要和原始 reason；它不会替你做允许/拒绝决定。
+- Windows 下，官方审批卡真正在等待时，Host 可以闪烁 DeepSeek Harness 窗口。它是 best-effort、可用 `flashWindow: false` 关闭，不阻塞也不改变决定。
 - grants 按 `(session, turn)` 存在内存；前置 `approval/request` 钩子执行计划门 + 每次调用的风险门，并把卡片的 `displayReason` 改写成真实 mode + 目标摘要。
 - 默认 observe：消费模拟的 grant 并记录 `would-allow`，但绝不返回 `allowed-once`。
 - `/approvals [audit [--json] | grants]` 折叠持久 session 事件 + 计划元数据；缺失的每次调用记录由 `tool/call` 参数派生并标记 `derived-session-log`，不猜。

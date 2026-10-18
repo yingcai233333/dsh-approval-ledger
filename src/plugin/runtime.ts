@@ -4,6 +4,7 @@ import { toAuditJson } from '../audit/export.js'
 import { replayAudit } from '../audit/replay.js'
 import { renderAuditReport } from '../audit/report.js'
 import { deriveAuditRecords, eventsToReplayFacts } from '../audit/session-facts.js'
+import { flashApprovalWindow } from '../notify/flash.js'
 import {
   isObserveOnly,
   planLimitsFromConfig,
@@ -266,6 +267,8 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
         })
         return 'allowed-once'
       }
+
+      flashApprovalWindow({ enabled: runtime.config.flashWindow })
 
       let outcome: ApprovalOutcome
       try {

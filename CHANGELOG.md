@@ -13,10 +13,11 @@ All notable changes to this project are documented here.
 - In-memory `(session, turn)` grant store with plan-scope and per-call risk gates, dependency stages, use consumption, manual/blocked bookkeeping, and turn/session revocation.
 - `displayReason` rewrite with the real mode + target summary; original reason remains in the session log.
 - Client half: a localized session-header "审批详情 / Approval details" button with a red dot for pending approvals, a `● ` document-title prefix, and a read-only modal showing tool, call, Host-rewritten summary, and the original reason. It has no allow/reject controls.
+- Best-effort Windows flash: when an official approval card is actually waiting, the Host spawns a hidden encoded PowerShell helper that calls `FlashWindowEx` for the DeepSeek Harness window. It is disabled by `flashWindow: false`, never runs on non-Windows, never blocks the waterfall, and silently ignores missing windows/EDR failures.
 - `/approvals audit` folds durable session events + `tool/result.meta`, derives missing per-call records from `tool/call` arguments (`derived-session-log`), and never guesses.
 - Structural DSH type surface (`src/types/dsh.d.ts`) and a read-only runtime spike (`docs/runtime-spike.md`); no `@deepseek-ai/*` runtime imports.
 - Local config sanitizer with safe defaults: observe, high-risk grants off, second confirmation forced on, retention/limits bounds.
-- 268 unit tests, including FakeContext plugin integration.
+- 272 unit tests, including FakeContext plugin integration.
 
 ### Changed
 

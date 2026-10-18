@@ -149,7 +149,7 @@ Only sibling `approval/request` prepend ordering remains untested live (it needs
 
 ## 8. Sprint 2 client slice
 
-Added `client.js` plus `dsh.client` metadata and the header slot registration. In the isolated Web UI, the session header shows the localized “审批详情” button with a red dot; opening it produced a read-only modal with the pending tool, callId, Host-rewritten summary (`write · …\p0-a.md · danger-full-access`), original reason, and a close action. While pending, the document title was prefixed with `● `. The modal has no allow/reject controls. Not yet implemented: Windows flash and active medium-by-default policy.
+Added `client.js` plus `dsh.client` metadata and the header slot registration. In the isolated Web UI, the session header shows the localized “审批详情” button with a red dot; opening it produced a read-only modal with the pending tool, callId, Host-rewritten summary (`write · …\p0-a.md · danger-full-access`), original reason, and a close action. While pending, the document title was prefixed with `● `. The modal has no allow/reject controls. The Host now also has a best-effort Windows flash helper (`src/notify/flash.ts`); unit tests cover script generation and the no-spawn paths, but the actual `FlashWindowEx` effect has not been live-tested because the current desktop session was not restarted. It is opt-out via `flashWindow: false`. Not yet implemented: active medium-by-default policy and a live desktop restart verification.
 
 The earlier `p0-test/a.md` write in the desktop session was a **manual/conversational** write, not a plugin grant; it is not accepted as P0 evidence.
 
