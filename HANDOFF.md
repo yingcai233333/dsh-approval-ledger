@@ -237,5 +237,5 @@ dsh-approval-ledger/
   2. 用 DSH checkout 的 `.d.ts` 做只读参考；
   3. 不要把未发布的 `@deepseek-ai/*` 加回依赖，否则 CI 会挂。
 - 测试：`pnpm test` 先 `tsc -p tsconfig.test.json` 输出到 `lib-test/`，再用 Node 自带测试运行器（`--test-isolation=none`）执行；这样不依赖 esbuild 子进程，沙箱内也能跑。`vitest` 仍在 devDependencies，留给后续客户端测试。
-- 本地验证：267 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub CI 需推送后再确认。
+- 本地验证：267 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub Actions 在 Ubuntu/Windows × Node 22/24 四组全部通过（run 39135436206）。
 - **版本注意**：静态核对和仓库目标都是安装包 `0.2.1-rc.2`；发布前仍要在该目标版本复验 `docs/runtime-spike.md` 的接口。
