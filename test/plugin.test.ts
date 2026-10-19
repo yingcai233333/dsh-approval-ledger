@@ -152,6 +152,46 @@ describe('host plugin integration', () => {
     assert.ok(ctx.commandDefs.has('approvals'))
   })
 
+  it('keeps high-risk opt-in behind the official approval card', async () => {
+    const { ctx, agent, events } = setup({ mode: 'active', allowHighRiskGrants: true })
+    const highPlan = {
+      summary: 'high-risk script write',
+      items: [
+        {
+          id: 'H',
+          tool: 'write',
+          title: '写脚本',
+          scope: { paths: [IS_WIN ? 'C:\\ws\\out\\script.ps1' : '/ws/out/script.ps1'] },
+        },
+      ],
+    }
+    const result = (await ctx.runTool(
+      'request_approvals',
+      highPlan,
+      toolExec(agent, 'plan-call', 'request_approvals', highPlan),
+    )) as Record<string, unknown>
+    assert.equal(result.decision, 'approved')
+    assert.equal(ctx.askCalls.length, 2)
+
+    const approval = await callApproval(
+      ctx,
+      agent,
+      events,
+      {
+        seq: 20,
+        callId: 'high-call',
+        tool: 'write',
+        args: { path: IS_WIN ? 'C:\\ws\\out\\script.ps1' : '/ws/out/script.ps1' },
+        reason: 'write a script',
+      },
+      'rejected',
+    )
+    assert.equal(approval.outcome, 'rejected')
+    const display = approval.displayReason as { zh?: string }
+    assert.match(display.zh ?? '', /^写入文件 · /)
+    assert.equal(display.zh?.includes('旧'), false)
+  })
+
   it('approves a plan, installs grants, auto-allows a medium write, and rewrites the card summary', async () => {
     const { ctx, agent, events } = setup()
     const { result } = await approvePlan(ctx, agent, events)
