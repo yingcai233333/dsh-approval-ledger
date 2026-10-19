@@ -1,81 +1,81 @@
 # dsh-approval-ledger
 
-> Language: [English](README.md) · [中文](README.zh.md)
+> Language: [English](README.en.md) · [中文](README.md)
 
-Documentation index: [docs/README.md](docs/README.md) · [docs/README.zh.md](docs/README.zh.md)
+文档索引：[docs/README.md](docs/README.md) · [docs/README.en.md](docs/README.en.md)
 
-Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
+为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. The package is **not published**; the default config is observe-only. Version is `0.2.0-beta.1`.
+> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；**尚未发布**，默认配置是 observe-only。版本为 `0.2.0-beta.1`。
 
-## Why
+## 为什么
 
-DSH asks for privileged operations one at a time. Because write/command tools are scheduled exclusively, the first approval blocks everything after it: you cannot collect future approvals without letting the agent declare them first.
+DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是独占调度，第一个审批会阻塞后面所有调用；插件不可能“等未来审批到齐”，所以必须让 agent 先把这一批操作声明出来。
 
-This plugin adds:
+这个插件做四件事：
 
-- **One plan for a batch.** The agent submits `request_approvals`; you review a concise list and approve once.
-- **Dependency stages.** Plan items can declare `dependsOn`; the matcher only unlocks a dependent item after its dependencies are consumed.
-- **Risk gate.** Every actual call is re-classified. Critical operations are never auto-approved; high-risk ones need an explicit opt-in and a second confirmation; unknown ones stay manual.
-- **Decision ledger.** Every auto/manual decision is traceable through the session log, plan-level `tool/result.meta`, and an in-memory per-call ledger; `/approvals audit` derives missing records from durable facts instead of guessing.
-- **Official UI first.** The shipped approval card, question card, and plan card are not replaced.
+- **一批一个计划**：agent 调用 `request_approvals` 交清单，你一次批准。
+- **依赖阶段**：计划项可声明 `dependsOn`；依赖消耗完才解锁下游。
+- **风险门控**：每次实际调用重新判风险；critical 永不自动；high 默认手动，显式开启后还要二次确认；unknown 一律手动。
+- **决策账本**：自动/手动决定可通过 session log、计划级 `tool/result.meta` 和内存账本追溯；`/approvals audit` 对缺失记录从持久事实派生，不猜。
+- **官方 UI 优先**：不替换自带的审批卡、问题卡、计划卡。
 
-In the current observe-only configuration the plan is reviewed, but each actual call still uses the official approval card; grants are simulated and audited as `would-allow`. Medium auto-approval is available only with an explicit `mode: active` config; it is not the default.
+当前 observe-only 配置下，计划会被审查，但每次实际调用仍然走官方审批卡；grant 只做模拟并记为 `would-allow`。medium 自动放行只能在显式配置 `mode: active` 后启用，不是默认行为。
 
-## Safety model
+## 安全模型
 
-- `critical` is **never** auto-approved.
-- `unknown` is always manual.
-- Auto-approval requires **two gates**: the plan scope matches **and** the actual call is risk-eligible.
-- Path matching resolves symlinks/junctions to the real target and treats hard-linked files as high risk (manual).
-- Grants are in-memory, session-scoped, and turn-scoped; they disappear on turn end, unload, or restart.
-- Any exception, parse failure, or mismatch falls back to the official approval UI.
-- The audit store never records full arguments, commands, reasons, or secrets.
+- `critical` **永不**自动放行。
+- `unknown` 一律手动。
+- 自动放行要过 **两道门**：计划范围匹配 **且** 实际调用风险等级允许。
+- 路径匹配会解析 symlink/junction 的真实目标；硬链接文件按高风险处理（手动）。
+- grant 只在内存、按 session、按 turn；turn 结束、卸载、重启即失效。
+- 任何异常、解析失败、不匹配，一律回退官方审批。
+- 账本不记录完整参数、命令、reason 或密钥。
 
-## Install
+## 安装
 
-Installed locally with `link:` into a temporary profile and the desktop profile for live P0. The npm package is **not published yet**; the command below is the planned install path once the release security review is approved.
+已用 `link:` 装到临时 profile 和 desktop profile 做过 live P0。**npm 包尚未发布**；下面的命令是发布安全审查通过后的计划安装方式。
 
 ```sh
-# planned
+# 计划中
 dsh plugin --profile <profile> add dsh-approval-ledger
 ```
 
-To opt into medium auto-approval explicitly:
+显式开启 medium 自动放行：
 
 ```yaml
-# the plugin row in cordis.patch.yml
+# cordis.patch.yml 中该插件行
 - id: approval-ledger
   config:
     mode: active
 ```
 
-`high` still needs opt-in plus the second-confirmation interlock; `critical` is never auto-approved; `unknown` stays manual.
+`high` 仍需 opt-in + 二次确认；`critical` 永不自动放行；`unknown` 保持手动。
 
-## Sprint 0 core
+## Sprint 0 纯核心
 
-The host-side core is dependency-free and does not import DSH types:
+Host 侧核心本身不依赖 DSH 类型；插件入口在它之上注册：
 
-- `normalizePath` / `matchPathScope` — case-normalized absolute paths, realpath of the nearest existing ancestor, hard-link detection, UNC/ADS/8.3/device-name rejection, and directory-only containment.
-- `normalizeCommand` / `matchCommandScope` — whitespace normalization plus hard rejection of shell metacharacters, interpreters, script files, downloads, and encoded commands from automatic matching.
-- `matchArgsScope` — bounded JSON validation and exact-subset matching; arrays must match exactly.
-- `assessRisk` — deterministic, advisory levels and reasons; `critical` and `unknown` never auto-approve.
-- `validatePlan` — unique ids, acyclic dependencies, stage computation, use limits, normalized scopes, risk counts, and a stable plan hash.
-- `AuditLedger` / `replayAudit` / `renderAuditReport` — metadata-only records, hash/scrub summaries, append-only sequencing, and replay that marks missing or conflicting evidence instead of guessing.
+- `normalizePath` / `matchPathScope`：大小写归一、realpath 最近已存在祖先、硬链接检测；拒绝 UNC/ADS/8.3/设备名；目录范围只在确认是目录时生效。
+- `normalizeCommand` / `matchCommandScope`：空白归一；含 shell 元字符、解释器、脚本、下载、编码命令的调用不参与自动匹配。
+- `matchArgsScope`：有界 JSON 校验 + 精确子集匹配；数组必须完全一致。
+- `assessRisk`：确定性、只给建议；`critical` 和 `unknown` 永不自动。
+- `validatePlan`：id 唯一、依赖无环、阶段计算、使用次数上限、范围归一、风险计数、稳定 plan hash。
+- `AuditLedger` / `replayAudit` / `renderAuditReport`：只存元数据；目标只存 hash/摘要；append-only 序号校验；回放对缺失/冲突证据标状态，不猜。
 
-## Sprint 1 Host wiring
+## Sprint 1 Host 接线
 
-- `request_approvals` registers a plain DSH tool definition and asks one official plan-review question; after approval it asks a second multi-select question so you can authorize only the items you want. Unchecked items stay manual.
-- The client half adds a localized **Approval details** button to the session header, with a red dot for a pending approval and a read-only modal showing the Host-rewritten summary and original reason. It never answers the approval.
-- On Windows, the Host can flash the DeepSeek Harness window when an official approval card is actually waiting. It is best-effort, opt-out (`flashWindow: false`), and never blocks or changes the decision.
-- Grants are installed in memory per `(session, turn)`; the prepended `approval/request` hook applies the plan gate and the per-call risk gate, and rewrites the card's `displayReason` to a real mode + target summary.
-- Observe mode (the default) consumes the simulated grant and records `would-allow`, but never returns `allowed-once`.
-- `/approvals [audit [--json] | grants]` folds durable session events plus plan metadata; missing per-call records are derived from `tool/call` arguments and marked `derived-session-log`, never guessed.
-- `ctx.storageDomain` is a schema-validated KV store, not an append-only log; Sprint 1 deliberately uses the session log + in-memory ledger instead. Cross-session retention is deferred.
+- `request_approvals` 注册普通 DSH 工具定义，只发一条官方 plan-review 问题；批准后再发一条官方多选问题，让你只授权想授权的项，未勾选项保持 manual。
+- 客户端半会在会话头部加一个本地化“审批详情”按钮：有待审批时显示红点，点开是只读弹窗，展示 Host 改写后的摘要和原始 reason；它不会替你做允许/拒绝决定。
+- Windows 下，官方审批卡真正在等待时，Host 可以闪烁 DeepSeek Harness 窗口。它是 best-effort、可用 `flashWindow: false` 关闭，不阻塞也不改变决定。
+- grants 按 `(session, turn)` 存在内存；前置 `approval/request` 钩子执行计划门 + 每次调用的风险门，并把卡片的 `displayReason` 改写成真实 mode + 目标摘要。
+- 默认 observe：消费模拟的 grant 并记录 `would-allow`，但绝不返回 `allowed-once`。
+- `/approvals [audit [--json] | grants]` 折叠持久 session 事件 + 计划元数据；缺失的每次调用记录由 `tool/call` 参数派生并标记 `derived-session-log`，不猜。
+- `ctx.storageDomain` 是 schema 校验的 KV，不是 append-only 日志；Sprint 1 有意使用 session log + 内存账本，跨会话留存推迟。
 
-## Development
+## 开发
 
-Requirements: Node.js 22+, pnpm.
+要求：Node.js 22+、pnpm。
 
 ```sh
 pnpm install
@@ -84,24 +84,24 @@ pnpm test
 pnpm build
 ```
 
-`pnpm test` compiles `src/` and `test/` to `lib-test/` and runs Node's built-in test runner. `pnpm build` emits the Host half to `lib/`.
+`pnpm test` 先把 `src/` 和 `test/` 编译到 `lib-test/`，再用 Node 自带测试运行器执行；`pnpm build` 把 Host 半部输出到 `lib/`。
 
-The package is a Cordis bundle: `cordis.patch.yml` inserts the `approval-ledger` row; `lib/index.js` is the Host half.
+这是一个 Cordis bundle：`cordis.patch.yml` 插入 `approval-ledger` 行；`lib/index.js` 是 Host 半部。
 
-## Documentation
+## 文档
 
-- [Design](docs/design.md)
-- [Threat model](docs/threat-model.md)
-- [Audit / decision ledger](docs/audit.md)
-- [Runtime notes](docs/runtime-notes.md)
-- [Runtime spike (0.2.1-rc.2)](docs/runtime-spike.md)
-- [Compatibility](docs/compatibility.md)
-- [Handoff](HANDOFF.md)
+- [设计](docs/design.md)
+- [威胁模型](docs/threat-model.md)
+- [审计/决策账本](docs/audit.md)
+- [运行时笔记](docs/runtime-notes.md)
+- [运行时核对（0.2.1-rc.2）](docs/runtime-spike.md)
+- [兼容性](docs/compatibility.md)
+- [交接文档](HANDOFF.md)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT，见 [LICENSE](LICENSE)。
 
-## Disclaimer
+## 免责声明
 
-Unofficial community plugin. Not affiliated with DeepSeek. Do not use the DeepSeek name or logo to imply endorsement.
+非官方社区插件，与 DeepSeek 无隶属关系；不要用 DeepSeek 的名称或 logo 暗示官方背书。

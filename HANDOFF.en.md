@@ -185,7 +185,7 @@ dsh-approval-ledger/
   AGENTS.md
   package.json / tsconfig.json / tsconfig.test.json
   cordis.patch.yml
-  README.md / README.zh.md
+  README.md / README.en.md
   LICENSE / SECURITY.md / CONTRIBUTING.md / CHANGELOG.md
   HANDOFF.md
   icon.svg

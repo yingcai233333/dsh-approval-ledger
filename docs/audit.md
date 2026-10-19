@@ -1,8 +1,8 @@
-# Audit / decision ledger
+> Language: [English](audit.en.md) · [中文](audit.md)
 
-> Language: [English](audit.md) · [中文](audit.zh.md)
+# 审计 / 决策账本
 
-## Why
+## 为什么
 
 DSH 的 session log 已经记录了动作和审批事实：
 
@@ -13,14 +13,14 @@ DSH 的 session log 已经记录了动作和审批事实：
 
 缺的是**归属和理由**：这次自动放行属于哪个计划的哪一项？风险等级是什么？为什么可自动放行？
 
-## Why not a new event type
+## 为什么不新增事件类型
 
-DSH 不允许 live append 未知事件类型：未知事件只有在存储时带 `ignorable: true` 才能被读取，而 `Session.append()` 无法设置该标记，会话会拒绝重开。所以：
+DSH 不允许在线追加（live append）未知事件类型：未知事件只有在存储时带 `ignorable: true` 才能被读取，而 `Session.append()` 无法设置该标记，会话会拒绝重开。所以：
 
 - 不新增 `approval-ledger/decision` 之类的事件；
-- 决策内容放在 `tool/result.meta` + 插件账本，再用投影 join。
+- 决策内容放在 `tool/result.meta` + 插件账本，再用投影 join（关联）。
 
-## Layers
+## 分层
 
 1. **session log（事实）**：已有，不重复。
 2. **`tool/result.meta`（计划级）**：
@@ -64,9 +64,9 @@ DSH 不允许 live append 未知事件类型：未知事件只有在存储时带
 - 不存完整参数/reason/命令；只存 hash/摘要/等级/归属。
 - 完整内容在 session log 里，授权读者可查。
 
-4. **`approval-audit` 投影**：join 1–2 层 + 内存账本，按 `callId`/`seq` 关联；缺失的每次调用记录从持久 `tool/call.arguments` + 当前 risk policy 派生，标 `derived-session-log`；无法解析则 `unattributed`。`/approvals audit [--json]` 输出；不猜。
+4. **`approval-audit` 投影**：join（关联）1–2 层 + 内存账本，按 `callId`/`seq` 关联；缺失的每次调用记录从持久 `tool/call.arguments` + 当前 risk policy 派生，标 `derived-session-log`；无法解析则 `unattributed`。`/approvals audit [--json]` 输出；不猜。
 
-## Replay states
+## 重放状态
 
 | 状态 | 含义 |
 |---|---|
@@ -82,7 +82,7 @@ DSH 不允许 live append 未知事件类型：未知事件只有在存储时带
 - 报告只展示摘要和 hash 前缀；原始 reason、参数、命令不进入报告。
 - 解析失败的事实/账本行记为 issue 并跳过，不让整份报告崩溃。
 
-## Report
+## 报告
 
 ```md
 ## 审批决策记录 · 2026-10-15 10:12
@@ -98,7 +98,7 @@ DSH 不允许 live append 未知事件类型：未知事件只有在存储时带
 校验：4 条审批事件，4 条审计记录，0 条未归属。
 ```
 
-## Privacy / lifecycle
+## 隐私 / 生命周期
 
 - 账本只存元数据；不存密钥/参数/reason。
 - 保留期可配（默认 30 天）；`session/disposed` 清理。

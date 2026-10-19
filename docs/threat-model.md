@@ -1,23 +1,23 @@
-# Threat model
+> Language: [English](threat-model.en.md) · [中文](threat-model.md)
 
-> Language: [English](threat-model.md) · [中文](threat-model.zh.md)
+# 威胁模型
 
-## Assets
+## 资产
 
 - 用户的工作区文件、系统目录、凭据、DSH 自身配置/插件。
 - 会话日志和审计账本里的决策记录。
 - 用户的注意力（避免审批疲劳导致误批）。
 
-## Trust boundaries
+## 信任边界
 
 - **模型输出不可信**：plan item 的 title/note、justification、问题文案都可能误导。
 - **工具参数不可信**：路径、命令、args 可能包含绕过/隐藏。
 - **插件代码可信的前提是经过审查**：Host 插件有完整 Node 权限；安装前必须走用户的插件安全审查。
 - **其他插件可能也在 `approval/request` 上作答**：多个自动审批插件会互相抢占。
 
-## Threats and controls
+## 威胁与控制
 
-| Threat | Impact | Control |
+| 威胁 | 影响 | 控制 |
 |---|---|---|
 | 路径逃逸（`..`/symlink/junction/hardlink/UNC/ADS/8.3） | 写到批准范围外 | 绝对化 + realpath 最近祖先 + 大小写归一 + 拒绝特殊路径 + 硬链接（nlink > 1）按 high/manual + 专项测试 |
 | 检查后替换（TOCTOU） | 审批的是 A、落盘到 B | 调用时重新 realpath + 风险门；残余竞态明确记录，不承诺零风险 |
@@ -32,9 +32,9 @@
 | UI 注入/密钥上屏 | XSS/泄漏 | React 转义；Markdown 去 HTML/链接/图片；疑似密钥打码；日志不记参数 |
 | 升级破坏 | 插件报错/审批阻塞 | pin 版本；运行时守卫；try/catch 回退 `next()`；不替换官方 |
 | 多插件冲突 | 双重自动审批/提醒 | `audit-only` 模式；`notifications:false`；兼容矩阵；不叠 auto-approval |
-|  npm 供应链 | 恶意包/篡改 | 零运行时依赖；2FA；OIDC provenance；signed tag；分支保护 |
+| npm 供应链 | 恶意包/篡改 | 零运行时依赖；2FA；OIDC provenance；signed tag；分支保护 |
 
-## Residual risks
+## 残余风险
 
 - 路径授权不绑定写入内容；代码/配置类默认 manual，数据类才批量。
 - 硬链接无法通过路径区分目标；只能检测 `nlink > 1` 并降为 manual。创建硬链接的权限由 OS 决定。
@@ -45,13 +45,13 @@
 - Windows 路径边角、EDR 策略、DSH 内部 API 漂移。
 - 用户可能不看就批；观察模式、风险排序、台账、二次确认只能缓解。
 
-## Hard rules
+## 硬性规则
 
-1. critical never auto.
-2. unknown => manual.
-3. two gates: plan scope + per-call risk eligibility.
-4. fail closed: any exception/parse failure => `next()`.
-5. turn-scoped, in-memory, no child inheritance, no persistence.
-6. critical/high sorted first; never bury.
-7. single decision path: official card; modal is read-only.
-8. no secrets in logs/ledger.
+1. critical 永不自动放行。
+2. unknown => manual（手动）。
+3. 两道门：计划范围 + 每次调用的风险资格。
+4. 失败关闭：任何异常/解析失败 => `next()`。
+5. 按 turn 作用域、内存态、不继承给子会话、不持久化。
+6. critical/high 排在最前；绝不埋没。
+7. 单一决策路径：官方卡；弹窗为只读。
+8. 日志/账本中不含密钥。

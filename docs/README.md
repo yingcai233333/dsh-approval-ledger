@@ -1,18 +1,18 @@
-# Documentation
+# 文档
 
-> Language: [English](README.md) · [中文](README.zh.md)
+> Language: [English](README.en.md) · [中文](README.md)
 
-Every user-facing document has an English and a Simplified Chinese version. Use the `Language` links at the top of a page to switch; the two files are kept side by side.
+所有面向用户的文档都以简体中文为主版本，英文版本以 `.en.md` 放在同一目录。每页顶部的 `Language` 链接用于切换。
 
-| Document | English | 中文 |
+| 文档 | 中文（主） | English |
 |---|---|---|
-| Design | [design.md](design.md) | [design.zh.md](design.zh.md) |
-| Threat model | [threat-model.md](threat-model.md) | [threat-model.zh.md](threat-model.zh.md) |
-| Audit / decision ledger | [audit.md](audit.md) | [audit.zh.md](audit.zh.md) |
-| Runtime notes | [runtime-notes.en.md](runtime-notes.en.md) | [runtime-notes.md](runtime-notes.md) |
-| Runtime spike | [runtime-spike.md](runtime-spike.md) | [runtime-spike.zh.md](runtime-spike.zh.md) |
-| Compatibility | [compatibility.md](compatibility.md) | [compatibility.zh.md](compatibility.zh.md) |
-| P0 install review | [install-review-p0.md](install-review-p0.md) | [install-review-p0.zh.md](install-review-p0.zh.md) |
-| Release review | [release-0.2.0-beta.1.md](release-0.2.0-beta.1.md) | [release-0.2.0-beta.1.zh.md](release-0.2.0-beta.1.zh.md) |
+| 设计 | [design.md](design.md) | [design.en.md](design.en.md) |
+| 威胁模型 | [threat-model.md](threat-model.md) | [threat-model.en.md](threat-model.en.md) |
+| 审计/决策账本 | [audit.md](audit.md) | [audit.en.md](audit.en.md) |
+| 运行时笔记 | [runtime-notes.md](runtime-notes.md) | [runtime-notes.en.md](runtime-notes.en.md) |
+| 运行时 spike | [runtime-spike.md](runtime-spike.md) | [runtime-spike.en.md](runtime-spike.en.md) |
+| 兼容性 | [compatibility.md](compatibility.md) | [compatibility.en.md](compatibility.en.md) |
+| P0 安装审查 | [install-review-p0.md](install-review-p0.md) | [install-review-p0.en.md](install-review-p0.en.md) |
+| 发布审查 | [release-0.2.0-beta.1.md](release-0.2.0-beta.1.md) | [release-0.2.0-beta.1.en.md](release-0.2.0-beta.1.en.md) |
 
-Project root: [README](../README.md) · [README.zh](../README.zh.md) · [HANDOFF](../HANDOFF.md) · [HANDOFF.en](../HANDOFF.en.md) · [SECURITY](../SECURITY.md) · [SECURITY.zh](../SECURITY.zh.md) · [CONTRIBUTING](../CONTRIBUTING.md) · [CONTRIBUTING.zh](../CONTRIBUTING.zh.md) · [CHANGELOG](../CHANGELOG.md) · [CHANGELOG.zh](../CHANGELOG.zh.md).
+项目根目录：[README](../README.md) · [README.en](../README.en.md) · [HANDOFF](../HANDOFF.md) · [HANDOFF.en](../HANDOFF.en.md) · [SECURITY](../SECURITY.md) · [SECURITY.en](../SECURITY.en.md) · [CONTRIBUTING](../CONTRIBUTING.md) · [CONTRIBUTING.en](../CONTRIBUTING.en.md) · [CHANGELOG](../CHANGELOG.md) · [CHANGELOG.en](../CHANGELOG.en.md)。

@@ -1,10 +1,10 @@
-# Design
+> Language: [English](design.en.md) · [中文](design.md)
 
-> Language: [English](design.md) · [中文](design.zh.md)
+# 设计
 
 > 目标：在**不替换官方 UI**、**不新增 session 事件类型**的前提下，为 DSH 提供批量审批、风险提示和可追溯的决策账本。
 
-## Goals
+## 目标
 
 - 一次批准一批已声明的操作，减少串行打断。
 - 列表简明，可展开看原因/后果/建议。
@@ -12,14 +12,14 @@
 - 关键操作重点标出；需要审批时桌面提醒。
 - 决策内容可追溯、可导出。
 
-## Non-goals
+## 非目标
 
 - 不做“永久允许”或“全部放行”。
 - 不自动推断未声明的因果依赖。
 - 不替代官方审批卡/问题卡/计划卡。
 - 不保证零风险；只做“有界、可回退、失败关闭”。
 
-## Architecture
+## 架构
 
 ```
 agent
@@ -41,7 +41,7 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
        └─ wire.view (plan doc / sidebar)
 ```
 
-## Plan tool
+## 计划工具
 
 `request_approvals` 的 schema 见 `HANDOFF.md`。校验：
 
@@ -49,7 +49,7 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 - 路径绝对化、realpath 最近已存在祖先、拒绝 `..` 逃逸/UNC/ADS/8.3/设备名/尾点空格；硬链接（`nlink > 1`）按 high/manual；
 - 命令长度上限、控制符/脚本标记；含元字符/解释器/脚本/下载的命令不自动匹配；
 - 总数/单项 uses 上限；
-- 只允许主会话（子会话无人类 answerer）。
+- 只允许主会话（子会话没有人类应答方，即 answerer）。
 
 计划文档：
 
@@ -58,36 +58,36 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 - 清单表（编号/操作/风险/依赖）；
 - 每项详情（是什么/为什么/批准后/系统判断/模型说明/建议）。
 
-## Grants
+## 授权（Grants）
 
 - 按 session、按 turn；内存态；不持久化。
 - 字段：`planId`、`itemId`、`tool`、`kind`、`mode`、`scope`、`usesLeft`、`deps`、`state`。
 - 匹配成功同步消费一次；依赖全部 used 才 ready。
 - `turn/end`、`agent/disposed`、插件卸载、重启全部撤销。
 
-## Risk policy
+## 风险策略
 
-| Level | Auto? |
+| 等级 | 自动？ |
 |---|---|
-| medium | yes（仅数据类文件写入） |
-| high | manual；opt-in + second confirm |
-| critical | never |
-| unknown | manual |
+| medium | 是（仅数据类文件写入） |
+| high | 手动；显式开启（opt-in）+ 二次确认 |
+| critical | 从不 |
+| unknown | 手动 |
 
-风险引擎是确定性的、advisory；`unknown` 不猜。详细规则见 `docs/threat-model.md`。
+风险引擎是确定性的、仅作建议（advisory）；`unknown` 不猜。详细规则见 `docs/threat-model.md`。
 
-## Audit
+## 审计
 
-见 `docs/audit.md`。核心：不新增事件类型；`tool/result.meta` + 内存账本 + 投影；账本只存元数据，不存参数/reason。`ctx.storageDomain` 是 KV 而不是 append-only 日志，Sprint 1 的持久事实来自 session log，跨会话留存推迟。
+见 `docs/audit.md`。核心：不新增事件类型；`tool/result.meta` + 内存账本 + 投影；账本只存元数据，不存参数/reason。`ctx.storageDomain` 是 KV 而不是仅追加（append-only）日志，Sprint 1 的持久事实来自 session log，跨会话留存推迟。
 
-## UI
+## 界面（UI）
 
 - 单条：官方卡 + 标题摘要 + 头部详情弹窗；不改 `conversation.approval.detail`。
 - 批量：官方 plan-review + 侧栏全文。
 - 多选：官方 question + `ask_choices` 结构化内容。
 - 提醒：Host Win32 flash + 页面红点。
 
-## Release plan
+## 发布计划
 
 - 0.1.0-beta.1：observe（只记录本应放行，不实际放行）+ 计划 + 审计（目标 DSH 0.2.1-rc.2）。
 - 0.2.0：medium 自动放行 + 详情弹窗 + 闪烁。

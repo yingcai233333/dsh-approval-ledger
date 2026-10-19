@@ -1,8 +1,8 @@
-# Contributing
+# 参与贡献
 
-> Language: [English](CONTRIBUTING.md) · [中文](CONTRIBUTING.zh.md)
+> Language: [English](CONTRIBUTING.en.md) · [中文](CONTRIBUTING.md)
 
-## Setup
+## 环境准备
 
 ```sh
 pnpm install
@@ -11,22 +11,22 @@ pnpm test
 pnpm build
 ```
 
-## Ground rules
+## 基本规则
 
-- Do not replace `ui-approval`, `ui-user-questions`, `ui-plan`, or `ui-chat`; use official extension points.
-- Do not add new session event types. Use `tool/result.meta`, the session log, and the in-memory per-call ledger.
-- Do not auto-approve `critical` or `unknown` operations.
-- Any new matcher rule needs an adversarial test (path traversal, symlink, command chaining, case, UNC, ADS, 8.3).
-- Any user-visible string goes through `ctx.locale`.
-- Do not log full tool arguments, commands, reasons, or secrets.
+- 不要替换 `ui-approval`、`ui-user-questions`、`ui-plan` 或 `ui-chat`；请使用官方扩展点。
+- 不要新增 session 事件类型。请使用 `tool/result.meta`、session log 以及内存中的逐调用账本。
+- 不要自动批准 `critical` 或 `unknown` 操作。
+- 任何新增的匹配规则都需要对抗性测试（路径穿越、符号链接、命令串联、大小写、UNC、ADS、8.3）。
+- 任何用户可见的字符串都必须经由 `ctx.locale`。
+- 不要记录完整的工具参数、命令、原因或密钥。
 
-## Pull requests
+## Pull Request
 
-- Keep changes focused.
-- Add or update tests.
-- Update `CHANGELOG.md` for user-visible changes.
-- State which P0 spike or compatibility check was run.
+- 保持改动聚焦。
+- 新增或更新测试。
+- 对用户可见的变更请更新 `CHANGELOG.md`。
+- 说明运行了哪项 P0 核对（spike）或兼容性检查。
 
-## DSH package availability
+## DSH 软件包的可用性
 
-Some internal DSH packages (for example `@deepseek-ai/dsh-type-meta`) are not published to npm. Do not add `@deepseek-ai/*` packages to `dependencies`, `devDependencies`, or `peerDependencies`: `pnpm install` will fail with a 404. Use the local structural surface in `src/types/dsh-runtime.ts` or a DSH checkout for reference until the packages are fully published.
+部分 DSH 内部包（例如 `@deepseek-ai/dsh-type-meta`）并未发布到 npm。不要将 `@deepseek-ai/*` 包加入 `dependencies`、`devDependencies` 或 `peerDependencies`：否则 `pnpm install` 会因 404 失败。在这些包完全发布之前，请改用 `src/types/dsh-runtime.ts` 中的本地结构化类型表面，或以 DSH 代码检出作为参考。
