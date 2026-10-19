@@ -1,5 +1,7 @@
 # P0 install review — dsh-approval-ledger 0.1.0-beta.1
 
+> Language: [English](install-review-p0.md) · [中文](install-review-p0.zh.md)
+
 > Status: **installed in the temporary `approval-p0` profile and in `desktop` for P0; unpublished.** This sheet records the approval gate and the executed actions. The desktop install was explicitly approved by the user.
 
 ## 1. What would be installed

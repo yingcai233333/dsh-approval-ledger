@@ -1,5 +1,7 @@
 # Design
 
+> Language: [English](design.md) · [中文](design.zh.md)
+
 > 目标：在**不替换官方 UI**、**不新增 session 事件类型**的前提下，为 DSH 提供批量审批、风险提示和可追溯的决策账本。
 
 ## Goals

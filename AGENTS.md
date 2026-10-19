@@ -1,5 +1,7 @@
 # 工作区约束
 
+> Language: [English](AGENTS.en.md) · [中文](AGENTS.md)
+
 本文件记录用户在当前工作区口述的硬约束。修改只由用户在对话中明确提出。
 
 ## 阶段约束（Sprint 1）

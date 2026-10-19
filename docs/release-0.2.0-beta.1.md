@@ -1,5 +1,7 @@
 # Release review — 0.2.0-beta.1
 
+> Language: [English](release-0.2.0-beta.1.md) · [中文](release-0.2.0-beta.1.zh.md)
+
 > Status: **not published**. This is the checklist to review before the next npm release. Do not run `npm publish`, create a tag, or trigger a release workflow without an explicit release approval.
 
 ## Package
@@ -18,7 +20,7 @@
 
 ## Verified
 
-- 272 unit tests; `pnpm lint` 0 warnings; `pnpm build` passes.
+- 273 unit tests; `pnpm lint` 0 warnings; `pnpm build` passes.
 - GitHub Actions: Ubuntu/Windows × Node 22/24 (run `39135436206` for the pre-client commit); latest client/flash commit CI is being checked.
 - Live P0 in `approval-p0` and desktop: plan-review, per-item selection, A/B split, high-risk approval card with rewritten `displayReason`, reject fail-closed, plan cancel, subagent `DELEGATED_CALLER`, audit attribution.
 - Desktop restart: Host `request_approvals` registered; client slot `approval-ledger-details` active.

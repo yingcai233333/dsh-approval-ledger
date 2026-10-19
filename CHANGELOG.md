@@ -1,5 +1,7 @@
 # Changelog
 
+> Language: [English](CHANGELOG.md) · [中文](CHANGELOG.zh.md)
+
 All notable changes to this project are documented here.
 
 ## [0.2.0-beta.1] - 2026-10-19 (unpublished)
@@ -9,6 +11,7 @@ All notable changes to this project are documented here.
 - Client half: a localized session-header "审批详情 / Approval details" button with a red dot for pending approvals, a `● ` document-title prefix, and a read-only modal showing tool, call, Host-rewritten summary, and original reason. It never answers the approval.
 - Best-effort Windows flash via a hidden encoded PowerShell `FlashWindowEx` helper; opt-out with `flashWindow: false`, non-Windows no-op, no waterfall blocking.
 - FakeContext coverage for sibling `approval/request` prepend ordering.
+- Bilingual documentation: every user-facing Markdown document has an English/Simplified-Chinese pair, a top `Language` switch, and a `docs/README` index; `test/docs-i18n.test.ts` enforces the pairing.
 
 ### Changed
 
@@ -30,7 +33,7 @@ All notable changes to this project are documented here.
 - `/approvals audit` folds durable session events + `tool/result.meta`, derives missing per-call records from `tool/call` arguments (`derived-session-log`), and never guesses.
 - Structural DSH type surface (`src/types/dsh.d.ts`) and a read-only runtime spike (`docs/runtime-spike.md`); no `@deepseek-ai/*` runtime imports.
 - Local config sanitizer with safe defaults: observe, high-risk grants off, second confirmation forced on, retention/limits bounds.
-- 272 unit tests, including FakeContext plugin integration.
+- 273 unit tests, including FakeContext plugin integration and bilingual documentation pairing checks.
 
 ### Changed
 

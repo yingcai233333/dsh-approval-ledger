@@ -1,5 +1,7 @@
 # Security Policy
 
+> Language: [English](SECURITY.md) · [中文](SECURITY.zh.md)
+
 ## Reporting a vulnerability
 
 Please use GitHub's **private vulnerability reporting** (Security → Advisories → Report a vulnerability) instead of a public issue.

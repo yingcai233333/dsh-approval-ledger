@@ -1,5 +1,7 @@
 # Compatibility
 
+> Language: [English](compatibility.md) · [中文](compatibility.zh.md)
+
 ## DSH
 
 - 主要目标：`0.2.1-rc.2`（Windows 桌面）。

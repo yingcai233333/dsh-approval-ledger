@@ -1,5 +1,7 @@
 # Threat model
 
+> Language: [English](threat-model.md) · [中文](threat-model.zh.md)
+
 ## Assets
 
 - 用户的工作区文件、系统目录、凭据、DSH 自身配置/插件。

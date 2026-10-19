@@ -1,5 +1,7 @@
 # Runtime spike — DSH 0.2.1-rc.2 (static, read-only)
 
+> Language: [English](runtime-spike.md) · [中文](runtime-spike.zh.md)
+
 > Sprint 1 pre-integration facts. Every path below is relative to the installed checkout
 > `D:\software\DS-harness\resources\app.asar\` (an asar archive, not a directory) unless it starts with `docs/` or `src/`.
 > No app was run; no file outside this repo was written.

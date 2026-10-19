@@ -1,5 +1,7 @@
 # Runtime notes (verified)
 
+> Language: [English](runtime-notes.en.md) · [中文](runtime-notes.md)
+
 > 这些是设计阶段从 DSH 0.2.0-rc.2 的安装包/运行时确认过的事实；当前目标已升到 0.2.1-rc.2，升级后要按 `docs/runtime-spike.md` 重新验。
 
 ## Approval

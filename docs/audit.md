@@ -1,5 +1,7 @@
 # Audit / decision ledger
 
+> Language: [English](audit.md) · [中文](audit.zh.md)
+
 ## Why
 
 DSH 的 session log 已经记录了动作和审批事实：

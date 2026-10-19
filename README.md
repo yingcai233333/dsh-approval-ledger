@@ -1,5 +1,9 @@
 # dsh-approval-ledger
 
+> Language: [English](README.md) · [中文](README.zh.md)
+
+Documentation index: [docs/README.md](docs/README.md) · [docs/README.zh.md](docs/README.zh.md)
+
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
 > **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. The package is **not published**; the default config is observe-only. Version is `0.2.0-beta.1`.
