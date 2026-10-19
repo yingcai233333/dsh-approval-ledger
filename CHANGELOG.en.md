@@ -4,6 +4,15 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.2] - 2026-10-19 (published to npm, `next`/`latest`)
+
+### Changed
+
+- Documentation now uses **Simplified Chinese as the primary language**: `README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, and `docs/*.md` default to Chinese; English lives in matching `.en.md` files.
+- npm shows the Chinese `README.md` by default; `README.en.md` is included in the package.
+- Added the Chinese `docs/README.md` and English `docs/README.en.md` indexes plus a documentation-pairing test.
+- No code changes from `0.2.0-beta.1`.
+
 ## [0.2.0-beta.1] - 2026-10-19 (published to npm, `next` tag)
 
 ### Added

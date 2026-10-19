@@ -6,7 +6,7 @@
 
 ## 0. 当前状态
 
-- 阶段：**Sprint 2 code freeze**（Sprint 1 Host/审计 + 客户端“审批详情”面板 + Windows flash + desktop 重启加载验证 + npm `0.2.0-beta.1` 发布；273 个单测）。默认 observe-only，active 需显式配置。`next` tag 已发布，`latest` 因首次发布也被 npm 强制指向该 beta，稳定版发布时再移动。
+- 阶段：**Sprint 2 code freeze**（Sprint 1 Host/审计 + 客户端“审批详情”面板 + Windows flash + desktop 重启加载验证 + npm `0.2.0-beta.2` 发布；273 个单测）。默认 observe-only，active 需显式配置。`next`/`latest` 都指向 `0.2.0-beta.2`；稳定版发布时再移动 `latest`。
 - 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
 - live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
 - desktop 安装：用户明确同意后，已用 `plugin_manager` 把 `link:D:\AIworkspace\dsh-approval-ledger` 装进 `desktop`；重启后 `request_approvals` 已注册，client header `approval-ledger-details` 槽位已加载。备份在 `.p0-backup\desktop-preinstall\`；`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。

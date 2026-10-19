@@ -3,6 +3,8 @@
 # 发布审查 — 0.2.0-beta.1
 
 > 状态：**已发布到 npm（2026-10-19）**。tarball：<https://registry.npmjs.org/dsh-approval-ledger/-/dsh-approval-ledger-0.2.0-beta.1.tgz>。`next` 和 `latest` 都指向 `0.2.0-beta.1`——首次发布时 npm 强制创建 `latest`，且不允许删除；等稳定版发布后再把 `latest` 移到稳定版。
+>
+> 后续：仅文档变更的 `0.2.0-beta.2` 已发布，`next`/`latest` 指向 beta.2；本页保留 beta.1 的历史记录。
 
 ## 包
 

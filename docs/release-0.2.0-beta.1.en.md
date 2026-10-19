@@ -3,6 +3,8 @@
 > Language: [English](release-0.2.0-beta.1.en.md) · [中文](release-0.2.0-beta.1.md)
 
 > Status: **published to npm (2026-10-19)**. Tarball: <https://registry.npmjs.org/dsh-approval-ledger/-/dsh-approval-ledger-0.2.0-beta.1.tgz>. Both `next` and `latest` point to `0.2.0-beta.1`; npm forced a `latest` tag on the first publish and refuses to remove it. Move `latest` to a stable version when one is released.
+>
+> Follow-up: the docs-only `0.2.0-beta.2` is published with `next`/`latest` pointing at beta.2; this page keeps the beta.1 history.
 
 ## Package
 

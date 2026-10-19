@@ -4,6 +4,15 @@
 
 本项目的所有重要变更都记录在此。
 
+## [0.2.0-beta.2] - 2026-10-19（已发布到 npm，`next`/`latest`）
+
+### 变更
+
+- 文档改为**简体中文主版本**：`README.md`、`CHANGELOG.md`、`SECURITY.md`、`CONTRIBUTING.md` 和 `docs/*.md` 默认中文；英文放在同名 `.en.md`。
+- npm 页面默认显示中文 `README.md`；英文 `README.en.md` 随包提供。
+- 新增 `docs/README.md` 中文索引、`docs/README.en.md` 英文索引，以及文档配对测试。
+- 代码与 `0.2.0-beta.1` 相同，无功能变更。
+
 ## [0.2.0-beta.1] - 2026-10-19（已发布到 npm，`next` tag）
 
 ### 新增
