@@ -4,6 +4,15 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.4] - 2026-10-19 (pending release)
+
+### Added
+
+- Added the `ask_choices` Host tool: structured single/multi-select questions through the official question card.
+- Supports 1-5 questions, 2-10 options per question, option descriptions, and a `recommended` marker rendered as `（推荐）`.
+- Only collects choices; never executes actions or changes grants. Cancellation returns `cancelled: true`.
+- Question and option text goes through `scrubSecrets` and the same sanitizer as plan documents.
+
 ## [0.2.0-beta.3] - 2026-10-19 (published to npm, `next`/`latest`)
 
 ### Changed

@@ -20,6 +20,13 @@ import { createPlanId } from '../plan/id.js'
 import { buildPlanMeta } from '../plan/meta.js'
 import { buildPlanReviewRequest, buildPlanSelectionQuestion, validatePlanReviewShape } from '../plan/review.js'
 import {
+  ASK_CHOICES_OUTPUT_SCHEMA,
+  ASK_CHOICES_PARAMETERS,
+  normalizeChoiceAnswers,
+  parseAskChoicesArgs,
+  toQuestionRequest,
+} from '../choices/ask.js'
+import {
   REQUEST_APPROVALS_OUTPUT_SCHEMA,
   REQUEST_APPROVALS_PARAMETERS,
 } from '../plan/tool-schema.js'
@@ -548,6 +555,48 @@ export function registerRequestApprovalsTool(
   return ctx.tools.register(definition)
 }
 
+/**
+ * Structured multiple-choice questions through the official question UI.
+ *
+ * This tool never executes anything and never changes grants. It only adds
+ * Chinese detail, option descriptions, and a `（推荐）` marker so the model can
+ * ask a clear question without replacing the official question card.
+ */
+export function registerAskChoicesTool(ctx: Context): () => void {
+  const definition: ToolDefinition = {
+    name: 'ask_choices',
+    description:
+      '向用户提出结构化选择问题（单选或多选），使用官方问题卡。' +
+      '最多 5 个问题、每题 2-10 个选项；可以用 description 解释选项，用 recommended 标记推荐项。' +
+      '这个工具只收集选择，不执行操作、不修改授权。',
+    parameters: ASK_CHOICES_PARAMETERS,
+    output: {
+      schema: ASK_CHOICES_OUTPUT_SCHEMA as unknown as JsonSchemaNode,
+      render: (_args, value) => {
+        const record = isPlainObject(value) ? value : {}
+        if (record.cancelled === true) {
+          return [{ type: 'text', text: '用户取消了选择。' }]
+        }
+        const answers = Array.isArray(record.answers) ? record.answers.length : 0
+        return [{ type: 'text', text: `已收到 ${answers} 个问题的选择。` }]
+      },
+    },
+    async execute(args: unknown, exec: ToolRunContext): Promise<JsonValue> {
+      const agent = exec.agent
+      if (agent === undefined) throw new Error('ask_choices requires an owning agent session')
+      if (exec.signal.aborted) throw new Error('ask_choices was cancelled')
+      const questions = parseAskChoicesArgs(args)
+      const answer = await askQuestions(ctx, agent, exec.signal, toQuestionRequest(questions))
+      if (answer === undefined) return { cancelled: true, answers: [] }
+      return {
+        cancelled: false,
+        answers: normalizeChoiceAnswers(questions, answer) as unknown as JsonValue,
+      }
+    },
+  }
+  return ctx.tools.register(definition)
+}
+
 function grantsText(runtime: LedgerRuntime, sessionId: string): string {
   const grants = runtime.grants.listGrants(sessionId)
   if (grants.length === 0) return 'No grants recorded for this session.'
@@ -651,6 +700,7 @@ export function registerRuntime(ctx: Context, config: PluginConfig): () => void 
     )
     disposers.push(registerApprovalHook(ctx, runtime))
     disposers.push(registerRequestApprovalsTool(ctx, runtime))
+    disposers.push(registerAskChoicesTool(ctx))
     disposers.push(registerApprovalsCommand(ctx, runtime))
   } catch (error) {
     for (let index = disposers.length - 1; index >= 0; index -= 1) disposers[index]?.()

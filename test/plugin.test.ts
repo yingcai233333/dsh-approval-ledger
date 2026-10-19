@@ -148,6 +148,7 @@ describe('host plugin integration', () => {
     assert.ok(inject.includes('commands'))
     assert.ok(inject.includes('workingDirectory'))
     assert.ok(ctx.toolDefs.has('request_approvals'))
+    assert.ok(ctx.toolDefs.has('ask_choices'))
     assert.ok(ctx.commandDefs.has('approvals'))
   })
 
