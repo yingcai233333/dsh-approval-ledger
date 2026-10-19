@@ -4,6 +4,14 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.8] - 2026-10-19 (pending release)
+
+### Changed
+
+- `request_approvals` now returns a Chinese summary listing each item as auto/manual, so it is clear which items received authorization.
+- The tool description now tells the agent to call `request_approvals` first when a task has multiple privileged calls.
+- The inline Chinese note now uses a `shell.overlay` lower-right panel that appears with the approval card; it adds no allow/reject buttons.
+
 ## [0.2.0-beta.7] - 2026-10-19 (published to npm, `next`/`latest`)
 
 ### Added

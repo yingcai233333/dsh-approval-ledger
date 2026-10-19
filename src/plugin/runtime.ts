@@ -427,9 +427,9 @@ export function registerRequestApprovalsTool(
   const definition: ToolDefinition = {
     name: 'request_approvals',
     description:
-      'Ask the user to approve a declared batch of upcoming tool actions in one plan-review card. ' +
-      'Each item must declare the exact tool and scope; the host re-evaluates risk for every actual call. ' +
-      'Critical operations are never auto-approved and unknown operations stay manual.',
+      '在任务会执行多个写文件/命令等受控调用时，先调用一次 request_approvals，把整批操作声明出来，让用户一次审批。' +
+      '每项必须声明真实工具和匹配范围；Host 会在每次实际调用时重新判风险。' +
+      '严重风险永不自动放行，未知风险保持手动。',
     parameters: REQUEST_APPROVALS_PARAMETERS,
     output: {
       schema: REQUEST_APPROVALS_OUTPUT_SCHEMA as unknown as JsonSchemaNode,
@@ -437,11 +437,23 @@ export function registerRequestApprovalsTool(
         const record = isPlainObject(value) ? value : {}
         const decision = typeof record.decision === 'string' ? record.decision : 'unknown'
         const planId = typeof record.planId === 'string' ? record.planId : 'unknown'
-        const items = Array.isArray(record.items) ? record.items.length : 0
+        const items = Array.isArray(record.items) ? record.items : []
+        const auto = items.filter((item) => isPlainObject(item) && item.auto === true).length
+        const label = decision === 'approved' ? '已批准' : '未批准'
+        const detail = items
+          .map((item) => {
+            if (!isPlainObject(item)) return undefined
+            const id = typeof item.id === 'string' ? item.id : '?'
+            return `${id} ${item.auto === true ? '自动' : '手动'}`
+          })
+          .filter((entry): entry is string => entry !== undefined)
+          .join('；')
         return [
           {
             type: 'text',
-            text: `Plan ${planId}: ${decision}; ${items} item(s) recorded.`,
+            text: `计划 ${planId}：${label}；共 ${items.length} 项，${auto} 项授权自动，${items.length - auto} 项手动。${
+              detail.length > 0 ? ` ${detail}` : ''
+            }`,
           },
         ]
       },

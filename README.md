@@ -6,7 +6,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；审批介绍已改为中文，已发布 `0.2.0-beta.7`（`next`/`latest`），审批卡出现时输入框旁会显示同屏中文说明。默认配置仍是 observe-only。
+> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；审批介绍已改为中文，已发布 `0.2.0-beta.7`（`next`/`latest`）。`0.2.0-beta.8` 增加同屏中文说明和逐项自动/手动摘要，待发布；desktop 已启用 active 批量模式（中/低风险自动，高风险仍逐条）。
 
 ## 为什么
 

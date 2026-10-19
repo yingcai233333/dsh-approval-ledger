@@ -6,7 +6,7 @@
 
 ## 0. 当前状态
 
-- 阶段：**`0.2.0-beta.7` 已发布**（`0.2.0-beta.6` 的 Windows 闪烁真机验证 + beta.7 的审批卡同屏中文说明；280 个单测；desktop 已安装 beta.7）。说明面板位于 `shell.overlay` 右下角，出现审批卡时自动显示；不添加允许/拒绝按钮，决定仍在官方卡。剩余：sibling live 验证、0.3.0 稳定版。
+- 阶段：**`0.2.0-beta.8` 待发布**（`0.2.0-beta.7` 已发布；280 个单测；desktop 已安装 beta.7，并已通过 `cordis.patch.yml` 启用 `mode: active`）。beta.8 增加同屏中文说明和逐项自动/手动摘要。启用 active 后中/低风险计划项可连续执行；高/严重/未知仍逐条官方确认。剩余：sibling live 验证、0.3.0 稳定版。
 - 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
 - live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
 - desktop 安装：已切换到 npm `dsh-approval-ledger@0.2.0-beta.5`；`package.json` 依赖已是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices`、`/approvals sessions` 和 client header `approval-ledger-details` 已加载。切换时的旧 link junction 备份为 `node_modules\dsh-approval-ledger.link-bak-20261019`，可后续确认删除。`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。
