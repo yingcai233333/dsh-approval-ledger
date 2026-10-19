@@ -12,6 +12,8 @@ describe('Windows approval flash', () => {
   it('builds a self-contained FlashWindowEx script and sanitizes the process name', () => {
     const script = buildFlashScript('DeepSeek Harness')
     assert.match(script, /FlashWindowEx/)
+    assert.match(script, /FindWindowByTitle/)
+    assert.match(script, /EnumWindows/)
     assert.match(script, /DeepSeek Harness/)
     const injected = buildFlashScript("x'; Remove-Item C:\\\\temp -Recurse -Force #")
     assert.equal(injected.includes("x'; Remove-Item C:\\\\temp"), false)
