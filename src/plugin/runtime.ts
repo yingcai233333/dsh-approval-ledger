@@ -392,11 +392,11 @@ async function askQuestions(
     const message = error instanceof Error ? error.message : String(error)
     if (code === 'DELEGATED_CALLER' || message.includes('DELEGATED_CALLER')) {
       throw new Error(
-        'request_approvals requires the main session; include the plan in your final result instead',
+        'this tool requires the main session; include the question or plan in your final result instead',
       )
     }
     if (code === 'BAD_INTENT') {
-      throw new Error('request_approvals could not submit a valid plan-review card')
+      throw new Error('could not submit a valid official question card')
     }
     return undefined
   }
