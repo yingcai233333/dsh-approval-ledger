@@ -2,7 +2,7 @@
 
 > Language: [English](release-0.2.0-beta.1.en.md) · [中文](release-0.2.0-beta.1.md)
 
-> Status: **not published**. This is the checklist to review before the next npm release. Do not run `npm publish`, create a tag, or trigger a release workflow without an explicit release approval.
+> Status: **published to npm (2026-10-19)**. Tarball: <https://registry.npmjs.org/dsh-approval-ledger/-/dsh-approval-ledger-0.2.0-beta.1.tgz>. Both `next` and `latest` point to `0.2.0-beta.1`; npm forced a `latest` tag on the first publish and refuses to remove it. Move `latest` to a stable version when one is released.
 
 ## Package
 
@@ -37,16 +37,18 @@
 1. Confirm final version is `0.2.0-beta.1` and working tree is clean.
 2. Confirm npm account/2FA and package ownership; do not paste tokens into logs.
 3. `pnpm pack --dry-run` (or `npm pack --dry-run`) and inspect that `lib/`, `client.js`, `schema/`, `locale/`, `cordis.patch.yml`, and docs are included and no `.p0-*`/tests/secrets are included.
-4. Publish with the beta tag only: `npm publish --tag next` (or the user's chosen tag), never `latest` for a beta.
+4. Publish with the beta tag (`npm publish --tag next`). npm may force `latest` on the first publish; record the resulting dist-tags instead of assuming `latest` is absent.
 5. Create the matching GitHub tag/release and verify the published tarball in a clean profile with `dsh plugin add dsh-approval-ledger@0.2.0-beta.1` after security review.
 6. Rollback: deprecate/unpublish per npm policy; existing local profiles can remove the bundle or restore `.p0-backup`.
 
 ## Publish attempt log
 
-- 2026-10-19: after local login (`pnpm whoami` → `yingcai233`), `pnpm publish --tag next --access public --no-git-checks` returned `E403 ... Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages`. The package was **not** published. Next action: either run the publish in a local terminal and enter the OTP there, or create a granular access token with bypass-2FA enabled for this package, write it to the user's npmrc, and retry; never share the token or OTP in chat.
+- 2026-10-19: after local login (`pnpm whoami` → `yingcai233`), the first publish returned `E403 ... 2FA required`. Root cause: pnpm preferred the old token in `C:\Users\36288\AppData\Local\pnpm\config\auth.ini` over the new bypass-2FA token in `.npmrc`. After replacing `auth.ini`, publish succeeded: `✅ Published package dsh-approval-ledger@0.2.0-beta.1`.
+- npm forced `latest` to `0.2.0-beta.1` on the first publish; `pnpm dist-tag rm ... latest` returns `ERR_PNPM_DIST_TAG_RM_LATEST` (removal is not allowed). `next` also points at this version; move `latest` to the stable version when released.
+- Rotate/revoke any leaked or expired token before the next release; never put a token or OTP in chat.
 
 ## Do not
 
-- Do not publish a `latest` tag for this beta.
+- Do not manually mark a beta as `latest`; this first-publish `latest` was forced by npm and cannot be removed, so a stable release must explicitly move `latest`.
 - Do not publish without checking the packed file list and the user's explicit release approval.
 - Do not install the npm tarball into `desktop` before the published tarball is inspected.

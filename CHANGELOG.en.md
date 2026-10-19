@@ -4,7 +4,7 @@
 
 All notable changes to this project are documented here.
 
-## [0.2.0-beta.1] - 2026-10-19 (unpublished)
+## [0.2.0-beta.1] - 2026-10-19 (published to npm, `next` tag)
 
 ### Added
 

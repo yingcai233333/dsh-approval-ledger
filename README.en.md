@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. The package is **not published**; the default config is observe-only. Version is `0.2.0-beta.1`.
+> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Published to npm as `0.2.0-beta.1` (`next`); the default config is observe-only.
 
 ## Why
 
@@ -34,11 +34,10 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-Installed locally with `link:` into a temporary profile and the desktop profile for live P0. The npm package is **not published yet**; the command below is the planned install path once the release security review is approved.
+Published to npm as `0.2.0-beta.1` (`next` tag); the local temporary profile and the desktop profile were also live-P0 tested. Because this was the first publish, npm forced `latest` to the same beta; `latest` will move when a stable release is published. Install the beta with:
 
 ```sh
-# planned
-dsh plugin --profile <profile> add dsh-approval-ledger
+dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.1
 ```
 
 To opt into medium auto-approval explicitly:

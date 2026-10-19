@@ -2,7 +2,7 @@
 
 # 发布审查 — 0.2.0-beta.1
 
-> 状态：**尚未发布**。这是下一次 npm 发布前需要审查的清单。未经明确的发布批准，不要运行 `npm publish`、创建 tag 或触发 release workflow。
+> 状态：**已发布到 npm（2026-10-19）**。tarball：<https://registry.npmjs.org/dsh-approval-ledger/-/dsh-approval-ledger-0.2.0-beta.1.tgz>。`next` 和 `latest` 都指向 `0.2.0-beta.1`——首次发布时 npm 强制创建 `latest`，且不允许删除；等稳定版发布后再把 `latest` 移到稳定版。
 
 ## 包
 
@@ -37,16 +37,18 @@
 1. 确认最终版本为 `0.2.0-beta.1`，且工作树干净。
 2. 确认 npm 账号/2FA 和包所有权；不要把 token 粘贴到日志中。
 3. `pnpm pack --dry-run`（或 `npm pack --dry-run`），检查 `lib/`、`client.js`、`schema/`、`locale/`、`cordis.patch.yml` 和文档均已包含，且没有包含 `.p0-*`/测试/密钥。
-4. 仅使用 beta tag 发布：`npm publish --tag next`（或用户选择的 tag），beta 绝不要使用 `latest`。
+4. 用 beta tag 发布（`npm publish --tag next`）。首次发布时 npm 可能强制设置 `latest`；要记录实际 dist-tags，不要假设 `latest` 不存在。
 5. 创建对应的 GitHub tag/release，并在安全审查后，在干净的 profile 中用 `dsh plugin add dsh-approval-ledger@0.2.0-beta.1` 验证已发布的 tarball。
 6. 回滚：按 npm 政策 deprecate/unpublish；现有本地 profile 可以移除 bundle 或恢复 `.p0-backup`。
 
 ## 发布尝试日志
 
-- 2026-10-19：本机登录后（`pnpm whoami` → `yingcai233`），`pnpm publish --tag next --access public --no-git-checks` 返回 `E403 ... Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages`。包**没有**发布。下一步：在本机终端执行发布并输入 OTP，或为该包创建启用 bypass-2FA 的 granular access token 写入用户 npmrc 后重试；绝不要把 token 或 OTP 发到聊天里。
+- 2026-10-19：本机登录后（`pnpm whoami` → `yingcai233`），最初 `pnpm publish` 返回 `E403 ... 2FA required`。根因是 pnpm 优先读取 `C:\Users\36288\AppData\Local\pnpm\config\auth.ini` 里的旧 token，而不是 `.npmrc` 里的新 bypass-2FA token。替换 `auth.ini` 后发布成功：`✅ Published package dsh-approval-ledger@0.2.0-beta.1`。
+- 首次发布 npm 强制把 `latest` 也指向 `0.2.0-beta.1`，且 `pnpm dist-tag rm ... latest` 返回 `ERR_PNPM_DIST_TAG_RM_LATEST`（不允许删除）。`next` 同样指向该版本；稳定版发布后应把 `latest` 移到稳定版。
+- 后续发布前仍需清理/轮换泄露过或过期的 token，不要把 token 或 OTP 发到聊天里。
 
 ## 禁止事项
 
-- 不要为此 beta 发布 `latest` tag。
+- 不要手动把 beta 设成 `latest`；本次首次发布是 npm 自动设置且无法删除，稳定版发布时要显式把 `latest` 移到稳定版。
 - 不要在未检查打包文件列表和未获得用户明确发布批准的情况下发布。
 - 在已发布 tarball 经过检查之前，不要把 npm tarball 安装到 `desktop`。
