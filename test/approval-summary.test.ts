@@ -15,10 +15,10 @@ describe('approval summary', () => {
       args: { path: 'C:\\ws\\out\\report.md', content: 'hello' },
     })
     assert.equal(summary.risk.level, 'medium')
-    assert.match(summary.title, /^write · .*out\\report\.md · workspace-write$/)
-    assert.match(summary.detail, /审批: write/)
-    assert.match(summary.detail, /模式: workspace-write/)
-    assert.match(summary.detail, /风险: 中/)
+    assert.match(summary.title, /^写入文件 · .*out\\report\.md · 工作区写入$/)
+    assert.match(summary.detail, /审批：写入文件/)
+    assert.match(summary.detail, /模式：工作区写入/)
+    assert.match(summary.detail, /风险：中（普通数据文件）/)
     assert.match(summary.detail, /只允许本次调用/)
     assert.equal(summary.detail.includes('hello'), false)
   })
@@ -32,7 +32,7 @@ describe('approval summary', () => {
       args: { command: 'pwsh -File build.ps1 -Token sk-abcdefgh12345678' },
     })
     assert.equal(summary.risk.level, 'high')
-    assert.match(summary.title, /^pwsh · pwsh … · danger-full-access$/)
+    assert.match(summary.title, /^PowerShell 命令 · pwsh … · 完全访问$/)
     assert.equal(summary.detail.includes('sk-'), false)
     assert.equal(summary.detail.includes('build.ps1'), false)
   })
@@ -48,7 +48,7 @@ describe('approval summary', () => {
     assert.equal(summary.risk.level, 'critical')
     assert.match(summary.title, /^\[严重\]/)
     assert.match(summary.detail, /建议拒绝/)
-    assert.ok(summary.detail.includes('system-path'))
+    assert.match(summary.detail, /风险：严重/)
   })
 
   it('keeps unknown tools manual', () => {
@@ -93,7 +93,7 @@ describe('approval summary', () => {
       args: { path: 'C:\\ws\\link\\report.md' },
     })
     assert.equal(summary.risk.level, 'high')
-    assert.ok(summary.detail.includes('outside-workspace'))
+    assert.ok(summary.detail.includes('工作区外'))
     assert.match(summary.targetSummary, /outside\\report\.md/)
   })
 
@@ -131,7 +131,7 @@ describe('approval summary', () => {
       platform: 'win32',
       args: { path: 'C:\\ws\\a.md' },
     })
-    assert.match(reason.zh, /^write · /)
+    assert.match(reason.zh, /^写入文件 · /)
     assert.match(reason.en, /^write · /)
     assert.equal(reason.zh.includes('\n'), false)
     assert.equal(reason.en.includes('\n'), false)

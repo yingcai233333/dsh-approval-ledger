@@ -11,6 +11,32 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
     const NS = 'approvalLedger'
+    const ZH_TOOLS = {
+      write: '写入文件',
+      edit: '编辑文件',
+      read: '读取文件',
+      glob: '查找文件',
+      grep: '搜索内容',
+      pwsh: 'PowerShell 命令',
+      bash: 'Shell 命令',
+      delete: '删除',
+      move: '移动',
+      copy: '复制',
+      mkdir: '创建目录',
+      plugin_manager: '插件管理',
+      request_approvals: '提交审批计划',
+      subagent: '子代理',
+      workflow: '工作流',
+      web_fetch: '抓取网页',
+      web_search: '搜索网页',
+      apply_patch: '应用补丁',
+    }
+    function displayTool(name, locale) {
+      if (typeof name !== 'string' || name.length === 0) return '未知工具'
+      return String(locale ?? '').toLowerCase().startsWith('zh')
+        ? ZH_TOOLS[name] ?? '其他工具'
+        : name
+    }
 
     const zh = {
       button: '审批详情',
@@ -21,7 +47,7 @@ window.__ModuleLoader__.load({
       summary: '摘要',
       reason: '原始原因',
       close: '关闭',
-      note: '这是只读详情。允许或拒绝仍请在官方审批卡上操作。',
+      note: '这是只读详情。允许/拒绝仍请在官方审批卡上操作。计划批准只登记授权，实际调用还会重新判风险。',
     }
     const en = {
       button: 'Approval details',
@@ -167,26 +193,22 @@ window.__ModuleLoader__.load({
       approval === undefined
         ? h('p', { style: { color: 'var(--dsw-alias-label-secondary, #666)' } }, t('empty'))
         : h('div', null,
-            h('p', null, h('strong', null, t('tool') + ': '), approval.toolName ?? '—'),
+            h('p', null, h('strong', null, t('tool') + ': '), displayTool(approval.toolName, locale)),
             approval.callId === undefined ? null : h('p', null, h('strong', null, t('callId') + ': '), approval.callId),
             h('p', null, h('strong', null, t('summary') + ': '), summary || '—'),
-            h('p', { style: { marginBottom: 4 } }, h('strong', null, t('reason') + ':')),
-            h('pre', {
-              style: {
-                margin: 0,
-                padding: 10,
-                maxHeight: 220,
-                overflow: 'auto',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                border: '1px solid var(--dsw-alias-border-l1, #ddd)',
-                borderRadius: 8,
-                background: 'var(--dsw-alias-bg-layer-2, #f7f7f7)',
-                color: 'var(--dsw-alias-label-secondary, #555)',
-                fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
-                fontSize: 12,
-              },
-            }, (approval.reason ?? '').slice(0, 4000) || '—'),
+            h('ul', {
+              style: { margin: '8px 0 10px', paddingLeft: 20, color: 'var(--dsw-alias-label-secondary, #555)' },
+            }, (String(locale ?? '').toLowerCase().startsWith('zh') ? [
+              '计划批准只登记授权；实际执行仍会重新判风险。',
+              '自动表示可能直接放行；手动表示仍需在官方审批卡上确认。',
+              '完全访问表示允许访问工作区外的文件或系统。',
+              '严重风险永不自动放行；未知风险保持手动。',
+            ] : [
+              'Plan approval only records grants; every actual call is re-assessed.',
+              'Auto means the call may proceed directly; manual still uses the official card.',
+              'Full access means access outside the workspace or to system resources.',
+              'Critical is never auto-approved; unknown stays manual.',
+            ]).map((text) => h('li', { key: text }, text))),
           ),
       h('p', {
         style: { marginBottom: 0, color: 'var(--dsw-alias-label-secondary, #666)', fontSize: 12 },

@@ -2,6 +2,7 @@ import { scrubSecrets } from '../core/redact.js'
 import type { RiskAssessment, RiskLevel } from '../core/types.js'
 import { assessRisk } from '../risk/assess.js'
 import { extractApprovalTarget } from './target.js'
+import { modeLabel, reasonLabel, riskLabel as chineseRiskLabel, toolLabel } from './labels.js'
 import type { PathPlatform, PathProbe } from '../path/types.js'
 
 export interface ApprovalSummaryInput {
@@ -78,7 +79,7 @@ function sanitizeLine(value: unknown, max = 140): string {
 function recommendation(risk: RiskAssessment, lang: 'zh' | 'en'): string {
   if (risk.level === 'critical') {
     return lang === 'zh'
-      ? '建议拒绝；critical 永不自动放行。'
+      ? '建议拒绝；严重风险永不自动放行。'
       : 'Recommend rejection; critical is never auto-approved.'
   }
   if (risk.level === 'unknown') {
@@ -88,7 +89,7 @@ function recommendation(risk: RiskAssessment, lang: 'zh' | 'en'): string {
   }
   if (risk.level === 'high') {
     return lang === 'zh'
-      ? '默认手动；开启 high opt-in 后仍需二次确认。'
+      ? '默认手动；即使开启高风险授权，仍需二次确认。'
       : 'Manual by default; high opt-in still requires a second confirmation.'
   }
   if (risk.autoEligible) {
@@ -111,8 +112,10 @@ export function describeApproval(
   lang: 'zh' | 'en' = 'zh',
 ): ApprovalSummary {
   try {
-    const tool = sanitizeLine(input.tool, 48) || 'unknown'
-    const mode = sanitizeLine(input.mode, 32) || (lang === 'zh' ? '模式未指定' : 'mode?')
+    const rawTool = sanitizeLine(input.tool, 48) || 'unknown'
+    const rawMode = sanitizeLine(input.mode, 32) || ''
+    const tool = lang === 'zh' ? toolLabel(rawTool) : rawTool
+    const mode = lang === 'zh' ? modeLabel(rawMode) : rawMode || 'mode?'
     const target = extractApprovalTarget({
       args: input.args,
       cwd: input.cwd,
@@ -121,7 +124,7 @@ export function describeApproval(
     })
 
     const risk = assessRisk({
-      tool,
+      tool: rawTool,
       args: target.riskArgs,
       mode: input.mode,
       cwd: input.cwd,
@@ -130,7 +133,7 @@ export function describeApproval(
     })
 
     const labels = LABELS[lang]
-    const riskLabel = RISK_LABELS[lang][risk.level]
+    const riskLabel = lang === 'zh' ? chineseRiskLabel(risk.level) : RISK_LABELS[lang][risk.level]
     let targetSummary = target.summary
     if (lang === 'zh') {
       if (target.parseError === 'unparsed') targetSummary = '（无法解析）'
@@ -141,18 +144,22 @@ export function describeApproval(
       `${risk.level === 'critical' ? `[${riskLabel}] ` : ''}${tool} · ${targetSummary} · ${mode}`,
       160,
     )
-    const reasonCodes = risk.reasons.map((reason) => reason.code).join(', ') || 'none'
+    const reasons =
+      lang === 'zh'
+        ? [...new Set(risk.reasons.map((reason) => reasonLabel(reason.code)))].join('、') || '未给出原因'
+        : risk.reasons.map((reason) => reason.code).join(', ') || 'none'
+    const colon = lang === 'zh' ? '：' : ': '
     const detail = [
-      `${labels.approval}: ${tool}`,
-      `${labels.mode}: ${mode}`,
-      `${labels.target}: ${targetSummary}`,
-      `${labels.risk}: ${riskLabel} (${reasonCodes})`,
-      `${labels.recommendation}: ${recommendation(risk, lang)}`,
-      `${labels.after}: ${labels.afterText}`,
-      `${labels.note}: ${labels.noteText}`,
+      `${labels.approval}${colon}${tool}`,
+      `${labels.mode}${colon}${mode}`,
+      `${labels.target}${colon}${targetSummary}`,
+      `${labels.risk}${colon}${riskLabel}（${reasons}）`,
+      `${labels.recommendation}${colon}${recommendation(risk, lang)}`,
+      `${labels.after}${colon}${labels.afterText}`,
+      `${labels.note}${colon}${labels.noteText}`,
     ].join('\n')
 
-    return { title, detail, targetSummary, risk, mode }
+    return { title, detail, targetSummary, risk, mode: rawMode }
   } catch {
     const risk: RiskAssessment = {
       level: 'unknown',
@@ -162,11 +169,11 @@ export function describeApproval(
       policyVersion: 0,
     }
     return {
-      title: '[未知] approval · (unparsed) · mode?',
+      title: '[未知] 其他工具 · （无法解析） · 未指定',
       detail: '无法解析审批请求；保持手动。',
-      targetSummary: '(unparsed)',
+      targetSummary: '（无法解析）',
       risk,
-      mode: 'mode?',
+      mode: '',
     }
   }
 }

@@ -58,12 +58,12 @@ describe('plan review request', () => {
     const source = plan()
     const first = source.items[0]
     assert.ok(first)
-    first.title = '<script>alert(1)</script> Write [link](https://evil.example) report'
+    first.title = '<script>alert(1)</script> 写报告 [link](https://evil.example) 报告'
     const request = buildPlanReviewRequest(source)
     const detail = request.questions[0]?.detail ?? ''
     assert.equal(detail.includes('<script>'), false)
     assert.equal(detail.includes('https://evil.example'), false)
-    assert.match(detail, /Write/)
+    assert.match(detail, /写报告/)
     assert.match(detail, /report/)
   })
 
@@ -87,7 +87,7 @@ describe('plan review request', () => {
     assert.equal(selection.multiSelect, true)
     assert.deepEqual(selection.options.map((option) => option.label), ['A'])
     assert.match(selection.detail, /未勾选/)
-    assert.match(selection.options[0]?.description ?? '', /write/)
+    assert.match(selection.options[0]?.description ?? '', /写入文件/)
   })
 
   it('rejects malformed plan-review shapes', () => {

@@ -71,27 +71,27 @@ describe('plan review document: happy path', () => {
 
     const rows = lines.filter((line) => /^\| [ABC] \|/.test(line))
     assert.deepEqual(rows, [
-      '| A | write · write report | 中 | — | 1 | 自动 |',
-      '| B | write · write data | 中 | — | 1 | 自动 |',
-      '| C | pwsh · run tests | 高 | A、B | 2 | 手动 |',
+      '| A | 写入文件 · 目标 `C:\\\\ws\\\\out\\\\report.md` | 中 | — | 1 | 自动 |',
+      '| B | 写入文件 · 目标 `C:\\\\ws\\\\out\\\\data.json` | 中 | — | 1 | 自动 |',
+      '| C | PowerShell 命令 · 命令 `npm test` | 高 | A、B | 2 | 手动 |',
     ])
 
     assert.ok(document.includes('## 执行阶段\n\n- 阶段 1：A、B\n- 阶段 2：C'))
     assert.ok(document.includes('## 逐项详情'))
-    assert.ok(document.includes('### A · write · 中'))
+    assert.ok(document.includes('### A · 写入文件 · 中'))
     assert.ok(
       document.includes(
-        '- 是什么：工具 `write`；目标 `C:\\ws\\out\\report.md`',
+        '- 是什么：工具 写入文件；目标 `C:\\ws\\out\\report.md`',
       ),
     )
-    assert.ok(document.includes('- 为什么：write report（模型文本，未验证）'))
+    assert.ok(document.includes('- 为什么：系统按实际参数推导；模型未提供中文说明。'))
     assert.ok(document.includes('- 批准后：自动放行 · 1 次 · 阶段 1'))
-    assert.ok(document.includes('- 系统判断：中 · `data-file`：ordinary data file'))
+    assert.ok(document.includes('- 系统判断：中 · 普通数据文件'))
     assert.ok(document.includes('- 建议：可自动放行'))
 
     assert.ok(document.includes('- 批准后：手动确认 · 2 次 · 阶段 2'))
     assert.ok(
-      document.includes('- 系统判断：高 · `command-execution`：runs a command or script'),
+      document.includes('- 系统判断：高 · 执行命令或脚本'),
     )
     assert.ok(document.includes('- 建议：建议手动确认（高风险默认不自动放行）'))
     assert.ok(document.includes('命令 `npm test`'))
@@ -109,7 +109,7 @@ describe('plan review document: happy path', () => {
     assert.ok(document.includes('- 阶段 2：C'))
     assert.equal(document.includes('阶段 3'), false)
     // Dependencies come from each item, not from a rendered stage guess.
-    assert.ok(document.includes('| C | pwsh · run tests | 高 | A、B | 2 | 手动 |'))
+    assert.ok(document.includes('| C | PowerShell 命令 · 命令 `npm test` | 高 | A、B | 2 | 手动 |'))
   })
 
   it('renders system targets as backtick-free, truncated code spans', () => {
@@ -172,8 +172,10 @@ describe('plan review document: manual recommendations', () => {
 
     const document = renderPlanReviewDocument(plan)
     assert.equal(document.split('\n')[0], '# 审批计划 · 2 项 · 1 严重 / 1 未知')
-    assert.ok(document.includes('| X | write · system file | 严重 | — | 1 | 手动 |'))
-    assert.ok(document.includes('| Y | write · mystery file | 未知 | — | 1 | 手动 |'))
+    assert.ok(document.includes('| X | 写入文件 · 目标 '))
+    assert.ok(document.includes('| Y | 写入文件 · 目标 '))
+    assert.ok(document.includes('| 严重 | — | 1 | 手动 |'))
+    assert.ok(document.includes('| 未知 | — | 1 | 手动 |'))
     assert.ok(document.includes('- 建议：建议拒绝（严重风险永不自动放行）'))
     assert.ok(document.includes('- 建议：建议手动确认（风险未知，一律手动）'))
     assert.equal(document.includes('- 批准后：自动放行'), false)
@@ -199,7 +201,8 @@ describe('plan review document: manual recommendations', () => {
     item.risk = { ...item.risk, autoEligible: true }
 
     const document = renderPlanReviewDocument(plan)
-    assert.ok(document.includes('| X | write · system file | 严重 | — | 1 | 手动 |'))
+    assert.ok(document.includes('| X | 写入文件 · 目标 '))
+    assert.ok(document.includes('| 严重 | — | 1 | 手动 |'))
     assert.ok(document.includes('- 批准后：手动确认 · 1 次 · 阶段 1'))
     assert.ok(document.includes('- 建议：建议拒绝（严重风险永不自动放行）'))
   })
@@ -212,9 +215,9 @@ describe('plan review document: untrusted model text', () => {
     assert.ok(item)
     if (!item) return
     item.title =
-      '<b>bold</b> [link](https://evil.example/x) ![img](https://evil.example/y.png) `code`\nnext | pipe'
+      '<b>粗体</b> [链接](https://evil.example/x) ![图](https://evil.example/y.png) `代码`\n下一行 | 管道'
     item.note =
-      '<script>alert(1)</script> [note](https://evil.example/n) ![n](https://evil.example/n.png) `tick`\nnext | pipe'
+      '<script>alert(1)</script> [说明](https://evil.example/n) ![图](https://evil.example/n.png) `代码`\n下一行 | 管道'
 
     const document = renderPlanReviewDocument(plan)
     const lines = document.split('\n')
@@ -224,6 +227,7 @@ describe('plan review document: untrusted model text', () => {
     assert.equal(document.includes('<script>'), false)
     assert.equal(document.includes('![img]'), false)
     assert.equal(document.includes('![n]'), false)
+    assert.equal(document.includes('![图]'), false)
 
     // The table stays intact: header + separator + three item rows.
     assert.equal(lines.filter((line) => line.startsWith('|')).length, 5)
@@ -231,13 +235,12 @@ describe('plan review document: untrusted model text', () => {
     const row = lines.find((line) => line.startsWith('| A |'))
     assert.ok(row)
     if (!row) return
-    assert.equal(row.includes('`'), false)
-    assert.ok(row.includes('bold link img \'code\' next \\| pipe'))
+    assert.equal(row.includes('`'), true)
 
     const why = lines.find((line) => line.startsWith('- 为什么：'))
     assert.ok(why)
     if (!why) return
-    okIncludes(why, 'bold link img')
+    okIncludes(why, '粗体 链接 图')
     assert.equal(why.includes('`'), false)
     assert.equal(why.includes('https://'), false)
 
@@ -246,7 +249,7 @@ describe('plan review document: untrusted model text', () => {
     const note = notes[0]
     assert.ok(note)
     if (!note) return
-    assert.ok(note.includes('alert(1) note n \'tick\' next | pipe'))
+    assert.ok(note.includes('alert(1) 说明 图'))
     assert.equal(note.includes('`'), false)
     assert.equal(note.includes('<'), false)
   })
@@ -256,7 +259,7 @@ describe('plan review document: untrusted model text', () => {
     const item = plan.items[0]
     assert.ok(item)
     if (!item) return
-    item.note = `start ${'word '.repeat(40)}END`
+    item.note = `说明 ${'内容 '.repeat(40)}结束`
 
     const document = renderPlanReviewDocument(plan, { maxNoteLength: 24 })
     const note = document
@@ -265,8 +268,8 @@ describe('plan review document: untrusted model text', () => {
     assert.ok(note)
     if (!note) return
     assert.ok(note.endsWith('…'))
-    assert.equal(note.includes('END'), false)
-    assert.equal(note.includes('word '.repeat(20)), false)
+    assert.equal(note.includes('结束'), false)
+    assert.equal(note.includes('内容 '.repeat(20)), false)
     assert.ok(note.length <= '- 模型说明（未验证）：'.length + 24)
   })
 })
@@ -283,8 +286,8 @@ describe('plan review document: secret handling', () => {
         {
           id: 'A',
           tool: 'write',
-          title: 'write note',
-          note: 'token=sk-abcdefgh12345678',
+          title: '写说明',
+          note: '说明 token=sk-abcdefgh12345678',
           scope: {
             paths: ['C:\\ws\\out\\a.md'],
             args: {

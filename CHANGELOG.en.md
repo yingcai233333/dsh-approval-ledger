@@ -4,6 +4,15 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.3] - 2026-10-19 (pending release)
+
+### Changed
+
+- The approval intro is Chinese-first: tool names (write file, PowerShell command, etc.), modes (read-only, workspace-write, full access), risk reasons, and status labels are shown in Chinese.
+- Plan cards no longer show English model titles/notes; when the model only supplied English, the card uses a system-derived Chinese description.
+- Added a "How to read this approval" section explaining auto/manual, modes, risk, and why plan approval is not per-call execution.
+- The client approval-details modal no longer shows the raw English reason; it shows Chinese explanation points instead.
+
 ## [0.2.0-beta.2] - 2026-10-19 (published to npm, `next`/`latest`)
 
 ### Changed

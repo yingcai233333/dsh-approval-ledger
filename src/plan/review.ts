@@ -1,6 +1,7 @@
 import { sanitizePlanText, renderPlanReviewDocument } from './document.js'
 import type { PlanDocumentOptions } from './document.js'
 import type { ValidatedPlan } from './types.js'
+import { modeLabel, riskLabel, toolLabel } from '../approval/labels.js'
 
 export interface PlanReviewOption {
   label: string
@@ -133,7 +134,11 @@ export function buildPlanSelectionQuestion(
   const optionList: PlanReviewOption[] = selectable.map((item, index) => ({
     label: labels[index] ?? item.id,
     description: sanitizePlanText(
-      `${item.tool} · ${item.risk.level} · ${item.title}`,
+      lang === 'zh'
+        ? `${toolLabel(item.tool)} · ${riskLabel(item.risk.level)} · ${
+            /[\u4e00-\u9fff]/.test(item.title) ? item.title : '已声明操作'
+          }${item.mode === undefined ? '' : ` · ${modeLabel(item.mode)}`}`
+        : `${item.tool} · ${item.risk.level} · ${item.title}`,
       160,
     ),
   }))
@@ -146,7 +151,7 @@ export function buildPlanSelectionQuestion(
         : `Which items should be authorized? (${selectable.length} auto-eligible)`,
     detail:
       lang === 'zh'
-        ? '只给勾选项安装 grant；未勾选项保持手动，不会自动放行。高危/未知项仍会逐次走官方审批。'
+        ? '只给勾选项安装授权；未勾选项保持手动，不会自动放行。高风险/未知项仍会逐次走官方审批。'
         : 'Only checked items receive grants; unchecked items stay manual. High/unknown items still use the official approval card per call.',
     options: optionList,
     multiSelect: true,

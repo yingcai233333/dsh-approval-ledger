@@ -1,5 +1,6 @@
 import { scrubSecrets } from '../core/redact.js'
 import type { RiskLevel } from '../core/types.js'
+import { modeLabel, reasonLabel, riskLabel as chineseRiskLabel, toolLabel } from '../approval/labels.js'
 import type { ValidatedPlan, ValidatedPlanItem } from './types.js'
 
 export interface PlanDocumentOptions {
@@ -126,7 +127,7 @@ function isAuto(item: ValidatedPlanItem): boolean {
 }
 
 function riskLabel(level: RiskLevel, lang: Lang): string {
-  return RISK_LABELS[lang][level]
+  return lang === 'zh' ? chineseRiskLabel(level) : RISK_LABELS[lang][level]
 }
 
 function countLevels(items: readonly ValidatedPlanItem[]): Record<RiskLevel, number> {
@@ -155,7 +156,10 @@ function stageNumber(item: ValidatedPlanItem): number {
     : 1
 }
 
-function operationText(item: ValidatedPlanItem): string {
+function operationText(item: ValidatedPlanItem, lang: Lang): string {
+  if (lang === 'zh') {
+    return `${cleanModelText(toolLabel(item.tool), MAX_TOOL)} · ${targetSummary(item, 'zh')}`
+  }
   const tool = cleanModelText(item.tool, MAX_TOOL)
   const title = cleanModelText(item.title, MAX_TABLE_TITLE)
   return title.length > 0 ? `${tool} · ${title}` : tool
@@ -183,7 +187,7 @@ function dependencyText(item: ValidatedPlanItem, lang: Lang): string {
 function tableRow(item: ValidatedPlanItem, lang: Lang): string {
   const cells = [
     tableCell(cleanModelText(item.id, MAX_ID), MAX_ID),
-    tableCell(operationText(item), MAX_TABLE_TITLE + MAX_TOOL + 3),
+    tableCell(operationText(item, lang), MAX_TABLE_TITLE + MAX_TOOL + 3),
     riskLabel(levelOf(item), lang),
     tableCell(dependencyText(item, lang), MAX_ID * 2),
     tableCell(String(item.uses), 8),
@@ -257,22 +261,28 @@ function targetSummary(item: ValidatedPlanItem, lang: Lang): string {
 
 function reasonSummary(item: ValidatedPlanItem, lang: Lang): string {
   const reasons = Array.isArray(item.risk?.reasons) ? item.risk.reasons : []
-  if (reasons.length === 0) return lang === 'zh' ? '未给出原因' : 'no reasons given'
+  if (reasons.length === 0) return lang === 'zh' ? '未给出系统原因' : 'no system reasons given'
+  if (lang === 'zh') {
+    return [...new Set(reasons.map((reason) => reasonLabel(reason?.code)))].join('、')
+  }
   return reasons
     .map((reason) => {
       const code = codeSpan(reason?.code, MAX_ID)
       const message = cleanModelText(reason?.message, MAX_REASON)
-      return message.length > 0
-        ? `${code}${lang === 'zh' ? '：' : ': '}${message}`
-        : code
+      return message.length > 0 ? `${code}: ${message}` : code
     })
-    .join(lang === 'zh' ? '；' : '; ')
+    .join('; ')
 }
 
 function whySummary(item: ValidatedPlanItem, lang: Lang): string {
   const title = cleanModelText(item.title, MAX_WHY_TITLE)
-  const shown = title.length > 0 ? title : lang === 'zh' ? '（未提供）' : '(not provided)'
-  return `${shown}${lang === 'zh' ? '（模型文本，未验证）' : ' (model text, unverified)'}`
+  if (lang === 'zh') {
+    return /[\u4e00-\u9fff]/.test(title)
+      ? `${title}（模型文本，未验证）`
+      : '系统按实际参数推导；模型未提供中文说明。'
+  }
+  const shown = title.length > 0 ? title : '(not provided)'
+  return `${shown} (model text, unverified)`
 }
 
 function recommendation(item: ValidatedPlanItem, lang: Lang): string {
@@ -316,7 +326,7 @@ function detailBlock(
 
   lines.push(
     `### ${cleanModelText(item.id, MAX_ID)} · ${cleanModelText(
-      item.tool,
+      lang === 'zh' ? toolLabel(item.tool) : item.tool,
       MAX_TOOL,
     )} · ${riskLabel(level, lang)}`,
   )
@@ -324,7 +334,7 @@ function detailBlock(
   lines.push(
     `- ${lang === 'zh' ? '是什么' : 'What'}${colon}${
       lang === 'zh' ? '工具' : 'tool'
-    } ${codeSpan(item.tool, MAX_TOOL)}${lang === 'zh' ? '；' : '; '}${targetSummary(item, lang)}`,
+    } ${cleanModelText(lang === 'zh' ? toolLabel(item.tool) : item.tool, MAX_TOOL)}${lang === 'zh' ? '；' : '; '}${targetSummary(item, lang)}`,
   )
   lines.push(`- ${lang === 'zh' ? '为什么' : 'Why'}${colon}${whySummary(item, lang)}`)
 
@@ -347,7 +357,7 @@ function detailBlock(
   )
   if (typeof item.mode === 'string' && item.mode.length > 0) {
     afterParts.push(
-      `${lang === 'zh' ? '模式' : 'mode'} ${codeSpan(item.mode, MAX_MODE)}`,
+      `${lang === 'zh' ? '模式' : 'mode'} ${lang === 'zh' ? modeLabel(item.mode) : codeSpan(item.mode, MAX_MODE)}`,
     )
   }
   lines.push(
@@ -361,7 +371,7 @@ function detailBlock(
   )
 
   const note = cleanModelText(item.note, maxNoteLength)
-  if (note.length > 0) {
+  if (note.length > 0 && (lang === 'en' || /[\u4e00-\u9fff]/.test(note))) {
     lines.push(
       `- ${
         lang === 'zh' ? '模型说明（未验证）' : 'Model note (unverified)'
@@ -418,6 +428,20 @@ export function renderPlanReviewDocument(
   if (items.length > 0) {
     const details = items.map((item) => detailBlock(item, lang, maxNoteLength)).join('\n\n')
     sections.push(`${lang === 'zh' ? '## 逐项详情' : '## Item details'}\n\n${details}`)
+  }
+
+  if (lang === 'zh') {
+    sections.push(
+      [
+        '## 怎么读这份审批',
+        '',
+        '- **自动**：计划范围匹配且本次调用风险允许时，插件才可能直接放行；不等于整份计划里的所有操作都会自动执行。',
+        '- **手动**：不会自动放行；仍需在官方审批卡上逐次确认。',
+        '- **模式**：只读 / 工作区写入 / 完全访问。完全访问影响最大，通常需要单独确认。',
+        '- **风险**：严重永不自动；高默认手动；未知一律手动。',
+        '- **计划批准**只登记授权，实际调用还会重新判风险；计划批准不等于每次执行都放行。',
+      ].join('\n'),
+    )
   }
 
   return `${sections.join('\n\n')}\n`

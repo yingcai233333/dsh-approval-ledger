@@ -6,7 +6,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；已发布到 npm `0.2.0-beta.2`（`next`/`latest`），默认配置是 observe-only。
+> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；审批介绍已改为中文（`0.2.0-beta.3` 待发布），当前 npm `latest` 仍是 `0.2.0-beta.2`，默认配置是 observe-only。
 
 ## 为什么
 
@@ -34,7 +34,7 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-已发布到 npm `0.2.0-beta.2`（`next`/`latest`）；本地临时 profile 和 desktop profile 也做过 live P0。`latest` 目前也指向该 beta，稳定版发布后会移动。安装：
+当前 npm 已发布 `0.2.0-beta.2`（`next`/`latest`）；`0.2.0-beta.3` 包含中文审批介绍，待发布。`latest` 目前也指向 beta，稳定版发布后会移动。安装已发布版本：
 
 ```sh
 dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.2

@@ -173,7 +173,7 @@ describe('host plugin integration', () => {
     assert.equal(approval.outcome, 'allowed-once')
     const display = approval.displayReason as { en?: string; zh?: string }
     assert.match(display.en ?? '', /write · /)
-    assert.match(display.zh ?? '', /write · /)
+    assert.match(display.zh ?? '', /写入文件 · /)
     assert.equal(display.en === 'old', false)
   })
 
