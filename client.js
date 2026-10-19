@@ -47,6 +47,11 @@ window.__ModuleLoader__.load({
       summary: '摘要',
       reason: '原始原因',
       close: '关闭',
+      inlineTitle: '待审批说明',
+      inlineLead: '先看这里的说明，再到下方官方审批卡点“允许”或“拒绝”。',
+      inlineScope: '允许只影响本次调用；不会生成永久授权。',
+      inlineRisk: '高风险、严重风险和未知风险不会自动放行。',
+      inlineMissing: '系统未生成可读摘要，请以官方审批卡为准。',
       note: '这是只读详情。允许/拒绝仍请在官方审批卡上操作。计划批准只登记授权，实际调用还会重新判风险。',
     }
     const en = {
@@ -58,6 +63,11 @@ window.__ModuleLoader__.load({
       summary: 'Summary',
       reason: 'Original reason',
       close: 'Close',
+      inlineTitle: 'Approval note',
+      inlineLead: 'Read this note, then choose Allow or Reject on the official card below.',
+      inlineScope: 'Allow applies to this call only; no permanent grant.',
+      inlineRisk: 'High, critical, and unknown risk are never auto-approved.',
+      inlineMissing: 'No readable summary was generated; follow the official approval card.',
       note: 'Read-only details. Allow or reject on the official approval card.',
     }
 
@@ -82,6 +92,62 @@ window.__ModuleLoader__.load({
           flex: '0 0 auto',
         },
       })
+    }
+
+    function ApprovalInline(props) {
+      const { sessionId, useSessionStatus } = props
+      const ctx = props.__ctx
+      const locale = ctx === undefined ? 'en' : ctx.locale.getLocale()?.id
+      const isZh = String(locale ?? '').toLowerCase().startsWith('zh')
+      const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
+      const pending = useSessionStatus((snapshot) => {
+        if (sessionId === undefined) return undefined
+        return snapshot.get(sessionId)?.pendingInteraction
+      })
+      const approval = pending !== undefined && pending !== null && pending.kind === 'approval' ? pending : undefined
+      if (approval === undefined) return null
+
+      const summary = localized(approval.displayReason, isZh ? 'zh' : 'en')
+      return h('section', {
+        'aria-label': t('inlineTitle'),
+        style: {
+          marginBottom: 8,
+          padding: '10px 12px',
+          border: '1px solid color-mix(in srgb, var(--dsw-alias-state-warning-primary, #d97706) 35%, var(--dsw-alias-border-l1, #ddd))',
+          borderRadius: 10,
+          background: 'var(--dsw-alias-bg-layer-2, #f7f7f7)',
+          color: 'var(--dsw-alias-label-primary, #111)',
+          boxSizing: 'border-box',
+        },
+      },
+      h('div', {
+        style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontWeight: 600 },
+      }, h(Dot), t('inlineTitle')),
+      h('p', { style: { margin: '0 0 6px', lineHeight: 1.5 } }, summary || t('inlineMissing')),
+      h('ul', {
+        style: {
+          margin: '0',
+          paddingLeft: 20,
+          color: 'var(--dsw-alias-label-secondary, #555)',
+          fontSize: 12,
+          lineHeight: 1.55,
+        },
+      }, h('li', null, t('inlineLead')), h('li', null, t('inlineScope')), h('li', null, t('inlineRisk'))))
+    }
+
+    function ApprovalOverlay(props) {
+      const content = h(ApprovalInline, props)
+      if (content === null) return null
+      return h('div', {
+        style: {
+          position: 'fixed',
+          right: 24,
+          bottom: 96,
+          zIndex: 900,
+          width: 'min(420px, calc(100vw - 32px))',
+          pointerEvents: 'auto',
+        },
+      }, content)
     }
 
     function ApprovalDetails(props) {
@@ -227,6 +293,14 @@ window.__ModuleLoader__.load({
               order: 10,
               label: () => ctx.locale.bind(NS)('button'),
             }, (props) => h(ApprovalDetails, { ...props, __ctx: ctx }))
+          })
+          ctx.slots.inject('shell.overlay', () => {
+            return ctx.slots.register({
+              name: 'shell.overlay',
+              id: 'approval-ledger-inline',
+              order: 15,
+              label: () => ctx.locale.bind(NS)('inlineTitle'),
+            }, (props) => h(ApprovalOverlay, { ...props, __ctx: ctx }))
           })
         } catch (error) {
           console.error('dsh-approval-ledger client apply failed', error)

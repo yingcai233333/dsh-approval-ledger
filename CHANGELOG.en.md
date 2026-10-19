@@ -4,6 +4,15 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.7] - 2026-10-19 (published to npm, `next`/`latest`)
+
+### Added
+
+- When an approval card is pending, a Chinese "approval note" is shown inline above the composer; no need to click the header's "Approval details" first.
+- The note shows a Chinese summary and three Chinese hints; it deliberately adds **no allow/reject buttons** — decisions stay on the official approval card below.
+- The header "Approval details" entry remains as a fallback for the full view.
+- The note does not show the raw English reason, full arguments, or commands.
+
 ## [0.2.0-beta.6] - 2026-10-19 (published to npm, `next`/`latest`)
 
 ### Fixed
