@@ -43,9 +43,7 @@
 
 ## 发布尝试日志
 
-- 2026-10-19：`pnpm publish --tag next --access public --no-git-checks` 在 `PUT https://registry.npmjs.org/dsh-approval-ledger` 上返回 `E404 Not Found`。
-- 随后 `pnpm whoami` 返回 `ERR_PNPM_WHOAMI_UNAUTHORIZED`；`pnpm view dsh-approval-ledger` 返回 404，且没有 authorization header。发布**没有**完成；这是一次未认证的发布，而不是一个成功发布的包。
-- 下一步：本地 `pnpm login`/2FA，然后重新运行同一发布命令。绝不要把 npm token 粘贴到聊天或日志中。
+- 2026-10-19：本机登录后（`pnpm whoami` → `yingcai233`），`pnpm publish --tag next --access public --no-git-checks` 返回 `E403 ... Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages`。包**没有**发布。下一步：在本机终端执行发布并输入 OTP，或为该包创建启用 bypass-2FA 的 granular access token 写入用户 npmrc 后重试；绝不要把 token 或 OTP 发到聊天里。
 
 ## 禁止事项
 

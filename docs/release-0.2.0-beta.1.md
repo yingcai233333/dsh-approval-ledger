@@ -43,9 +43,7 @@
 
 ## Publish attempt log
 
-- 2026-10-19: `pnpm publish --tag next --access public --no-git-checks` returned `E404 Not Found` on `PUT https://registry.npmjs.org/dsh-approval-ledger`.
-- `pnpm whoami` then returned `ERR_PNPM_WHOAMI_UNAUTHORIZED`; `pnpm view dsh-approval-ledger` returned 404 with no authorization header. The publish did **not** complete; this is an unauthenticated publish, not a successfully published package.
-- Next action: local `pnpm login`/2FA, then re-run the same publish command. Never paste an npm token into chat or logs.
+- 2026-10-19: after local login (`pnpm whoami` → `yingcai233`), `pnpm publish --tag next --access public --no-git-checks` returned `E403 ... Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages`. The package was **not** published. Next action: either run the publish in a local terminal and enter the OTP there, or create a granular access token with bypass-2FA enabled for this package, write it to the user's npmrc, and retry; never share the token or OTP in chat.
 
 ## Do not
 
