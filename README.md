@@ -2,7 +2,7 @@
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: Sprint 1 Host code implemented and live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, and the session-log audit fold are implemented and covered by tests. The package is **not published**; the default config is observe-only. Version is `0.1.0-beta.1`.
+> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. The package is **not published**; the default config is observe-only. Version is `0.2.0-beta.1`.
 
 ## Why
 
@@ -16,7 +16,7 @@ This plugin adds:
 - **Decision ledger.** Every auto/manual decision is traceable through the session log, plan-level `tool/result.meta`, and an in-memory per-call ledger; `/approvals audit` derives missing records from durable facts instead of guessing.
 - **Official UI first.** The shipped approval card, question card, and plan card are not replaced.
 
-In the current observe-only configuration the plan is reviewed, but each actual call still uses the official approval card; grants are simulated and audited as `would-allow`. Active medium-risk auto-approval is the next release step.
+In the current observe-only configuration the plan is reviewed, but each actual call still uses the official approval card; grants are simulated and audited as `would-allow`. Medium auto-approval is available only with an explicit `mode: active` config; it is not the default.
 
 ## Safety model
 
@@ -36,6 +36,17 @@ Installed locally with `link:` into a temporary profile and the desktop profile 
 # planned
 dsh plugin --profile <profile> add dsh-approval-ledger
 ```
+
+To opt into medium auto-approval explicitly:
+
+```yaml
+# the plugin row in cordis.patch.yml
+- id: approval-ledger
+  config:
+    mode: active
+```
+
+`high` still needs opt-in plus the second-confirmation interlock; `critical` is never auto-approved; `unknown` stays manual.
 
 ## Sprint 0 core
 

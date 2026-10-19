@@ -2,7 +2,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：Sprint 1 Host 代码已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择和 session-log 审计投影已实现并有用例；**尚未发布**，默认配置是 observe-only。版本为 `0.1.0-beta.1`。
+> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；**尚未发布**，默认配置是 observe-only。版本为 `0.2.0-beta.1`。
 
 ## 为什么
 
@@ -16,7 +16,7 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 - **决策账本**：自动/手动决定可通过 session log、计划级 `tool/result.meta` 和内存账本追溯；`/approvals audit` 对缺失记录从持久事实派生，不猜。
 - **官方 UI 优先**：不替换自带的审批卡、问题卡、计划卡。
 
-当前 observe-only 配置下，计划会被审查，但每次实际调用仍然走官方审批卡；grant 只做模拟并记为 `would-allow`。medium 自动放行是下一个发布步骤。
+当前 observe-only 配置下，计划会被审查，但每次实际调用仍然走官方审批卡；grant 只做模拟并记为 `would-allow`。medium 自动放行只能在显式配置 `mode: active` 后启用，不是默认行为。
 
 ## 安全模型
 
@@ -36,6 +36,17 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 # 计划中
 dsh plugin --profile <profile> add dsh-approval-ledger
 ```
+
+显式开启 medium 自动放行：
+
+```yaml
+# cordis.patch.yml 中该插件行
+- id: approval-ledger
+  config:
+    mode: active
+```
+
+`high` 仍需 opt-in + 二次确认；`critical` 永不自动放行；`unknown` 保持手动。
 
 ## Sprint 0 纯核心
 

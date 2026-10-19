@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.1] - 2026-10-19 (unpublished)
+
+### Added
+
+- Client half: a localized session-header "审批详情 / Approval details" button with a red dot for pending approvals, a `● ` document-title prefix, and a read-only modal showing tool, call, Host-rewritten summary, and original reason. It never answers the approval.
+- Best-effort Windows flash via a hidden encoded PowerShell `FlashWindowEx` helper; opt-out with `flashWindow: false`, non-Windows no-op, no waterfall blocking.
+- FakeContext coverage for sibling `approval/request` prepend ordering.
+
+### Changed
+
+- Default remains **observe**; `mode: active` is the explicit opt-in for medium auto-approval. High/critical/unknown remain manual/never-auto.
+- Version is `0.2.0-beta.1`; not published.
+
 ## [0.1.0-beta.1] - 2026-10-18 (not published)
 
 ### Added
