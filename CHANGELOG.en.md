@@ -4,12 +4,12 @@
 
 All notable changes to this project are documented here.
 
-## [0.2.0-beta.6] - 2026-10-19 (pending release)
+## [0.2.0-beta.6] - 2026-10-19 (published to npm, `next`/`latest`)
 
 ### Fixed
 
 - Windows flash now falls back to a window-title search: when `Get-Process` has no `MainWindowHandle`, `EnumWindows` finds a visible window whose title contains `DeepSeek Harness`.
-- Live probe: `FlashWindowEx` returned `FLASH_OK=True` for the current Harness window (target HWND found).
+- Live verification: with Harness in the background, three cycles were visibly flashed in the window/taskbar; a foreground window does not flash, which is Windows' expected behavior.
 - Missing windows, PowerShell/EDR refusal, and non-Windows platforms still skip silently without blocking approval.
 
 ## [0.2.0-beta.5] - 2026-10-19 (published to npm, `next`/`latest`)

@@ -4,12 +4,12 @@
 
 本项目的所有重要变更都记录在此。
 
-## [0.2.0-beta.6] - 2026-10-19（待发布）
+## [0.2.0-beta.6] - 2026-10-19（已发布到 npm，`next`/`latest`）
 
 ### 修复
 
 - Windows 闪烁增加窗口标题回退：`Get-Process` 拿不到 `MainWindowHandle` 时，用 `EnumWindows` 查找标题包含 `DeepSeek Harness` 的可见窗口。
-- 真机验证：对当前 Harness 窗口执行 `FlashWindowEx` 返回 `FLASH_OK=True`（目标 HWND 已找到）。
+- 真机验证：Harness 切到后台后，连续 3 组窗口/任务栏可见闪烁；前台窗口不闪是 Windows 的预期行为。
 - 没有窗口、PowerShell/EDR 拒绝或非 Windows 时仍然静默跳过，不阻塞审批。
 
 ## [0.2.0-beta.5] - 2026-10-19（已发布到 npm，`next`/`latest`）
