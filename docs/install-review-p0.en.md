@@ -157,7 +157,7 @@ The earlier `p0-test/a.md` write in the desktop session was a **manual/conversat
 
 ## 7. Desktop install (executed)
 
-The user explicitly approved the reviewed desktop install. Executed via `plugin_manager` → `install_bundle` with target `link:D:\AIworkspace\dsh-approval-ledger`.
+The user explicitly approved the reviewed desktop install. It was initially installed via `plugin_manager` → `install_bundle` with `link:D:\AIworkspace\dsh-approval-ledger`, then switched to npm `dsh-approval-ledger@0.2.0-beta.2`. The old link junction is backed up as `node_modules\dsh-approval-ledger.link-bak-20261019`.
 
 | Item | Value |
 |---|---|

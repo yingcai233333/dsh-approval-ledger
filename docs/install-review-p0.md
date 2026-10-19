@@ -157,7 +157,7 @@ plan-review 卡片已渲染，`request_approvals` 可调用，计划已获批准
 
 ## 7. Desktop 安装（已执行）
 
-用户明确批准了经审查的 desktop 安装。通过 `plugin_manager` → `install_bundle` 执行，target 为 `link:D:\AIworkspace\dsh-approval-ledger`。
+用户明确批准了经审查的 desktop 安装。最初通过 `plugin_manager` → `install_bundle` 使用 `link:D:\AIworkspace\dsh-approval-ledger`；后来已切换到 npm `dsh-approval-ledger@0.2.0-beta.2`。切换时旧的 link junction 备份为 `node_modules\dsh-approval-ledger.link-bak-20261019`。
 
 | 项目 | 值 |
 |---|---|
