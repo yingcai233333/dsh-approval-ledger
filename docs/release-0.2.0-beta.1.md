@@ -39,6 +39,12 @@
 5. Create the matching GitHub tag/release and verify the published tarball in a clean profile with `dsh plugin add dsh-approval-ledger@0.2.0-beta.1` after security review.
 6. Rollback: deprecate/unpublish per npm policy; existing local profiles can remove the bundle or restore `.p0-backup`.
 
+## Publish attempt log
+
+- 2026-10-19: `pnpm publish --tag next --access public --no-git-checks` returned `E404 Not Found` on `PUT https://registry.npmjs.org/dsh-approval-ledger`.
+- `pnpm whoami` then returned `ERR_PNPM_WHOAMI_UNAUTHORIZED`; `pnpm view dsh-approval-ledger` returned 404 with no authorization header. The publish did **not** complete; this is an unauthenticated publish, not a successfully published package.
+- Next action: local `pnpm login`/2FA, then re-run the same publish command. Never paste an npm token into chat or logs.
+
 ## Do not
 
 - Do not publish a `latest` tag for this beta.
