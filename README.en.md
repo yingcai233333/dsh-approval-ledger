@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Approval text is now Chinese and published as `0.2.0-beta.3` (`next`/`latest`). Sprint 3 `ask_choices` is implemented; `0.2.0-beta.4` is pending release. The default config is observe-only.
+> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Approval text is Chinese and published as `0.2.0-beta.4` (`next`/`latest`), including `ask_choices`. The default config is observe-only.
 
 ## Why
 
@@ -34,10 +34,10 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-Published to npm as `0.2.0-beta.3` (`next`/`latest`); the temporary profile and desktop profile were also live-P0 tested. `0.2.0-beta.4` adds `ask_choices` and is pending release. `latest` currently points at the beta and will move when a stable release ships. Install the published version:
+Published to npm as `0.2.0-beta.4` (`next`/`latest`); the temporary profile and desktop profile were also live-P0 tested. `latest` currently points at the beta and will move when a stable release ships. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.3
+dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.4
 ```
 
 To opt into medium auto-approval explicitly:

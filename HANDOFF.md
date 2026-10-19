@@ -6,10 +6,10 @@
 
 ## 0. 当前状态
 
-- 阶段：**Sprint 3 进行中**（Sprint 2 已发布 `0.2.0-beta.3`：中文审批介绍 + desktop npm；Sprint 3 的 `ask_choices` 已实现，278 个单测，`0.2.0-beta.4` 待发布）。剩余 Sprint 3：high opt-in 二次确认的端到端验证、跨会话只读列表。默认 observe-only，active 需显式配置。
+- 阶段：**Sprint 3 进行中**（`0.2.0-beta.4` 已发布：`ask_choices` + 中文审批介绍；278 个单测；desktop 已升级到 npm beta.4）。剩余 Sprint 3：high opt-in 二次确认的端到端验证、跨会话只读列表。默认 observe-only，active 需显式配置。
 - 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
 - live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
-- desktop 安装：已切换到 npm `dsh-approval-ledger@0.2.0-beta.3`；`package.json` 依赖已是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals` 和 client header `approval-ledger-details` 已加载。切换时的旧 link junction 备份为 `node_modules\dsh-approval-ledger.link-bak-20261019`，可后续确认删除。`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。
+- desktop 安装：已切换到 npm `dsh-approval-ledger@0.2.0-beta.4`；`package.json` 依赖已是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices` 和 client header `approval-ledger-details` 已加载。切换时的旧 link junction 备份为 `node_modules\dsh-approval-ledger.link-bak-20261019`，可后续确认删除。`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。
 - 仓库：<https://github.com/yingcai233333/dsh-approval-ledger>
 - 包名 / Loader row id：`dsh-approval-ledger` / `approval-ledger`
 - License：MIT
