@@ -627,6 +627,25 @@ describe('revocation', () => {
     assertManual(store.match(request({ sessionId: 's2' })), 'no-grant')
     assert.deepEqual(store.listGrants('s2'), [])
   })
+
+  it('lists cross-session summaries without scopes or cross-session matching', () => {
+    const plan = makePlan([writeItem('A', 'C:\\ws\\out\\a.md')])
+    const store = new GrantStore()
+    register(store, plan, { sessionId: 's1' })
+    register(store, plan, { sessionId: 's2' })
+    store.match(request({ args: { path: 'C:\\ws\\out\\a.md' } }))
+
+    const summaries = store.listSessionSummaries()
+    assert.deepEqual(
+      summaries.map((summary) => [summary.sessionId, summary.plans, summary.active, summary.exhausted]),
+      [
+        ['s1', 1, 0, 1],
+        ['s2', 1, 1, 0],
+      ],
+    )
+    assert.equal('scope' in summaries[0]!, false)
+    assertManual(store.match(request({ sessionId: 's3' })), 'no-grant')
+  })
 })
 
 describe('fail closed', () => {

@@ -6,7 +6,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；审批介绍已改为中文，已发布 `0.2.0-beta.4`（`next`/`latest`），包含 `ask_choices`。默认配置仍是 observe-only。
+> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；审批介绍已改为中文，已发布 `0.2.0-beta.4`（`next`/`latest`）。Sprint 3 的 `ask_choices`、高风险 opt-in 回退测试和跨会话只读列表已完成，`0.2.0-beta.5` 待发布；默认配置仍是 observe-only。
 
 ## 为什么
 
@@ -34,7 +34,7 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-已发布到 npm `0.2.0-beta.4`（`next`/`latest`）；本地临时 profile 和 desktop profile 也做过 live P0。`latest` 目前也指向该 beta，稳定版发布后会移动。安装：
+已发布到 npm `0.2.0-beta.4`（`next`/`latest`）；本地临时 profile 和 desktop profile 也做过 live P0。`0.2.0-beta.5` 新增跨会话只读列表，待发布。`latest` 目前也指向 beta，稳定版发布后会移动。安装已发布版本：
 
 ```sh
 dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.4
@@ -75,6 +75,7 @@ Host 侧核心本身不依赖 DSH 类型；插件入口在它之上注册：
 ## Sprint 3
 
 - `ask_choices`：通过官方问题卡提出结构化单选/多选问题；支持选项说明和“（推荐）”标记，只收集选择，不执行操作、不修改授权。
+- `/approvals sessions`：只读展示所有会话的授权计数；不展示范围/路径/命令，不提供跨会话匹配，不允许使用其他会话的授权。
 
 ## 开发
 

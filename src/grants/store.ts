@@ -3,7 +3,8 @@
  *
  * Design invariants:
  * - grants are keyed by `(sessionId, turn)` and never persist;
- * - child sessions never inherit grants; no method looks across sessions;
+ * - child sessions never inherit grants; no method authorizes across sessions,
+ *   only aggregate read-only summaries;
  * - only auto-eligible, unblocked plan items get an `active` grant;
  * - each successful match consumes at most one use, synchronously;
  * - `turn/end`, `session/disposed`, and `dispose()` remove grants;
@@ -39,6 +40,7 @@ import type {
   GrantState,
   GrantStoreMode,
   GrantStoreOptions,
+  SessionGrantSummary,
 } from './types.js'
 
 interface GrantRecord {
@@ -602,6 +604,38 @@ export class GrantStore {
       for (const grant of plan.items.values()) result.push(snapshot(grant))
     }
     return result
+  }
+
+  /**
+   * Read-only aggregate for the cross-session overview. It deliberately exposes
+   * only counts: never scopes, paths, commands, args, or a way to match against
+   * another session.
+   */
+  listSessionSummaries(): SessionGrantSummary[] {
+    if (this.disposed) return []
+    const summaries: SessionGrantSummary[] = []
+    for (const [sessionId, session] of this.sessions) {
+      const summary: SessionGrantSummary = {
+        sessionId,
+        plans: session.plans.size,
+        grants: 0,
+        active: 0,
+        exhausted: 0,
+        manual: 0,
+        blocked: 0,
+      }
+      for (const plan of session.plans.values()) {
+        for (const grant of plan.items.values()) {
+          summary.grants += 1
+          if (grant.state === 'active') summary.active += 1
+          else if (grant.state === 'exhausted') summary.exhausted += 1
+          else if (grant.state === 'manual') summary.manual += 1
+          else if (grant.state === 'blocked-by-manual') summary.blocked += 1
+        }
+      }
+      summaries.push(summary)
+    }
+    return summaries.sort((left, right) => left.sessionId.localeCompare(right.sessionId))
   }
 
   /** Look up one grant record within a session, optionally constrained to a turn. */

@@ -312,6 +312,19 @@ describe('host plugin integration', () => {
     })
     assert.equal(grants.kind, 'success')
     if (grants.kind === 'success') assert.match(grants.text ?? '', /A · write/)
+
+    const sessions = ctx.runCommand('approvals', {
+      commandId: 'cmd-4',
+      agent,
+      rawInput: 'sessions',
+      attachments: [],
+      signal: new AbortController().signal,
+    })
+    assert.equal(sessions.kind, 'success')
+    if (sessions.kind === 'success') {
+      assert.match(sessions.text ?? '', /跨会话授权列表/)
+      assert.match(sessions.text ?? '', /session-1/)
+    }
   })
 
   it('lets the user veto every item at the per-item selection step', async () => {

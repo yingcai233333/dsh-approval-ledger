@@ -4,6 +4,14 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.5] - 2026-10-19 (pending release)
+
+### Added
+
+- `/approvals sessions`: read-only summaries of grants across sessions (plan count and active/manual/blocked/exhausted counts).
+- Summaries contain no scope, paths, commands, or arguments; there is no cross-session match and other sessions' grants cannot be used.
+- `GrantStore.listSessionSummaries()` returns aggregate counts only; session isolation and fail-closed behavior are unchanged.
+
 ## [0.2.0-beta.4] - 2026-10-19 (published to npm, `next`/`latest`)
 
 ### Added

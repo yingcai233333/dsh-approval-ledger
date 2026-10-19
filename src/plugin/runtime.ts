@@ -597,6 +597,20 @@ export function registerAskChoicesTool(ctx: Context): () => void {
   return ctx.tools.register(definition)
 }
 
+function sessionsText(runtime: LedgerRuntime): string {
+  const summaries = runtime.grants.listSessionSummaries()
+  if (summaries.length === 0) return '当前没有跨会话授权记录。'
+  const lines = ['跨会话授权列表（只读；不会跨会话放行）：']
+  for (const summary of summaries) {
+    lines.push(
+      `- ${summary.sessionId}：计划 ${summary.plans}，记录 ${summary.grants}（有效 ${summary.active}，` +
+        `手动 ${summary.manual}，依赖未完成 ${summary.blocked}，已用完 ${summary.exhausted}）`,
+    )
+  }
+  lines.push('说明：这里只展示计数，不展示范围/路径/命令；其他会话的授权不能被当前会话使用。')
+  return lines.join('\n')
+}
+
 function grantsText(runtime: LedgerRuntime, sessionId: string): string {
   const grants = runtime.grants.listGrants(sessionId)
   if (grants.length === 0) return 'No grants recorded for this session.'
@@ -637,12 +651,15 @@ export function registerApprovalsCommand(
   return ctx.commands.register({
     name: 'approvals',
     description: 'Inspect approval decisions and active grants for this session',
-    input: { hint: '[audit [--json] | grants]' },
+    input: { hint: '[audit [--json] | grants | sessions]' },
     handler: (invocation: CommandInvocation): CommandResult => {
       try {
         const raw = invocation.rawInput.trim()
         if (raw === 'grants') {
           return { kind: 'success', text: grantsText(runtime, invocation.agent.id) }
+        }
+        if (raw === 'sessions') {
+          return { kind: 'success', text: sessionsText(runtime) }
         }
         if (raw === 'audit --json') {
           const events = invocation.agent.session.snapshotEvents()

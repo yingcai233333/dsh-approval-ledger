@@ -96,6 +96,17 @@ export interface GrantSnapshot {
   state: GrantState
 }
 
+/** Read-only aggregate for the cross-session overview. Never contains scope or arguments. */
+export interface SessionGrantSummary {
+  sessionId: string
+  plans: number
+  grants: number
+  active: number
+  exhausted: number
+  manual: number
+  blocked: number
+}
+
 /**
  * Result of registering a validated plan.
  *

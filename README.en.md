@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Approval text is Chinese and published as `0.2.0-beta.4` (`next`/`latest`), including `ask_choices`. The default config is observe-only.
+> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Approval text is Chinese and published as `0.2.0-beta.4` (`next`/`latest`). Sprint 3 `ask_choices`, the high-risk opt-in fallback test, and the cross-session read-only list are complete; `0.2.0-beta.5` is pending release. The default config is observe-only.
 
 ## Why
 
@@ -34,7 +34,7 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-Published to npm as `0.2.0-beta.4` (`next`/`latest`); the temporary profile and desktop profile were also live-P0 tested. `latest` currently points at the beta and will move when a stable release ships. Install:
+Published to npm as `0.2.0-beta.4` (`next`/`latest`); the temporary profile and desktop profile were also live-P0 tested. `0.2.0-beta.5` adds the cross-session read-only list and is pending release. `latest` currently points at the beta and will move when a stable release ships. Install the published version:
 
 ```sh
 dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.4
@@ -75,6 +75,7 @@ The host-side core is dependency-free and does not import DSH types:
 ## Sprint 3
 
 - `ask_choices`: structured single/multi-select questions through the official question card, with option descriptions and a `（推荐）` marker. It only collects choices; it never executes actions or changes grants.
+- `/approvals sessions`: read-only counts of grants across sessions; it exposes no scope, paths, or commands, provides no cross-session match, and cannot use another session's grants.
 
 ## Development
 
