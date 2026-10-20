@@ -325,6 +325,20 @@ describe('host plugin integration', () => {
       assert.match(sessions.text ?? '', /跨会话授权列表/)
       assert.match(sessions.text ?? '', /session-1/)
     }
+
+    const last = ctx.runCommand('approvals', {
+      commandId: 'cmd-5',
+      agent,
+      rawInput: 'last',
+      attachments: [],
+      signal: new AbortController().signal,
+    })
+    assert.equal(last.kind, 'success')
+    if (last.kind === 'success') {
+      assert.match(last.text ?? '', /最近计划/)
+      assert.match(last.text ?? '', /A：写入文件/)
+      assert.match(last.text ?? '', /已放行/)
+    }
   })
 
   it('lets the user veto every item at the per-item selection step', async () => {

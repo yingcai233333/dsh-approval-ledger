@@ -1,4 +1,5 @@
 import { buildApprovalDisplayReason } from '../approval/summary.js'
+import { riskLabel, toolLabel } from '../approval/labels.js'
 import { MemoryAuditStore } from '../audit/store.js'
 import { toAuditJson } from '../audit/export.js'
 import { replayAudit } from '../audit/replay.js'
@@ -58,6 +59,7 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 interface CachedPlan {
   plan: ValidatedPlan
   decision: PlanDecision
+  sessionId?: string
   selected?: ReadonlySet<string>
 }
 
@@ -144,12 +146,13 @@ function rewriteDisplayReason(
 
 function rememberPlan(
   runtime: LedgerRuntime,
+  sessionId: string,
   planId: string,
   plan: ValidatedPlan,
   decision: PlanDecision,
   selected?: ReadonlySet<string>,
 ): void {
-  runtime.plans.set(planId, { plan, decision, selected })
+  runtime.plans.set(planId, { plan, decision, sessionId, selected })
   if (runtime.plans.size > 20) {
     const oldest = runtime.plans.keys().next().value
     if (oldest !== undefined) runtime.plans.delete(oldest)
@@ -518,7 +521,7 @@ export function registerRequestApprovalsTool(
       const answer = await askQuestions(ctx, agent, exec.signal, review.questions)
       if (answer === undefined) {
         const cancelled = cancelledResult(plan, planId)
-        rememberPlan(runtime, planId, plan, 'cancelled')
+        rememberPlan(runtime, agent.id, planId, plan, 'cancelled')
         return cancelled
       }
 
@@ -526,7 +529,7 @@ export function registerRequestApprovalsTool(
       const approved = selected.includes(question.intent.approve)
       if (!approved) {
         const cancelled = cancelledResult(plan, planId)
-        rememberPlan(runtime, planId, plan, 'cancelled')
+        rememberPlan(runtime, agent.id, planId, plan, 'cancelled')
         return cancelled
       }
 
@@ -538,7 +541,7 @@ export function registerRequestApprovalsTool(
         const selectionAnswer = await askQuestions(ctx, agent, exec.signal, [selection])
         if (selectionAnswer === undefined) {
           const cancelled = cancelledResult(plan, planId)
-          rememberPlan(runtime, planId, plan, 'cancelled')
+          rememberPlan(runtime, agent.id, planId, plan, 'cancelled')
           return cancelled
         }
         const picked = new Set(
@@ -547,7 +550,7 @@ export function registerRequestApprovalsTool(
         selectedItems = new Set(plan.autoItems.filter((id) => picked.has(id)))
         if (selectedItems.size === 0) {
           const cancelled = cancelledResult(plan, planId)
-          rememberPlan(runtime, planId, plan, 'cancelled')
+          rememberPlan(runtime, agent.id, planId, plan, 'cancelled')
           return cancelled
         }
       }
@@ -560,7 +563,7 @@ export function registerRequestApprovalsTool(
           planId,
         })
       }
-      rememberPlan(runtime, planId, plan, 'approved', selectedItems)
+      rememberPlan(runtime, agent.id, planId, plan, 'approved', selectedItems)
       return planDecisionResult(plan, planId, 'approved', selectedItems)
     },
   }
@@ -623,6 +626,40 @@ function sessionsText(runtime: LedgerRuntime): string {
   return lines.join('\n')
 }
 
+function lastPlanText(runtime: LedgerRuntime, sessionId: string): string {
+  const entries = [...runtime.plans.entries()].filter(([, cached]) => cached.sessionId === sessionId)
+  const last = entries.at(-1)
+  if (last === undefined) return '当前会话还没有计划记录。'
+  const [planId, cached] = last
+  const audits = runtime.audits.list(sessionId).filter((record) => record.planId === planId)
+  const outcomeLabels: Record<string, string> = {
+    'allowed-once': '已放行',
+    rejected: '已拒绝',
+    cancelled: '已取消',
+    unavailable: '未取得',
+  }
+  const lines = [
+    `最近计划 ${planId}：${cached.decision === 'approved' ? '已批准' : '未批准'}`,
+    '',
+  ]
+  for (const item of cached.plan.items) {
+    const auto =
+      cached.decision === 'approved' &&
+      item.autoEligible &&
+      (cached.selected?.has(item.id) ?? true)
+    const itemAudits = audits.filter((record) => record.itemId === item.id)
+    const lastAudit = itemAudits.at(-1)
+    const executed = lastAudit === undefined
+      ? '未记录执行'
+      : `最近 ${outcomeLabels[lastAudit.outcome] ?? lastAudit.outcome}${itemAudits.length > 1 ? `（共 ${itemAudits.length} 次）` : ''}`
+    lines.push(
+      `- ${item.id}：${toolLabel(item.tool)} · ${riskLabel(item.risk.level)} · ${auto ? '自动' : '手动'} · ${executed}`,
+    )
+  }
+  lines.push('', '说明：这里只显示已归因到该计划的调用；未执行或被拒绝的项会标为“未记录执行”。')
+  return lines.join('\n')
+}
+
 function grantsText(runtime: LedgerRuntime, sessionId: string): string {
   const grants = runtime.grants.listGrants(sessionId)
   if (grants.length === 0) return 'No grants recorded for this session.'
@@ -663,7 +700,7 @@ export function registerApprovalsCommand(
   return ctx.commands.register({
     name: 'approvals',
     description: 'Inspect approval decisions and active grants for this session',
-    input: { hint: '[audit [--json] | grants | sessions]' },
+    input: { hint: '[audit [--json] | grants | sessions | last]' },
     handler: (invocation: CommandInvocation): CommandResult => {
       try {
         const raw = invocation.rawInput.trim()
@@ -672,6 +709,9 @@ export function registerApprovalsCommand(
         }
         if (raw === 'sessions') {
           return { kind: 'success', text: sessionsText(runtime) }
+        }
+        if (raw === 'last') {
+          return { kind: 'success', text: lastPlanText(runtime, invocation.agent.id) }
         }
         if (raw === 'audit --json') {
           const events = invocation.agent.session.snapshotEvents()
