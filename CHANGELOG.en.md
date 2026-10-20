@@ -4,6 +4,13 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.9] - 2026-10-20 (pending release)
+
+### Added
+
+- `/approvals last`: shows the most recent plan and each item's result, marking auto/manual and allowed/rejected/not recorded.
+- The result comes from the plan cache plus audit attribution; it never shows scope, paths, commands, or arguments.
+
 ## [0.2.0-beta.8] - 2026-10-19 (published to npm, `next`/`latest`)
 
 ### Changed
