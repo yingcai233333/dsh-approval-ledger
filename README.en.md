@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Approval text is Chinese and published as `0.2.0-beta.7` (`next`/`latest`). `0.2.0-beta.8` adds the inline Chinese note and per-item auto/manual summary and is pending release; desktop has `mode: active` enabled (low/medium auto, high still per-call).
+> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Approval text is Chinese and published as `0.2.0-beta.8` (`next`/`latest`); desktop has `mode: active` enabled.
 
 ## Why
 
@@ -34,10 +34,10 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-Published to npm as `0.2.0-beta.7` (`next`/`latest`); the temporary profile and desktop profile were also live-P0 tested. `latest` currently points at the beta and will move when a stable release ships. Install:
+Published to npm as `0.2.0-beta.8` (`next`/`latest`); desktop has active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.7
+dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.8
 ```
 
 To opt into medium auto-approval explicitly:
