@@ -5,7 +5,10 @@ import { toAuditJson } from '../audit/export.js'
 import { replayAudit } from '../audit/replay.js'
 import { renderAuditReport } from '../audit/report.js'
 import { deriveAuditRecords, eventsToReplayFacts } from '../audit/session-facts.js'
-import { flashApprovalWindow } from '../notify/flash.js'
+import { createNotifier } from '../notify/notifier.js'
+import type { Notifier } from '../notify/notifier.js'
+import { scrubSecrets } from '../core/redact.js'
+import { sanitizePlanText } from '../plan/document.js'
 import {
   isObserveOnly,
   planLimitsFromConfig,
@@ -80,10 +83,18 @@ export interface LedgerRuntime {
   grants: GrantStore
   audits: MemoryAuditStore
   plans: Map<string, CachedPlan>
+  notifier: Notifier
   dispose(): void
 }
 
-export function createRuntime(config: PluginConfig): LedgerRuntime {
+export interface RuntimeDependencies {
+  notifier?: Notifier
+}
+
+export function createRuntime(
+  config: PluginConfig,
+  dependencies: RuntimeDependencies = {},
+): LedgerRuntime {
   const runtime: LedgerRuntime = {
     config,
     tracker: new SessionTracker(),
@@ -93,7 +104,9 @@ export function createRuntime(config: PluginConfig): LedgerRuntime {
     }),
     audits: new MemoryAuditStore(),
     plans: new Map(),
+    notifier: dependencies.notifier ?? createNotifier(config),
     dispose(): void {
+      runtime.notifier.dispose()
       runtime.grants.dispose()
       runtime.plans.clear()
       for (const sessionId of runtime.audits.sessions()) runtime.audits.clear(sessionId)
@@ -278,7 +291,7 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
         return 'allowed-once'
       }
 
-      flashApprovalWindow({ enabled: runtime.config.flashWindow })
+      const reminder = runtime.notifier.remind('approval')
 
       let outcome: ApprovalOutcome
       try {
@@ -300,6 +313,8 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
           probe: prepared.probe,
         })
         throw error
+      } finally {
+        reminder.stop()
       }
 
       recordAudit(runtime, {
@@ -518,7 +533,13 @@ export function registerRequestApprovalsTool(
         throw new Error('request_approvals could not build a plan-review question')
       }
 
-      const answer = await askQuestions(ctx, agent, exec.signal, review.questions)
+      const planReminder = runtime.notifier.remind('plan')
+      let answer: AskUserQuestionAnswer | undefined
+      try {
+        answer = await askQuestions(ctx, agent, exec.signal, review.questions)
+      } finally {
+        planReminder.stop()
+      }
       if (answer === undefined) {
         const cancelled = cancelledResult(plan, planId)
         rememberPlan(runtime, agent.id, planId, plan, 'cancelled')
@@ -542,7 +563,13 @@ export function registerRequestApprovalsTool(
       } else if (selection === undefined) {
         selectedItems = new Set()
       } else {
-        const selectionAnswer = await askQuestions(ctx, agent, exec.signal, [selection])
+        const selectionReminder = runtime.notifier.remind('question')
+        let selectionAnswer: AskUserQuestionAnswer | undefined
+        try {
+          selectionAnswer = await askQuestions(ctx, agent, exec.signal, [selection])
+        } finally {
+          selectionReminder.stop()
+        }
         if (selectionAnswer === undefined) {
           const cancelled = cancelledResult(plan, planId)
           rememberPlan(runtime, agent.id, planId, plan, 'cancelled')
@@ -581,7 +608,7 @@ export function registerRequestApprovalsTool(
  * Chinese detail, option descriptions, and a `（推荐）` marker so the model can
  * ask a clear question without replacing the official question card.
  */
-export function registerAskChoicesTool(ctx: Context): () => void {
+export function registerAskChoicesTool(ctx: Context, runtime?: LedgerRuntime): () => void {
   const definition: ToolDefinition = {
     name: 'ask_choices',
     description:
@@ -591,13 +618,36 @@ export function registerAskChoicesTool(ctx: Context): () => void {
     parameters: ASK_CHOICES_PARAMETERS,
     output: {
       schema: ASK_CHOICES_OUTPUT_SCHEMA as unknown as JsonSchemaNode,
-      render: (_args, value) => {
+      render: (args, value) => {
         const record = isPlainObject(value) ? value : {}
         if (record.cancelled === true) {
           return [{ type: 'text', text: '用户取消了选择。' }]
         }
-        const answers = Array.isArray(record.answers) ? record.answers.length : 0
-        return [{ type: 'text', text: `已收到 ${answers} 个问题的选择。` }]
+        const answers = Array.isArray(record.answers) ? record.answers : []
+        const questionText = new Map<string, string>()
+        try {
+          for (const question of parseAskChoicesArgs(args)) {
+            questionText.set(question.id, question.question)
+          }
+        } catch {
+          // The model already saw the sanitized card; ids remain enough to continue.
+        }
+        const lines = ['已收到选择：']
+        answers.forEach((raw, index) => {
+          if (!isPlainObject(raw)) return
+          const id = typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : `q${index + 1}`
+          const selected = Array.isArray(raw.selected)
+            ? raw.selected.filter(
+                (entry): entry is string => typeof entry === 'string' && entry.length > 0,
+              )
+            : []
+          const custom = typeof raw.custom === 'string' && raw.custom.length > 0 ? raw.custom : ''
+          const choice = selected.length > 0 ? selected.map(cleanChoiceText).join('、') : '未选择'
+          const suffix = custom.length > 0 ? `（补充：${cleanChoiceText(custom)}）` : ''
+          lines.push(`- ${questionText.get(id) ?? id}：${choice}${suffix}`)
+        })
+        if (lines.length === 1) lines.push('- 没有可显示的答案')
+        return [{ type: 'text', text: lines.join('\n') }]
       },
     },
     async execute(args: unknown, exec: ToolRunContext): Promise<JsonValue> {
@@ -605,7 +655,13 @@ export function registerAskChoicesTool(ctx: Context): () => void {
       if (agent === undefined) throw new Error('ask_choices requires an owning agent session')
       if (exec.signal.aborted) throw new Error('ask_choices was cancelled')
       const questions = parseAskChoicesArgs(args)
-      const answer = await askQuestions(ctx, agent, exec.signal, toQuestionRequest(questions))
+      const reminder = runtime?.notifier.remind('question')
+      let answer: AskUserQuestionAnswer | undefined
+      try {
+        answer = await askQuestions(ctx, agent, exec.signal, toQuestionRequest(questions))
+      } finally {
+        reminder?.stop()
+      }
       if (answer === undefined) return { cancelled: true, answers: [] }
       return {
         cancelled: false,
@@ -614,6 +670,10 @@ export function registerAskChoicesTool(ctx: Context): () => void {
     },
   }
   return ctx.tools.register(definition)
+}
+
+function cleanChoiceText(value: string): string {
+  return sanitizePlanText(scrubSecrets(value), 120)
 }
 
 function sessionsText(runtime: LedgerRuntime): string {
@@ -773,7 +833,7 @@ export function registerRuntime(ctx: Context, config: PluginConfig): () => void 
     )
     disposers.push(registerApprovalHook(ctx, runtime))
     disposers.push(registerRequestApprovalsTool(ctx, runtime))
-    disposers.push(registerAskChoicesTool(ctx))
+    disposers.push(registerAskChoicesTool(ctx, runtime))
     disposers.push(registerApprovalsCommand(ctx, runtime))
   } catch (error) {
     for (let index = disposers.length - 1; index >= 0; index -= 1) disposers[index]?.()

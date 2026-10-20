@@ -1,6 +1,71 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { buildFlashScript, flashApprovalWindow, shouldFlash } from '../src/notify/flash.js'
+import {
+  alertPending,
+  buildAlertScript,
+  buildFlashScript,
+  flashApprovalWindow,
+  shouldAlert,
+  shouldFlash,
+} from '../src/notify/flash.js'
+
+describe('Windows pending alerts', () => {
+  it('is Windows-only and needs at least one channel', () => {
+    assert.equal(shouldAlert({ flash: true, sound: false, platform: 'win32' }), true)
+    assert.equal(shouldAlert({ flash: false, sound: true, platform: 'win32' }), true)
+    assert.equal(shouldAlert({ flash: false, sound: false, platform: 'win32' }), false)
+    assert.equal(shouldAlert({ flash: true, sound: true, platform: 'linux' }), false)
+  })
+
+  it('builds independent flash and sound scripts', () => {
+    const flashOnly = buildAlertScript({ flash: true, sound: false })
+    assert.match(flashOnly, /FlashWindowEx/)
+    assert.doesNotMatch(flashOnly, /SystemSounds/)
+
+    const soundOnly = buildAlertScript({ flash: false, sound: true })
+    assert.doesNotMatch(soundOnly, /FlashWindowEx/)
+    assert.match(soundOnly, /SystemSounds\]::Exclamation\.Play/)
+
+    const both = buildAlertScript({ flash: true, sound: true })
+    assert.match(both, /FlashWindowEx/)
+    assert.match(both, /SystemSounds\]::Exclamation\.Play/)
+    assert.doesNotMatch(both, /\$\{/)
+  })
+
+  it('does not spawn when both channels are off', () => {
+    let calls = 0
+    alertPending({
+      flash: false,
+      sound: false,
+      platform: 'win32',
+      spawnImpl: (() => {
+        calls += 1
+        return { on() {}, unref() {} } as never
+      }) as never,
+    })
+    assert.equal(calls, 0)
+  })
+
+  it('spawns one hidden PowerShell for both channels', () => {
+    let args: string[] = []
+    let calls = 0
+    alertPending({
+      flash: true,
+      sound: true,
+      platform: 'win32',
+      spawnImpl: ((_file: string, nextArgs: string[]) => {
+        calls += 1
+        args = nextArgs
+        return { on() {}, unref() {} } as never
+      }) as never,
+    })
+    assert.equal(calls, 1)
+    const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
+    const script = Buffer.from(encoded, 'base64').toString('utf16le')
+    assert.match(script, /FlashWindowEx/)
+    assert.match(script, /SystemSounds\]::Exclamation\.Play/)
+  })
+})
 
 describe('Windows approval flash', () => {
   it('is opt-in and Windows-only', () => {

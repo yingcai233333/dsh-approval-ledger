@@ -10,6 +10,7 @@ export interface PluginConfig {
   /** Opt-in for high-risk grants (Sprint 3); requires a second confirmation. */
   allowHighRiskGrants: boolean
   requireSecondConfirmForHigh: boolean
+  /** Master switch for pending-interaction alerts (taskbar flash and sound). */
   notifications: boolean
   /** Audit-only never auto-approves, regardless of mode. */
   auditOnly: boolean
@@ -20,7 +21,18 @@ export interface PluginConfig {
   /** Active mode only: approving the plan authorizes all auto-eligible items without a second checkbox card. */
   autoSelectAll: boolean
   showDetailsButton: boolean
+  /** Alert when the plan-review card is waiting. */
+  notifyOnPlan: boolean
+  /** Alert when a question card (ask_choices or the per-item selection) is waiting. */
+  notifyOnQuestion: boolean
+  /** Alert when an official approval card is waiting. */
+  notifyOnApproval: boolean
+  /** Windows: flash the taskbar button of the DeepSeek Harness window. */
   flashWindow: boolean
+  /** Windows: play the system exclamation sound. */
+  soundAlert: boolean
+  /** Repeat the alert every N seconds while the card stays pending; 0 = once. */
+  notifyRepeatSeconds: number
   auditNotices: AuditNoticeMode
 }
 
@@ -36,7 +48,12 @@ export const DEFAULT_CONFIG: PluginConfig = {
   maxTotalUses: 50,
   autoSelectAll: false,
   showDetailsButton: true,
+  notifyOnPlan: true,
+  notifyOnQuestion: true,
+  notifyOnApproval: true,
   flashWindow: true,
+  soundAlert: true,
+  notifyRepeatSeconds: 0,
   auditNotices: 'off',
 }
 
@@ -197,7 +214,29 @@ export function sanitizeConfig(input: unknown): SanitizedConfig {
         DEFAULT_CONFIG.showDetailsButton,
         warnings,
       ),
+      notifyOnPlan: readBoolean(input, 'notifyOnPlan', DEFAULT_CONFIG.notifyOnPlan, warnings),
+      notifyOnQuestion: readBoolean(
+        input,
+        'notifyOnQuestion',
+        DEFAULT_CONFIG.notifyOnQuestion,
+        warnings,
+      ),
+      notifyOnApproval: readBoolean(
+        input,
+        'notifyOnApproval',
+        DEFAULT_CONFIG.notifyOnApproval,
+        warnings,
+      ),
       flashWindow: readBoolean(input, 'flashWindow', DEFAULT_CONFIG.flashWindow, warnings),
+      soundAlert: readBoolean(input, 'soundAlert', DEFAULT_CONFIG.soundAlert, warnings),
+      notifyRepeatSeconds: readInteger(
+        input,
+        'notifyRepeatSeconds',
+        DEFAULT_CONFIG.notifyRepeatSeconds,
+        0,
+        600,
+        warnings,
+      ),
       auditNotices,
     }
 

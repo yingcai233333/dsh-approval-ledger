@@ -118,6 +118,36 @@ describe('ask_choices tool', () => {
     assert.equal(ctx.toolDefs.has('ask_choices'), false)
   })
 
+  it('renders the selected option labels so the model can continue', () => {
+    const ctx = new FakeContext()
+    registerAskChoicesTool(ctx as unknown as Context)
+    const definition = ctx.toolDefs.get('ask_choices')
+    assert.ok(definition?.output.render)
+    const args = {
+      questions: [
+        { id: 'q1', question: '选哪个？', options: [{ label: '方案 A' }, { label: '方案 B' }] },
+        {
+          id: 'q2',
+          question: '补充说明？',
+          options: [{ label: '不用' }, { label: '需要' }],
+        },
+      ],
+    }
+    const blocks = definition.output.render(args, {
+      cancelled: false,
+      answers: [
+        { id: 'q1', selected: ['方案 B'] },
+        { id: 'q2', selected: [], custom: '再想想' },
+      ],
+    } as never)
+    const text = blocks.map((block) => (block.type === 'text' ? block.text : '')).join('\n')
+    assert.match(text, /选哪个？/)
+    assert.match(text, /方案 B/)
+    assert.match(text, /补充说明？/)
+    assert.match(text, /未选择/)
+    assert.match(text, /再想想/)
+  })
+
   it('fails closed when the question request is malformed', async () => {
     const ctx = new FakeContext()
     registerAskChoicesTool(ctx as unknown as Context)

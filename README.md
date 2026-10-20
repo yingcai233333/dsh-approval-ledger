@@ -6,7 +6,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：Sprint 2 客户端半和 Windows 闪烁已实现，并已在隔离 profile 和 desktop profile 通过 live P0。** `request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 闪烁已实现并有用例；审批介绍已改为中文，已发布 `0.2.0-beta.8`（`next`/`latest`），desktop 已启用 active 批量模式。
+> **状态：0.2.0-beta.13 已发布到 npm（`next`）并安装到 desktop（`autoSelectAll: false`）。** 计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡都会提醒；闪烁与声音可分别开关，`ask_choices` 现在会返回选中项。`request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 提醒已实现并有用例。
 
 ## 为什么
 
@@ -34,10 +34,10 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-已发布到 npm `0.2.0-beta.8`（`next`/`latest`）；desktop 已启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
+npm 上 `next` 指向 `0.2.0-beta.13`，`latest` 仍是 `0.2.0-beta.12`；desktop 已安装 beta.13 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.8
+dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.13
 ```
 
 显式开启 medium 自动放行：
@@ -50,6 +50,27 @@ dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.8
 ```
 
 `high` 仍需 opt-in + 二次确认；`critical` 永不自动放行；`unknown` 保持手动。
+
+## 提醒配置
+
+计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡出现时，Windows 下会闪烁任务栏并播放系统提示音。每一项都可以单独关闭：
+
+```yaml
+- id: approval-ledger
+  config:
+    mode: active
+    notifications: true     # 总开关
+    notifyOnPlan: true      # 计划卡
+    notifyOnQuestion: true  # ask_choices / 逐项勾选
+    notifyOnApproval: true  # 官方审批卡
+    flashWindow: true       # 任务栏/标题闪烁
+    soundAlert: true        # 系统提示音
+    notifyRepeatSeconds: 0  # >0 时每 N 秒重复，0 = 只提醒一次
+```
+
+提醒是 best-effort：找不到窗口、PowerShell/EDR 拒绝或系统静音时静默跳过，不影响审批本身。窗口在前台时 Windows 可能不闪，声音仍会响。
+
+`ask_choices` 会把选中的选项文本返回给模型；此前只返回“已收到 N 个问题的选择”。
 
 ## Sprint 0 纯核心
 

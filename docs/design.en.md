@@ -85,7 +85,7 @@ See `docs/audit.md`. Core points: no new event types; `tool/result.meta` + in-me
 - Single approval: official card + title summary + header detail popover; `conversation.approval.detail` is not modified.
 - Batch: official plan-review + full text in the sidebar.
 - Multiple choice: official question + structured `ask_choices` content.
-- Alerts: Host Win32 flash + in-page red dot.
+- Alerts: Windows taskbar flash + system sound for plan review, per-item selection, `ask_choices`, and official approval cards; sources and both channels are configurable.
 
 ## Release plan
 

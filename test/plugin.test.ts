@@ -45,7 +45,7 @@ function dummyTool(name: string): ToolDefinition {
   }
 }
 
-function setup(config: unknown = { mode: 'active' }): {
+function setup(config: Record<string, unknown> = {}): {
   ctx: FakeContext
   session: ReturnType<typeof makeSession>
   agent: ReturnType<typeof makeAgent>
@@ -54,7 +54,8 @@ function setup(config: unknown = { mode: 'active' }): {
   const ctx = new FakeContext()
   ctx.tools.register(dummyTool('write'))
   ctx.tools.register(dummyTool('pwsh'))
-  apply(ctx as unknown as Context, config)
+  // Host tests must not spawn the real Windows alert helper.
+  apply(ctx as unknown as Context, { mode: 'active', notifications: false, ...config })
   const events: SessionEvent[] = [
     makeEvent(1, 'turn/start', { turn: 1 }),
     makeEvent(2, 'tool/call', {
@@ -434,7 +435,7 @@ describe('host plugin integration', () => {
       siblingSummary = reason?.en ?? ''
       return next()
     })
-    apply(ctx as unknown as Context, { mode: 'observe' })
+    apply(ctx as unknown as Context, { mode: 'observe', notifications: false })
     const session = makeSession('session-order', [makeEvent(1, 'turn/start', { turn: 1 })])
     const agent = makeAgent(session)
     const outcome = await ctx.emitApproval({

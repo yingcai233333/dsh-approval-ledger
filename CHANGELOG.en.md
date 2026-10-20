@@ -4,6 +4,24 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.13] - 2026-10-20 (published to npm, `next`)
+
+### Added
+
+- Alerts now cover every card that needs your input: plan review, the per-item selection, `ask_choices`, and official approval cards. Previously only official approval cards flashed.
+- Alerts are switchable per source: `notifyOnPlan`, `notifyOnQuestion`, `notifyOnApproval`; `flashWindow` and `soundAlert` are independent switches.
+- `notifyRepeatSeconds`: repeat the alert every N seconds while the card stays pending; default `0` means once.
+- Windows sound uses the system exclamation sound (`SystemSounds`) with no new dependency, still through the best-effort hidden PowerShell helper.
+- Flash flags now use `FLASHW_ALL`, so both the caption and the taskbar button flash; Windows may still skip flashing while the window is foreground, and the sound is the fallback.
+
+### Fixed
+
+- `ask_choices` now returns the selected option text to the model, so it can see which option you picked. Previously it only returned "received N answers".
+
+### Changed
+
+- `autoSelectAll` still defaults to `false`; the desktop profile must remove it or set it to `false` to get the per-item selection back.
+
 ## [0.2.0-beta.12] - 2026-10-20 (pending release)
 
 ### Fixed

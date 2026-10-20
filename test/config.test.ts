@@ -30,6 +30,11 @@ describe('plugin config', () => {
       maxTotalUses: 30,
       showDetailsButton: false,
       flashWindow: false,
+      soundAlert: false,
+      notifyOnPlan: false,
+      notifyOnQuestion: false,
+      notifyOnApproval: false,
+      notifyRepeatSeconds: 60,
       auditNotices: 'plan',
     })
     assert.equal(config.mode, 'active')
@@ -37,6 +42,12 @@ describe('plugin config', () => {
     assert.equal(config.auditRetentionDays, 90)
     assert.equal(config.maxPlanItems, 10)
     assert.equal(config.maxUsesPerItem, 3)
+    assert.equal(config.flashWindow, false)
+    assert.equal(config.soundAlert, false)
+    assert.equal(config.notifyOnPlan, false)
+    assert.equal(config.notifyOnQuestion, false)
+    assert.equal(config.notifyOnApproval, false)
+    assert.equal(config.notifyRepeatSeconds, 60)
     assert.equal(config.auditNotices, 'plan')
     assert.deepEqual(warnings, [])
   })
@@ -49,6 +60,11 @@ describe('plugin config', () => {
       maxPlanItems: 100,
       maxUsesPerItem: 9,
       maxTotalUses: -1,
+      soundAlert: 'loud',
+      notifyOnPlan: 1,
+      notifyOnQuestion: null,
+      notifyOnApproval: [],
+      notifyRepeatSeconds: -5,
       auditNotices: 'sometimes',
     })
     assert.equal(config.mode, 'observe')
@@ -57,9 +73,16 @@ describe('plugin config', () => {
     assert.equal(config.maxPlanItems, 20)
     assert.equal(config.maxUsesPerItem, 5)
     assert.equal(config.maxTotalUses, 50)
+    assert.equal(config.soundAlert, true)
+    assert.equal(config.notifyOnPlan, true)
+    assert.equal(config.notifyOnQuestion, true)
+    assert.equal(config.notifyOnApproval, true)
+    assert.equal(config.notifyRepeatSeconds, 0)
     assert.equal(config.auditNotices, 'off')
     assert.ok(warnings.some((warning) => warning.field === 'mode'))
     assert.ok(warnings.some((warning) => warning.field === 'notifications'))
+    assert.ok(warnings.some((warning) => warning.field === 'soundAlert'))
+    assert.ok(warnings.some((warning) => warning.field === 'notifyRepeatSeconds'))
   })
 
   it('forces the high-risk second confirmation back on', () => {

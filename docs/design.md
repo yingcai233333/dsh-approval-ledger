@@ -85,7 +85,7 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 - 单条：官方卡 + 标题摘要 + 头部详情弹窗；不改 `conversation.approval.detail`。
 - 批量：官方 plan-review + 侧栏全文。
 - 多选：官方 question + `ask_choices` 结构化内容。
-- 提醒：Host Win32 flash + 页面红点。
+- 提醒：计划卡、逐项勾选、`ask_choices` 和官方审批卡出现时，Windows 任务栏闪烁 + 系统提示音；范围与两个通道均可配置。
 
 ## 发布计划
 

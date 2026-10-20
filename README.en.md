@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: Sprint 2 client slice and Windows flash are implemented; live-P0 verified in an isolated profile and the desktop profile.** `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows flash are implemented and covered by tests. Approval text is Chinese and published as `0.2.0-beta.8` (`next`/`latest`); desktop has `mode: active` enabled.
+> **Status: 0.2.0-beta.13 is published to npm (`next`) and installed in desktop (`autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and `ask_choices` returns the selected option. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
 
 ## Why
 
@@ -34,10 +34,10 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-Published to npm as `0.2.0-beta.8` (`next`/`latest`); desktop has active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `next` points at `0.2.0-beta.13`; `latest` is still `0.2.0-beta.12`. Desktop has beta.13 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.8
+dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.13
 ```
 
 To opt into medium auto-approval explicitly:
@@ -50,6 +50,27 @@ To opt into medium auto-approval explicitly:
 ```
 
 `high` still needs opt-in plus the second-confirmation interlock; `critical` is never auto-approved; `unknown` stays manual.
+
+## Alert settings
+
+Plan review, the per-item selection, `ask_choices`, and official approval cards raise a Windows alert: the taskbar button flashes and the system exclamation sound plays. Each source and each channel can be switched off:
+
+```yaml
+- id: approval-ledger
+  config:
+    mode: active
+    notifications: true     # master switch
+    notifyOnPlan: true      # plan-review card
+    notifyOnQuestion: true  # ask_choices / per-item selection
+    notifyOnApproval: true  # official approval card
+    flashWindow: true       # taskbar/caption flash
+    soundAlert: true        # system sound
+    notifyRepeatSeconds: 0  # >0 repeats every N seconds; 0 = once
+```
+
+Alerts are best-effort: a missing window, PowerShell/EDR refusal, or muted system sound is skipped silently and never blocks the decision. Windows may skip the flash while the window is foreground; the sound still plays.
+
+`ask_choices` now returns the selected option text to the model; previously it only said "received N answers".
 
 ## Sprint 0 core
 

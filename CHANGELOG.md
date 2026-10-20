@@ -4,6 +4,24 @@
 
 本项目的所有重要变更都记录在此。
 
+## [0.2.0-beta.13] - 2026-10-20（已发布到 npm，`next`）
+
+### 新增
+
+- 提醒覆盖所有需要你操作的卡片：计划卡、逐项勾选卡、`ask_choices` 问题卡、官方审批卡。此前只有官方审批卡会闪。
+- 提醒可按来源开关：`notifyOnPlan`、`notifyOnQuestion`、`notifyOnApproval`；闪烁 `flashWindow` 与声音 `soundAlert` 可分别开关。
+- `notifyRepeatSeconds`：卡片一直未处理时每 N 秒重复提醒；默认 `0`，只提醒一次。
+- Windows 声音使用系统提示音（`SystemSounds`），不引入新依赖，仍是 best-effort 的隐藏 PowerShell 辅助进程。
+- 闪烁标志改为 `FLASHW_ALL`，标题栏和任务栏都会闪；窗口在前台时 Windows 仍可能不闪，声音作为兜底。
+
+### 修复
+
+- `ask_choices` 现在把选中项文本返回给模型，模型能看到你选了哪一项。此前只返回“已收到 N 个问题的选择”，无法据此分支。
+
+### 变更
+
+- `autoSelectAll` 默认仍为 `false`；desktop 若要逐项勾选，需要把该配置移除或改成 `false`。
+
 ## [0.2.0-beta.12] - 2026-10-20（待发布）
 
 ### 修复

@@ -6,10 +6,10 @@
 
 ## 0. 当前状态
 
-- 阶段：**`0.2.0-beta.8` 已发布**（同屏中文说明、逐项自动/手动摘要、Windows 闪烁真机验证；280 个单测；desktop 已安装 beta.8 并启用 `mode: active`）。active 下中/低风险计划项可连续执行；高/严重/未知仍逐条官方确认。剩余：sibling live 验证、0.3.0 稳定版。
+- 阶段：**`0.2.0-beta.13` 已发布到 npm（`next`）并安装到 desktop**：提醒覆盖计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡；`flashWindow` / `soundAlert` / `notifyOn*` / `notifyRepeatSeconds` 可分别配置；`ask_choices` 现在返回选中项；292 个单测。desktop 的 `autoSelectAll` 已改为 `false`（恢复逐项勾选），重启后生效。
 - 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
 - live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
-- desktop 安装：已切换到 npm `dsh-approval-ledger@0.2.0-beta.5`；`package.json` 依赖已是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices`、`/approvals sessions` 和 client header `approval-ledger-details` 已加载。切换时的旧 link junction 备份为 `node_modules\dsh-approval-ledger.link-bak-20261019`，可后续确认删除。`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。
+- desktop 安装：当前为 npm `dsh-approval-ledger@0.2.0-beta.13`；`package.json` 依赖是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices`、`/approvals sessions` 和 client header `approval-ledger-details` 已加载。升级时走的 `remove_bundle` → `install_bundle` 没有重写 `cordis.patch.yml`，`autoSelectAll` 已手动改为 `false`；升级前备份在 `.p0-backup/desktop-pre-beta13/`。`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。
 - 仓库：<https://github.com/yingcai233333/dsh-approval-ledger>
 - 包名 / Loader row id：`dsh-approval-ledger` / `approval-ledger`
 - License：MIT
@@ -239,5 +239,5 @@ dsh-approval-ledger/
   2. 用 DSH checkout 的 `.d.ts` 做只读参考；
   3. 不要把未发布的 `@deepseek-ai/*` 加回依赖，否则 CI 会挂。
 - 测试：`pnpm test` 先 `tsc -p tsconfig.test.json` 输出到 `lib-test/`，再用 Node 自带测试运行器（`--test-isolation=none`）执行；这样不依赖 esbuild 子进程，沙箱内也能跑。`vitest` 仍在 devDependencies，留给后续客户端测试。
-- 本地验证：273 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub Actions 在 Ubuntu/Windows × Node 22/24 四组全部通过（run 39135436206）。
+- 本地验证：292 个测试、`pnpm lint` 0 warning、`pnpm build` 成功；GitHub Actions 在 Ubuntu/Windows × Node 22/24 四组全部通过（run 39135436206）。
 - **版本注意**：静态核对和仓库目标都是安装包 `0.2.1-rc.2`；发布前仍要在该目标版本复验 `docs/runtime-spike.md` 的接口。
