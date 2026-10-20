@@ -6,7 +6,21 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：0.2.0-beta.13 已发布到 npm（`next`）并安装到 desktop（`autoSelectAll: false`）。** 计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡都会提醒；闪烁与声音可分别开关，`ask_choices` 现在会返回选中项。`request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 提醒已实现并有用例。
+> **状态：0.2.0-beta.14 已发布到 npm（`next`）并安装到 desktop（`autoSelectAll: false`）。** 计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡都会提醒；闪烁与声音可分别开关，提示音是合成的「叮咚」。beta.14 修复了提醒完全静默的根因（`spawn` 的 `detached`/`windowsHide`）、`4100` 警告和右下角「待审批说明」不显示。`request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 提醒已实现并有用例。
+
+## 截图
+
+**计划审阅**：批准前就能看到每项操作、风险、依赖和执行阶段，逐项可展开。
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/plan-review.png" alt="计划审阅面板" width="520">
+
+**官方审批卡**：标题是中文摘要（工具 · 目标 · 模式）；右下角还有只读的「待审批说明」。
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/approval-card.png" alt="官方审批卡" width="480"> <img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/approval-note.png" alt="待审批说明" width="300">
+
+**结构化问题卡**：`ask_choices` 的选项和补充内容会原样回传给模型。
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/question-card.png" alt="ask_choices 问题卡" width="520">
 
 ## 为什么
 
@@ -34,10 +48,10 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-npm 上 `next` 指向 `0.2.0-beta.13`，`latest` 仍是 `0.2.0-beta.12`；desktop 已安装 beta.13 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
+npm 上 `next` 指向 `0.2.0-beta.14`，`latest` 仍是 `0.2.0-beta.12`；desktop 已安装 beta.14 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.13
+dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.14
 ```
 
 显式开启 medium 自动放行：

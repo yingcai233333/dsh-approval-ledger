@@ -6,7 +6,21 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: 0.2.0-beta.13 is published to npm (`next`) and installed in desktop (`autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and `ask_choices` returns the selected option. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
+> **Status: 0.2.0-beta.14 is published to npm (`next`) and installed in desktop (`autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and the sound is a synthesized "ding-dong". beta.14 fixes why alerts were silent (the `detached`/`windowsHide` spawn flags), the spurious `4100` warning, and the missing bottom-right approval note. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
+
+## Screenshots
+
+**Plan review**: see every item, risk, dependency, and stage before approving; each item expands.
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/plan-review.png" alt="Plan review panel" width="520">
+
+**Official approval card**: the title is a Chinese summary (tool · target · mode), and the bottom-right shows a read-only approval note.
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/approval-card.png" alt="Official approval card" width="480"> <img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/approval-note.png" alt="Pending approval note" width="300">
+
+**Structured question card**: `ask_choices` passes the selected options and any free-text note back to the model.
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/question-card.png" alt="ask_choices question card" width="520">
 
 ## Why
 
@@ -34,10 +48,10 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-npm `next` points at `0.2.0-beta.13`; `latest` is still `0.2.0-beta.12`. Desktop has beta.13 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `next` points at `0.2.0-beta.14`; `latest` is still `0.2.0-beta.12`. Desktop has beta.14 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.13
+dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.14
 ```
 
 To opt into medium auto-approval explicitly:
