@@ -36,3 +36,4 @@
 - 采用「项目经理 + 子 agent」模式：主 agent 负责任务拆解、与用户对齐、决策点确认、验收和汇报；实现、验证、发布等具体执行交给子 agent。
 - 每个任务按需开 1～3 个子 agent 并行承担执行；子 agent 的产出由主 agent 汇总、校验后再向用户汇报。
 - 用户只对接主 agent，不直接对接子 agent。
+- **权限边界**：子 agent 的沙箱固定为 `workspace-write`，需要 `danger-full-access` 的操作（git 写、profile 写、安装/卸载插件）会被自动拒绝。这类步骤由主 agent 执行；子 agent 只做工作区内代码、构建、测试和纯网络操作。
