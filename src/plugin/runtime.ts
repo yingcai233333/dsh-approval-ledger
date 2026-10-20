@@ -535,7 +535,11 @@ export function registerRequestApprovalsTool(
 
       const selection = buildPlanSelectionQuestion(plan, { lang: 'zh' })
       let selectedItems: ReadonlySet<string>
-      if (selection === undefined) {
+      if (runtime.config.autoSelectAll) {
+        // One approval authorizes every auto-eligible item; high/unknown items
+        // still get their own official card when actually called.
+        selectedItems = new Set(plan.autoItems)
+      } else if (selection === undefined) {
         selectedItems = new Set()
       } else {
         const selectionAnswer = await askQuestions(ctx, agent, exec.signal, [selection])

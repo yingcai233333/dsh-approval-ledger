@@ -152,6 +152,22 @@ describe('host plugin integration', () => {
     assert.ok(ctx.commandDefs.has('approvals'))
   })
 
+  it('auto-selects all auto-eligible items when configured', async () => {
+    const { ctx, agent, events } = setup({ mode: 'active', autoSelectAll: true })
+    const { result } = await approvePlan(ctx, agent, events)
+    assert.equal(result.decision, 'approved')
+    assert.equal(ctx.askCalls.length, 1)
+    const grants = ctx.runCommand('approvals', {
+      commandId: 'cmd-auto-select',
+      agent,
+      rawInput: 'grants',
+      attachments: [],
+      signal: new AbortController().signal,
+    })
+    assert.equal(grants.kind, 'success')
+    if (grants.kind === 'success') assert.match(grants.text ?? '', /A · write · active/)
+  })
+
   it('keeps high-risk opt-in behind the official approval card', async () => {
     const { ctx, agent, events } = setup({ mode: 'active', allowHighRiskGrants: true })
     const highPlan = {

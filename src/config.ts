@@ -17,6 +17,8 @@ export interface PluginConfig {
   maxPlanItems: number
   maxUsesPerItem: number
   maxTotalUses: number
+  /** Active mode only: approving the plan authorizes all auto-eligible items without a second checkbox card. */
+  autoSelectAll: boolean
   showDetailsButton: boolean
   flashWindow: boolean
   auditNotices: AuditNoticeMode
@@ -32,6 +34,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
   maxPlanItems: 20,
   maxUsesPerItem: 5,
   maxTotalUses: 50,
+  autoSelectAll: false,
   showDetailsButton: true,
   flashWindow: true,
   auditNotices: 'off',
@@ -187,6 +190,7 @@ export function sanitizeConfig(input: unknown): SanitizedConfig {
         warnings,
       ),
       maxTotalUses: readInteger(input, 'maxTotalUses', DEFAULT_CONFIG.maxTotalUses, 1, 100, warnings),
+      autoSelectAll: readBoolean(input, 'autoSelectAll', DEFAULT_CONFIG.autoSelectAll, warnings),
       showDetailsButton: readBoolean(
         input,
         'showDetailsButton',

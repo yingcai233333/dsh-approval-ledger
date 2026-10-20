@@ -4,6 +4,20 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.12] - 2026-10-20 (pending release)
+
+### Fixed
+
+- Rebuilt the Host artifact for `autoSelectAll`, so approving a plan actually skips the second per-item checklist.
+- The beta.11 package was missing that build artifact and is superseded by beta.12.
+
+## [0.2.0-beta.11] - 2026-10-20 (pending release)
+
+### Added
+
+- `autoSelectAll`: after plan approval, all auto-eligible items are authorized without a second per-item checklist; high/critical/unknown items still use the official card per call.
+- Designed for the one-approval batch flow; off by default.
+
 ## [0.2.0-beta.10] - 2026-10-20 (pending release)
 
 ### Fixed
