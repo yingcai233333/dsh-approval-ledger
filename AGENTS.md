@@ -8,7 +8,7 @@
 
 - 当前只做 **Host 侧接线**：`request_approvals`、`/approvals`、`approval/request` 钩子、plan-review 文档、grants、session-log 审计投影；默认 observe-only。不替换官方审批/问题/计划 UI。
 - **不要先安装插件**：不执行 `dsh plugin ... add`，不改 profile，不运行 `pnpm add` / `npm install` 安装新包。
-- **不要先发布**：不打 tag、不 publish、不触发 release workflow；live P0 和安装安全审查完成前不发布。
+- **不要先发布**：不打 tag、不 publish、不触发 release workflow；live P0 和安装安全审查完成前不发布。（2026-10-20 用户已逐次授权并完成 `0.2.0-beta.14` 发布与 desktop 安装；**后续每次发布仍需单独确认**。）
 - 安装/发布前必须按用户的安全审查规矩逐条确认：
   1. 来源（npm/GitHub 官方仓库、发布者身份、下载量与更新时间）；
   2. 版本与依赖树、peer 依赖兼容性；
@@ -30,3 +30,9 @@
 
 - 本地测试使用 Node 自带测试运行器 + `tsc` 预编译，避免沙箱下的 esbuild 子进程限制。
 - 不因为测试方便而放宽上述安全约束。
+
+## 协作方式（用户 2026-10-20 口述）
+
+- 采用「项目经理 + 子 agent」模式：主 agent 负责任务拆解、与用户对齐、决策点确认、验收和汇报；实现、验证、发布等具体执行交给子 agent。
+- 每个任务按需开 1～3 个子 agent 并行承担执行；子 agent 的产出由主 agent 汇总、校验后再向用户汇报。
+- 用户只对接主 agent，不直接对接子 agent。
