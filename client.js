@@ -31,11 +31,9 @@ window.__ModuleLoader__.load({
       web_search: '搜索网页',
       apply_patch: '应用补丁',
     }
-    function displayTool(name, locale) {
+    function displayTool(name) {
       if (typeof name !== 'string' || name.length === 0) return '未知工具'
-      return String(locale ?? '').toLowerCase().startsWith('zh')
-        ? ZH_TOOLS[name] ?? '其他工具'
-        : name
+      return ZH_TOOLS[name] ?? '其他工具'
     }
 
     const zh = {
@@ -97,8 +95,6 @@ window.__ModuleLoader__.load({
     function ApprovalInline(props) {
       const { sessionId, useSessionStatus } = props
       const ctx = props.__ctx
-      const locale = ctx === undefined ? 'en' : ctx.locale.getLocale()?.id
-      const isZh = String(locale ?? '').toLowerCase().startsWith('zh')
       const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
       const pending = useSessionStatus((snapshot) => {
         if (sessionId === undefined) return undefined
@@ -107,7 +103,7 @@ window.__ModuleLoader__.load({
       const approval = pending !== undefined && pending !== null && pending.kind === 'approval' ? pending : undefined
       if (approval === undefined) return null
 
-      const summary = localized(approval.displayReason, isZh ? 'zh' : 'en')
+      const summary = localized(approval.displayReason, 'zh')
       return h('section', {
         'aria-label': t('inlineTitle'),
         style: {
@@ -183,9 +179,8 @@ window.__ModuleLoader__.load({
       }, [approval])
 
       const ctx = props.__ctx
-      const locale = ctx === undefined ? 'en' : ctx.locale.getLocale()?.id
       const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
-      const summary = approval === undefined ? '' : localized(approval.displayReason, locale)
+      const summary = approval === undefined ? '' : localized(approval.displayReason, 'zh')
 
       const button = h('button', {
         type: 'button',
@@ -259,22 +254,17 @@ window.__ModuleLoader__.load({
       approval === undefined
         ? h('p', { style: { color: 'var(--dsw-alias-label-secondary, #666)' } }, t('empty'))
         : h('div', null,
-            h('p', null, h('strong', null, t('tool') + ': '), displayTool(approval.toolName, locale)),
+            h('p', null, h('strong', null, t('tool') + ': '), displayTool(approval.toolName)),
             approval.callId === undefined ? null : h('p', null, h('strong', null, t('callId') + ': '), approval.callId),
             h('p', null, h('strong', null, t('summary') + ': '), summary || '—'),
             h('ul', {
               style: { margin: '8px 0 10px', paddingLeft: 20, color: 'var(--dsw-alias-label-secondary, #555)' },
-            }, (String(locale ?? '').toLowerCase().startsWith('zh') ? [
+            }, [
               '计划批准只登记授权；实际执行仍会重新判风险。',
               '自动表示可能直接放行；手动表示仍需在官方审批卡上确认。',
               '完全访问表示允许访问工作区外的文件或系统。',
               '严重风险永不自动放行；未知风险保持手动。',
-            ] : [
-              'Plan approval only records grants; every actual call is re-assessed.',
-              'Auto means the call may proceed directly; manual still uses the official card.',
-              'Full access means access outside the workspace or to system resources.',
-              'Critical is never auto-approved; unknown stays manual.',
-            ]).map((text) => h('li', { key: text }, text))),
+            ].map((text) => h('li', { key: text }, text))),
           ),
       h('p', {
         style: { marginBottom: 0, color: 'var(--dsw-alias-label-secondary, #666)', fontSize: 12 },

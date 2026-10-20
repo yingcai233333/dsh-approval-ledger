@@ -4,6 +4,13 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.10] - 2026-10-20 (pending release)
+
+### Fixed
+
+- The approval-details dialog is now forced to Chinese: tool names, summary, and hints no longer fall back to English when locale detection fails.
+- Removed the English fallback branch from the hint list.
+
 ## [0.2.0-beta.9] - 2026-10-20 (pending release)
 
 ### Added
