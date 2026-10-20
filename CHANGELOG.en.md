@@ -4,6 +4,13 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.15] - 2026-10-20 (pending release)
+
+### Documentation
+
+- The Chinese and English READMEs now have a "Screenshots" section (plan review, official approval card + pending-approval note, structured question card); images live in `assets/` and use absolute raw URLs.
+- No code changes; this release only refreshes the README shown on npm.
+
 ## [0.2.0-beta.14] - 2026-10-20 (pending release)
 
 ### Fixed
