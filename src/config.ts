@@ -29,7 +29,7 @@ export interface PluginConfig {
   notifyOnApproval: boolean
   /** Windows: flash the taskbar button of the DeepSeek Harness window. */
   flashWindow: boolean
-  /** Windows: play the system exclamation sound. */
+  /** Windows: play a soft synthesized chime (falls back to the system asterisk). */
   soundAlert: boolean
   /** Repeat the alert every N seconds while the card stays pending; 0 = once. */
   notifyRepeatSeconds: number

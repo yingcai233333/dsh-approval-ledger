@@ -4,6 +4,23 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0-beta.14] - 2026-10-20 (pending release)
+
+### Fixed
+
+- Alerts never fired: with `detached: true` / `windowsHide: true`, `powershell.exe` started and then exited without running `-EncodedCommand` (exit 0 with `detached`, `0xC0000142` with `windowsHide`), and the error was swallowed. The helper now spawns with `stdio: 'ignore'` only, so the script runs reliably.
+- The alert helper no longer calls `Get-Process` to find the window (that step logged a `4100` warning); it now only searches by window title.
+- The bottom-right pending-approval note renders again: `shell.overlay` does not receive a `sessionId`, so the overlay now falls back to scanning session status for a pending approval.
+
+### Changed
+
+- The Windows sound is now a soft synthesized "ding-dong" (G5 -> C5, sine with per-note fades) instead of the system sound; it no longer depends on the system sound scheme, and `SystemSounds.Asterisk` is only a fallback.
+- Unknown-tool approval titles prefer the `action` value (e.g. `插件管理 · list_plugins · 完全访问`) instead of `args{1}`.
+
+### Tests
+
+- Updated `test/flash.test.ts` for the new spawn options and the synthesized sound.
+
 ## [0.2.0-beta.13] - 2026-10-20 (published to npm, `next`)
 
 ### Added

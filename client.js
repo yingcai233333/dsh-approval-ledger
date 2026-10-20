@@ -92,15 +92,34 @@ window.__ModuleLoader__.load({
       })
     }
 
+    // `shell.overlay` is frame-wide and does not receive a sessionId, so the
+    // overlay has to find the pending approval itself: prefer the given
+    // session, then fall back to any session whose pending interaction is an
+    // approval. Without the fallback the note never renders in the overlay.
+    function usePendingApproval(useSessionStatus, sessionId) {
+      return useSessionStatus((snapshot) => {
+        if (snapshot === undefined || snapshot === null) return undefined
+        if (sessionId !== undefined && typeof snapshot.get === 'function') {
+          const status = snapshot.get(sessionId)
+          const pending = status === undefined || status === null ? undefined : status.pendingInteraction
+          if (pending !== undefined && pending !== null && pending.kind === 'approval') return pending
+        }
+        if (typeof snapshot.forEach !== 'function') return undefined
+        let found
+        snapshot.forEach((status) => {
+          if (found !== undefined) return
+          const pending = status === undefined || status === null ? undefined : status.pendingInteraction
+          if (pending !== undefined && pending !== null && pending.kind === 'approval') found = pending
+        })
+        return found
+      })
+    }
+
     function ApprovalInline(props) {
       const { sessionId, useSessionStatus } = props
       const ctx = props.__ctx
       const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
-      const pending = useSessionStatus((snapshot) => {
-        if (sessionId === undefined) return undefined
-        return snapshot.get(sessionId)?.pendingInteraction
-      })
-      const approval = pending !== undefined && pending !== null && pending.kind === 'approval' ? pending : undefined
+      const approval = usePendingApproval(useSessionStatus, sessionId)
       if (approval === undefined) return null
 
       const summary = localized(approval.displayReason, 'zh')

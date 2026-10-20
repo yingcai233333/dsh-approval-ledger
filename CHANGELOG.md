@@ -4,6 +4,23 @@
 
 本项目的所有重要变更都记录在此。
 
+## [0.2.0-beta.14] - 2026-10-20（待发布）
+
+### 修复
+
+- 提醒完全不触发：`spawn` 带 `detached: true` / `windowsHide: true` 时，`powershell.exe` 会启动后立即退出，不执行 `-EncodedCommand`（`detached` 下 exit 0、`windowsHide` 下 `0xC0000142`），错误又被静默吞掉。现在只使用 `stdio: 'ignore'`，脚本可稳定执行。
+- 提醒脚本不再用 `Get-Process` 查找窗口（那一步会记一条 `4100 系统错误` 警告），改为只按窗口标题查找。
+- 右下角「待审批说明」恢复显示：`shell.overlay` 不提供 `sessionId`，浮层改为在当前会话没有 `sessionId` 时扫描会话状态里的待审批项。
+
+### 变更
+
+- Windows 提示音改为合成的柔和「叮咚」（G5→C5，正弦波、逐音淡入淡出），不再依赖系统声音方案；系统 `Asterisk` 只作为兜底。
+- 未知工具的审批标题优先显示 `action` 值（如 `插件管理 · list_plugins · 完全访问`），不再显示 `args{1}`。
+
+### 测试
+
+- 更新 `test/flash.test.ts`，覆盖新的 spawn 选项与合成提示音。
+
 ## [0.2.0-beta.13] - 2026-10-20（已发布到 npm，`next`）
 
 ### 新增

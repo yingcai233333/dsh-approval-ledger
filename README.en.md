@@ -53,7 +53,7 @@ To opt into medium auto-approval explicitly:
 
 ## Alert settings
 
-Plan review, the per-item selection, `ask_choices`, and official approval cards raise a Windows alert: the taskbar button flashes and the system exclamation sound plays. Each source and each channel can be switched off:
+Plan review, the per-item selection, `ask_choices`, and official approval cards raise a Windows alert: the taskbar button flashes and a soft synthesized "ding-dong" chime plays (independent of the system sound scheme). Each source and each channel can be switched off:
 
 ```yaml
 - id: approval-ledger

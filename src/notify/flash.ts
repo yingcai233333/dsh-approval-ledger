@@ -81,9 +81,7 @@ public static class DshApprovalFlash {
 }
 '@
 $target = [IntPtr]::Zero
-$p = Get-Process -Name '${safeName}' | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
-if ($null -ne $p) { $target = $p.MainWindowHandle }
-if ($target -eq [IntPtr]::Zero) { $target = [DshApprovalFlash]::FindWindowByTitle('DeepSeek Harness') }
+try { $target = [DshApprovalFlash]::FindWindowByTitle('${safeName}') } catch {}
 if ($target -ne [IntPtr]::Zero) {
   $info = New-Object DshApprovalFlash+FLASHWINFO
   $info.cbSize = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($info)
@@ -98,10 +96,48 @@ if ($target -ne [IntPtr]::Zero) {
 }
 
 function buildSoundPart(): string {
-  // SystemSounds exists in Windows PowerShell 5.1; failures are swallowed so
-  // the alert never blocks the approval waterfall.
-  return `try { [System.Media.SystemSounds]::Exclamation.Play() } catch {}
-Start-Sleep -Milliseconds 500
+  // A soft synthesized "ding-dong" (G5 -> C5) generated as an in-memory WAV:
+  // no system sound scheme, no new dependency, and every note fades in/out so
+  // it stays gentle. The system asterisk is only a fallback.
+  return `$dshOk = $false
+try {
+  $dshSr = 22050
+  $dshNotes = @(@{ f = 783.99; d = 0.15 }, @{ f = 523.25; d = 0.35 })
+  $dshTotal = 0
+  foreach ($dshN in $dshNotes) { $dshTotal += [int]($dshSr * $dshN.d) }
+  $dshMs = New-Object System.IO.MemoryStream
+  $dshBw = New-Object System.IO.BinaryWriter($dshMs)
+  $dshBw.Write([System.Text.Encoding]::ASCII.GetBytes('RIFF'))
+  $dshBw.Write([int](36 + $dshTotal * 2))
+  $dshBw.Write([System.Text.Encoding]::ASCII.GetBytes('WAVEfmt '))
+  $dshBw.Write([int]16)
+  $dshBw.Write([int16]1)
+  $dshBw.Write([int16]1)
+  $dshBw.Write([int]$dshSr)
+  $dshBw.Write([int]($dshSr * 2))
+  $dshBw.Write([int16]2)
+  $dshBw.Write([int16]16)
+  $dshBw.Write([System.Text.Encoding]::ASCII.GetBytes('data'))
+  $dshBw.Write([int]($dshTotal * 2))
+  foreach ($dshN in $dshNotes) {
+    $dshCount = [int]($dshSr * $dshN.d)
+    for ($dshI = 0; $dshI -lt $dshCount; $dshI++) {
+      $dshT = $dshI / $dshSr
+      $dshEnv = [Math]::Min(1.0, $dshI / ($dshSr * 0.02)) * [Math]::Min(1.0, ($dshCount - $dshI) / ($dshSr * 0.07))
+      $dshV = [int](3500 * $dshEnv * [Math]::Sin(2 * [Math]::PI * $dshN.f * $dshT))
+      $dshBw.Write([int16]$dshV)
+    }
+    for ($dshI = 0; $dshI -lt [int]($dshSr * 0.03); $dshI++) { $dshBw.Write([int16]0) }
+  }
+  $dshBw.Flush()
+  $dshMs.Position = 0
+  $dshPlayer = New-Object System.Media.SoundPlayer($dshMs)
+  $dshPlayer.PlaySync()
+  $dshPlayer.Dispose()
+  $dshMs.Dispose()
+  $dshOk = $true
+} catch {}
+if (-not $dshOk) { try { [System.Media.SystemSounds]::Asterisk.Play() } catch {} }
 `
 }
 
@@ -146,10 +182,12 @@ export function alertPending(options: AlertRunOptions): void {
       processName: options.processName,
     })
     const spawnImpl = options.spawnImpl ?? spawn
+    // Windows: `detached` (DETACHED_PROCESS) and `windowsHide`
+    // (CREATE_NO_WINDOW) both make powershell.exe exit without running
+    // `-EncodedCommand` on the desktop runtime, so the alert would silently
+    // never fire. The console is kept out of sight by `-WindowStyle Hidden`.
     const spawnOptions: SpawnOptions = {
-      detached: true,
       stdio: 'ignore',
-      windowsHide: true,
     }
     const child = spawnImpl(
       'powershell.exe',

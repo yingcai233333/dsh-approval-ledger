@@ -53,7 +53,7 @@ dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.13
 
 ## 提醒配置
 
-计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡出现时，Windows 下会闪烁任务栏并播放系统提示音。每一项都可以单独关闭：
+计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡出现时，Windows 下会闪烁任务栏并播放一段合成的柔和「叮咚」提示音（不依赖系统声音方案）。每一项都可以单独关闭：
 
 ```yaml
 - id: approval-ledger
@@ -64,7 +64,7 @@ dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.13
     notifyOnQuestion: true  # ask_choices / 逐项勾选
     notifyOnApproval: true  # 官方审批卡
     flashWindow: true       # 任务栏/标题闪烁
-    soundAlert: true        # 系统提示音
+    soundAlert: true        # 合成「叮咚」提示音
     notifyRepeatSeconds: 0  # >0 时每 N 秒重复，0 = 只提醒一次
 ```
 

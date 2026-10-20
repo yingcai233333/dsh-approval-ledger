@@ -6,10 +6,10 @@
 
 ## 0. 当前状态
 
-- 阶段：**`0.2.0-beta.13` 已发布到 npm（`next`）并安装到 desktop**：提醒覆盖计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡；`flashWindow` / `soundAlert` / `notifyOn*` / `notifyRepeatSeconds` 可分别配置；`ask_choices` 现在返回选中项；292 个单测。desktop 的 `autoSelectAll` 已改为 `false`（恢复逐项勾选），重启后生效。
+- 阶段：**`0.2.0-beta.14` 准备中（未发布）**：修复提醒完全静默的根因——`spawn` 的 `detached: true` / `windowsHide: true` 会让 `powershell.exe` 启动后不执行 `-EncodedCommand`（`detached` 下 exit 0、`windowsHide` 下 `0xC0000142`），现在只保留 `stdio: 'ignore'`；提示音改为合成的柔和「叮咚」。提醒覆盖计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡；292 个单测。desktop 的 `autoSelectAll` 为 `false`（逐项勾选）。
 - 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
 - live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
-- desktop 安装：当前为 npm `dsh-approval-ledger@0.2.0-beta.13`；`package.json` 依赖是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices`、`/approvals sessions` 和 client header `approval-ledger-details` 已加载。升级时走的 `remove_bundle` → `install_bundle` 没有重写 `cordis.patch.yml`，`autoSelectAll` 已手动改为 `false`；升级前备份在 `.p0-backup/desktop-pre-beta13/`。`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。
+- desktop 安装：当前为 npm `dsh-approval-ledger@0.2.0-beta.13`；`package.json` 依赖是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices`、`/approvals sessions` 和 client header `approval-ledger-details` 已加载。升级时走的 `remove_bundle` → `install_bundle` 没有重写 `cordis.patch.yml`，`autoSelectAll` 已手动改为 `false`；升级前备份在 `.p0-backup/desktop-pre-beta13/`。**注意：desktop 目前仍是 beta.13 包，但 `lib/notify/flash.js` 已被手动替换成 beta.14 的修复版（原文件备份在工作区 `backup-flash-beta13.js`）；正常安装 beta.14 时会覆盖这次手改。**`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，live 双插件场景未测。
 - 仓库：<https://github.com/yingcai233333/dsh-approval-ledger>
 - 包名 / Loader row id：`dsh-approval-ledger` / `approval-ledger`
 - License：MIT

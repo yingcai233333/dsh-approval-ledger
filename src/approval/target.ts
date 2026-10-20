@@ -69,6 +69,15 @@ export function extractApprovalTarget(input: ApprovalTargetInput): ApprovalTarge
     return commandTarget(argv.join(' '), input)
   }
 
+  const action = args.action
+  if (typeof action === 'string' && action.length > 0) {
+    return {
+      kind: 'args',
+      riskArgs: args,
+      summary: summarizeTarget('command', action),
+    }
+  }
+
   return {
     kind: 'args',
     riskArgs: args,

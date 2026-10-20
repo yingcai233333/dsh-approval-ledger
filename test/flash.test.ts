@@ -24,11 +24,12 @@ describe('Windows pending alerts', () => {
 
     const soundOnly = buildAlertScript({ flash: false, sound: true })
     assert.doesNotMatch(soundOnly, /FlashWindowEx/)
-    assert.match(soundOnly, /SystemSounds\]::Exclamation\.Play/)
+    assert.match(soundOnly, /System\.Media\.SoundPlayer/)
+    assert.match(soundOnly, /783\.99/)
 
     const both = buildAlertScript({ flash: true, sound: true })
     assert.match(both, /FlashWindowEx/)
-    assert.match(both, /SystemSounds\]::Exclamation\.Play/)
+    assert.match(both, /System\.Media\.SoundPlayer/)
     assert.doesNotMatch(both, /\$\{/)
   })
 
@@ -63,7 +64,7 @@ describe('Windows pending alerts', () => {
     const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
     const script = Buffer.from(encoded, 'base64').toString('utf16le')
     assert.match(script, /FlashWindowEx/)
-    assert.match(script, /SystemSounds\]::Exclamation\.Play/)
+    assert.match(script, /System\.Media\.SoundPlayer/)
   })
 })
 
@@ -119,7 +120,13 @@ describe('Windows approval flash', () => {
       }) as never,
     })
     assert.ok(args.includes('-EncodedCommand'))
-    assert.equal((options as { windowsHide?: boolean }).windowsHide, true)
+    assert.ok(args.includes('-WindowStyle'))
+    // The child must not be detached or created with CREATE_NO_WINDOW: both
+    // make powershell.exe exit before running `-EncodedCommand` on the desktop
+    // runtime, which silently kills the alert.
+    assert.equal((options as { windowsHide?: boolean }).windowsHide, undefined)
+    assert.equal((options as { detached?: boolean }).detached, undefined)
+    assert.equal((options as { stdio?: string }).stdio, 'ignore')
     const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
     assert.ok(encoded.length > 0)
     assert.match(Buffer.from(encoded, 'base64').toString('utf16le'), /FlashWindowEx/)
