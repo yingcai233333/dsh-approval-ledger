@@ -34,7 +34,7 @@ This plugin adds:
 - **Decision ledger.** Every auto/manual decision is traceable through the session log, plan-level `tool/result.meta`, and an in-memory per-call ledger; `/approvals audit` derives missing records from durable facts instead of guessing.
 - **Official UI first.** The shipped approval card, question card, and plan card are not replaced.
 
-In the current observe-only configuration the plan is reviewed, but each actual call still uses the official approval card; grants are simulated and audited as `would-allow`. Medium auto-approval is available only with an explicit `mode: active` config; it is not the default.
+With the default observe-only configuration the plan is reviewed, but each actual call still uses the official approval card; grants are simulated and audited as `would-allow`. Medium auto-approval is available only with an explicit `mode: active` config; it is not the default.
 
 ## Safety model
 
@@ -48,7 +48,7 @@ In the current observe-only configuration the plan is reviewed, but each actual 
 
 ## Install
 
-npm `next` points at `0.2.0-beta.15`; `latest` is still `0.2.0-beta.12`. Desktop has beta.14 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `next` points at `0.2.0-beta.15`; `latest` is still `0.2.0-beta.12`. Desktop has beta.15 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
 dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.15
@@ -107,7 +107,7 @@ The host-side core is dependency-free and does not import DSH types:
 - `/approvals [audit [--json] | grants]` folds durable session events plus plan metadata; missing per-call records are derived from `tool/call` arguments and marked `derived-session-log`, never guessed.
 - `ctx.storageDomain` is a schema-validated KV store, not an append-only log; Sprint 1 deliberately uses the session log + in-memory ledger instead. Cross-session retention is deferred.
 
-## Sprint 3
+## Sprint 3 (implemented)
 
 - `ask_choices`: structured single/multi-select questions through the official question card, with option descriptions and a `（推荐）` marker. It only collects choices; it never executes actions or changes grants.
 - `/approvals sessions`: read-only counts of grants across sessions; it exposes no scope, paths, or commands, provides no cross-session match, and cannot use another session's grants.

@@ -4,7 +4,7 @@
 
 All notable changes to this project are documented here.
 
-## [0.2.0-beta.15] - 2026-10-20 (pending release)
+## [0.2.0-beta.15] - 2026-10-20 (published to npm, `next`)
 
 ### Documentation
 

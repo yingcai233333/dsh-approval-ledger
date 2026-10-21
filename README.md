@@ -34,7 +34,7 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 - **决策账本**：自动/手动决定可通过 session log、计划级 `tool/result.meta` 和内存账本追溯；`/approvals audit` 对缺失记录从持久事实派生，不猜。
 - **官方 UI 优先**：不替换自带的审批卡、问题卡、计划卡。
 
-当前 observe-only 配置下，计划会被审查，但每次实际调用仍然走官方审批卡；grant 只做模拟并记为 `would-allow`。medium 自动放行只能在显式配置 `mode: active` 后启用，不是默认行为。
+默认（observe-only）配置下，计划会被审查，但每次实际调用仍然走官方审批卡；grant 只做模拟并记为 `would-allow`。medium 自动放行只能在显式配置 `mode: active` 后启用，不是默认行为。
 
 ## 安全模型
 
@@ -48,7 +48,7 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-npm 上 `next` 指向 `0.2.0-beta.15`，`latest` 仍是 `0.2.0-beta.12`；desktop 已安装 beta.14 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
+npm 上 `next` 指向 `0.2.0-beta.15`，`latest` 仍是 `0.2.0-beta.12`；desktop 已安装 beta.15 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
 
 ```sh
 dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.15
@@ -107,7 +107,7 @@ Host 侧核心本身不依赖 DSH 类型；插件入口在它之上注册：
 - `/approvals [audit [--json] | grants]` 折叠持久 session 事件 + 计划元数据；缺失的每次调用记录由 `tool/call` 参数派生并标记 `derived-session-log`，不猜。
 - `ctx.storageDomain` 是 schema 校验的 KV，不是 append-only 日志；Sprint 1 有意使用 session log + 内存账本，跨会话留存推迟。
 
-## Sprint 3
+## Sprint 3（已实现）
 
 - `ask_choices`：通过官方问题卡提出结构化单选/多选问题；支持选项说明和“（推荐）”标记，只收集选择，不执行操作、不修改授权。
 - `/approvals sessions`：只读展示所有会话的授权计数；不展示范围/路径/命令，不提供跨会话匹配，不允许使用其他会话的授权。
