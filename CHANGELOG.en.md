@@ -4,6 +4,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.1] - 2026-10-21 (published to npm, `latest`)
+
+### Fixed
+
+- `dshhub.categories` in `package.json` had been mangled in the 1.1.0 package (`瀹夊叏` / `鏁堢巼`); restored to `安全` / `效率`. No functional impact — this only affects how the plugin's categories show up in the market.
+
 ## [1.1.0] - 2026-10-21 (published to npm, `latest`)
 
 ### Added

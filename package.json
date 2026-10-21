@@ -1,6 +1,6 @@
 {
   "name": "dsh-approval-ledger",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": false,
   "description": "Batch approvals with a risk gate and an auditable decision ledger for DeepSeek Harness.",
   "type": "module",
@@ -68,8 +68,8 @@
     "displayName": "Approval Ledger",
     "summary": "Batch approvals with a risk gate and an auditable decision ledger.",
     "categories": [
-      "瀹夊叏",
-      "鏁堢巼"
+      "安全",
+      "效率"
     ],
     "surfaces": [
       "host"
