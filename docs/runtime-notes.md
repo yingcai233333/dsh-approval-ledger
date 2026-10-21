@@ -64,3 +64,27 @@
 - `dsh-experimental-auto-review` 在 `tools/pre-execute` `{prepend:true}` 做逐调用 review。
 - 生态里还有 `dsh-approval-gate`、`dsh-approval-review`、`dsh-approval-llm`、`dsh-approval-chime`、`dsh-approval-alert`、`dsh-approval-hotkeys`、`dsh-approval-explain` 等。
 - 多个 auto-approval/notification 插件可能互相抢占；需要 `audit-only` / `notifications:false` 和兼容说明。
+
+## Live 双插件同级 approval/request 顺序验证（2026-10-21）
+
+**设置**：临时 profile `approval-p0`（`dsh-approval-ledger` 以 `link:D:/AIworkspace/dsh-approval-ledger` 安装，启用 base + web-app bundle），用 Electron-as-Node 启动 CLI：`DeepSeek Harness.exe app.asar\dsh\node_modules\@deepseek-ai\dsh\lib\bin.js --profile approval-p0 --patch <repo>\.p0-test\ordering\order.patch.yml --port 3080 --no-open`，env 为 `DSH_PERMISSION_MODE=read-only` 与 `APPROVAL_PROBE_LOG=<repo>\.p0-test\ordering\probe-*.ndjson`；patch overlay 把账本 row 设为 `mode: active, notifications: false`，并插入一个本地 sibling 探针插件（`./sibling-probe/index.js`，按 file:// URL 挂载；没有安装任何东西，没有改 profile 的 `package.json`）。探针注册**两个** `approval/request` 监听器、共用同一个 handler：一个 `{prepend: true}`，一个普通（append）；handler 先向 NDJSON 追加 `{toolName, callId, agentId, reason, displayReason}`，然后 `return next()`。驱动是无头 Chrome + CDP（`.p0-test/ordering/order-test.mjs`），操作真实 Web UI。
+
+| 用例 | 操作 | 结果 |
+| --- | --- | --- |
+| A 手动审批 | 提示词让模型写 `D:\AIworkspace\dsh-approval-ledger\.p0-test\ordering\outside-test.txt`，带 `sandbox_permissions: "danger-full-access"` 和 justification（“P0 ordering approval rejection test”），并明确不用 `request_approvals` | 官方审批卡约 4.0 s 出现；两个监听器、两轮，共 4 条探针记录：run 1 `call_00_8ckGBdcGN3KGwEYZekj79211` 的 seq 2（prepend）/seq 3（plain），run 2 `call_00_ed4SenPiN2pxhuOoQCc28374` 的 seq 4（prepend）/seq 5（plain）；四条的 `reason` 都是 `escalate sandbox to danger-full-access: P0 ordering approval rejection test`，`displayReason.en` 都是我们的改写 `write · …\ordering\outside-test.txt · danger-full-access`，而不是 sandbox 原始的 `Allow this operation with danger-full-access permissions: …`；卡片文字相符：`写入文件 · …\ordering\outside-test.txt · 完全访问` 加右下角「待审批说明」。点「拒绝」后工具报 `the user rejected escalating this operation to "danger-full-access"`，文件不存在，`/approvals` 记到该拒绝（1 decision、1 audit record、0 unattributed）。 |
+| B 计划授权 | 计划 P-55d23502，单项 A（write，风险中，auto）批准；逐项勾选卡只提交 A | 会话日志先后为 `approval/asked`（id `bd8dc357-808f-46e4-80dd-73c9287d3539`，callId `call_00_ET_VRDiqyCSxFdn48bOE4803052`，reason `escalate sandbox to workspace-write: 按你批准的批次 A 写入 .p0-test/ordering/a.md…`）与 `approval/decided`，结果为 **allowed-once**。探针对该 callId **零记录**（总共 5 行：1 条 apply + case A 的 2×2），说明授权在瀑布里提前短路，sibling 监听器根本没跑到；文件已创建（53 字节）于 `D:\AIworkspace\余烬余生\.p0-test\ordering\a.md`（临时实例的 session workspace 是「余烬余生」，不是本仓库），并且没有弹审批卡。 |
+
+**解读**
+
+- **顺序：PASS**（case A 2/2 样本）——我们的 prepend 监听器在两个探针监听器（prepend 与 plain）看到请求之前就改写了 `displayReason`；内置转发器 `api-remotes` 是排在本行之前的 sibling，所以这也说明 prepend 先于它生效。
+- **短路：PASS**——计划授权匹配时，我们的监听器直接返回 `allowed-once` 且不调 `next()`，后续 sibling 全部不运行、也看不到那个 callId（case B 的零记录就是证据）。
+- **瀑布语义**：这就是约定的 waterfall claim 语义。对 presenter/notifier 类 sibling 可接受；对“必须每次运行”的严格策略 sibling **不可接受**。共存注意：在本行之后挂载的 prepend sibling 可以反过来抢在我们前面。
+
+**保留意见**
+
+- Cordis 用 `Promise.all` 挂载 entry，所以 prepend sibling 之间的先后是**竞争**，不是保证；`api-remotes` 这类 sibling 的先后不能当契约。
+- 样本量小：case A 只有 2 个、case B 只有 1 个。
+- 临时实例的 session workspace 是「余烬余生」，所以 case B 的文件落在那里（测试残留）。
+- 在更晚挂载的 prepend sibling 面前，我们不能保证自己的改写仍然先发生。
+
+**证据路径**（相对 `.p0-test/ordering/`）：`summary.json`、`probe-20261021-131214.ndjson`、`A-card.png`、`B-plan.png`、`B-selection.png`、`B-done.png`；会话日志 `C:\Users\36288\.dsh\sessions\--D-AIworkspace-~4F59~70EC~4F59~751F--\session-dc3d8f41-60cb-491a-b125-a662b5e389a8`。
