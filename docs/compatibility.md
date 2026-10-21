@@ -19,7 +19,7 @@
 | 任务栏闪烁 / 提示音 | 仅 Windows 实现；脚本生成有单测，真机效果未 live 验证 | `src/notify/flash.ts`；`docs/install-review-p0.md` §8 |
 | 0.2.1-rc.2 之外的 DSH | **未验证** | — |
 
-> 关于 `dsh.compatibility.dshReleases`：0.2.1-rc.2 的安装/启动兼容闸门只读 `engines.dsh`，没有它时读 `@deepseek-ai/dsh*` 的 peerDependencies（`dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:252,311-326`）。本包两者都没有，所以 `dsh.compatibility.dshReleases` 目前只是说明性元数据，**不会拦截**跨版本安装；换版本时要靠下面的自检。该字段本身与 0.2.1-rc.2 不矛盾，保持 `{"0.2.1-rc.2": "compatible"}`。
+> 关于 `engines.dsh` 与 `dsh.compatibility.dshReleases`：0.2.1-rc.2 的安装/启动闸门只读 `engines.dsh`（没有它时才看 `@deepseek-ai/dsh*` peer），判断用 `semver.satisfies(runtime, range, { includePrerelease: true })`（`dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:252,276-298,311-326`）。从下一个发布版本起（`0.3.0` 已发布，不包含此字段）本包声明 `"dsh": ">=0.2.1-rc.2 <0.3.0-0"`：接受 0.2.x 的补丁与预发布，拒绝整个 0.3 线。不满足**不是警告**：安装会在 pnpm 之前就 `installation rejected`（退出码 1）；启动时整个 bundle 被跳过（`dsh: skipping profile bundle …`），桌面仍能起来，但没有本插件的工具/命令/UI。上界必须写成 `<0.3.0-0`——`<0.3.0` 在 includePrerelease 下挡不住 `0.3.0-rc.1`，而 `>=0.2.1-rc.2-0` 会把 `0.2.1-rc.2` 自己拒掉。`dsh.compatibility.dshReleases` 仍是说明性元数据（没有代码读它）；`dshhub.compatibility.dsh` 与 `engines.dsh` 保持同一范围，避免「市场说兼容、安装被拒」。
 
 ### 接口核对（0.2.1-rc.2）
 
@@ -40,12 +40,12 @@
 
 ### 已知漂移
 
-- `session.snapshotEvents()` 在 0.2.1-rc.2 已 **deprecated**：插件仍在生产路径用它做懒扫描（`src/plugin/session-tracker.ts:67,87`；`src/plugin/runtime.ts:739,781`）。当前版本行为未变、live P0 正常；但按运行时的说法不应新增此类调用，未来版本若移除需要迁移读取方式。
+- `session.snapshotEvents()` 在 0.2.1-rc.2 已 **deprecated**：插件仍需要同步读取整段会话历史，而该版本没有受支持的替代（`session/event` 不重放 seed 事件；`ctx.sessionProjections` / `ctx.sessionQuery` 内部同样依赖它），因此本期不迁移。所有调用已收口到唯一适配层 `src/plugin/session-log.ts`；读不到时（缺方法/抛错/返回非数组）返回稳定短码并 **fail-closed 降级**：不建 grant、不自动放行、回落官方审批卡，并在内存里把该会话标为 degraded。上游删除该 reader 时只需改这一个文件；迁移触发条件见 `docs/design.md` 的 1.0 待办。
 - 其余差异都是「本地声明是运行时的子集」：运行时多出的可选字段（`timeoutMs`、`finalizeContent`、`presentCall`、`result.sourceEventSeq` 等）插件不需要声明，不构成漂移。
 
 ### 升级 DSH 之后
 
-- 先按 `docs/runtime-spike.md` 做静态核对，再在目标版本跑一次 live P0（单条审批 + 计划），最后更新本页与 `dshReleases`。
+- 先按 `docs/runtime-spike.md` 做静态核对，再在目标版本跑一次 live P0（单条审批 + 计划），最后更新本页、`engines.dsh` 与 `dshReleases`。
 - 重点看本页「接口核对」中标为 **漂移** 的行。
 
 ## 测试
@@ -62,7 +62,7 @@
 ## 在另一台机器/另一个平台自检
 
 1. **装并确认版本**：在目标机器安装 `0.3.0`（desktop 安装器，或 `dsh plugin add dsh-approval-ledger`），跑 `dsh plugin list`，确认包名、版本 `0.3.0`、状态 enabled。
-2. **确认 DSH 版本与声明**：`dsh --version` 应为 `0.2.1-rc.2`；打开 `node_modules/dsh-approval-ledger/package.json`，确认 `dsh.compatibility.dshReleases` 含当前版本键（目前只有 `0.2.1-rc.2`），并记住它不参与安装拦截（见上）。
+2. **确认 DSH 版本与声明**：`dsh --version` 应为 `0.2.1-rc.2`；打开 `node_modules/dsh-approval-ledger/package.json`，确认 `engines.dsh` 是 `>=0.2.1-rc.2 <0.3.0-0`（它才是真正的安装/启动闸门），`dsh.compatibility.dshReleases` 只是说明性元数据（见上）。
 3. **命令面**：新会话执行 `/approvals audit`，应输出「审批决策记录」报告（而不是 unknown command）；再跑 `/approvals last`、`/approvals grants`。
 4. **单条审批**：让模型做一次需要审批的写操作（例如 `danger-full-access` 写工作区外文件），确认官方卡片标题是改写后的 `写入文件 · <路径> · 完全访问`，右下角有「待审批说明」；点「拒绝」后文件不存在，`/approvals audit` 有该拒绝记录。
 5. **计划面**：用 `request_approvals` 提交两项（一项写文件、一项命令），确认 plan-review 卡 + 逐项选择卡；只勾一项批准后只有该项执行，`/approvals grants` 在 turn 结束后清空。

@@ -43,6 +43,7 @@
     "security"
   ],
   "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0",
     "node": ">=22"
   },
   "dsh": {
@@ -80,7 +81,7 @@
       ]
     },
     "compatibility": {
-      "dsh": ">=0.2.1-rc.2",
+      "dsh": ">=0.2.1-rc.2 <0.3.0-0",
       "node": ">=22"
     },
     "permissions": {

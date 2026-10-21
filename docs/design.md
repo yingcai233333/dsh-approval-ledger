@@ -93,4 +93,4 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 - 0.1.0-beta.1：observe（只记录本应放行，不实际放行）+ 计划 + 审计（目标 DSH 0.2.1-rc.2；仓库里程碑，未发布到 npm）。
 - 0.2 线（`0.2.0-beta.1` → `0.2.0-beta.15`，2026-10-19 → 2026-10-20）：medium 自动放行 + 详情弹窗 + 闪烁；high opt-in + 二次确认、`ask_choices`、跨会话只读列表也在这一线交付。
 - 0.3.0（2026-10-21，`latest`）：无新功能，只做版本收口；代码与 `0.2.0-beta.15` 相同。
-- 1.0.0：把 v1 审计格式与对外接口标为稳定（冻结内容见 `docs/audit.md`）；兼容矩阵与客户端测试已完成；剩余待定的是是否用 `engines.dsh` 拦截跨版本安装、以及迁移已被上游标为 deprecated 的 `Session.snapshotEvents()`。
+- 1.0.0：把 v1 审计格式与对外接口标为稳定（冻结内容见 `docs/audit.md`）；兼容矩阵与客户端测试已完成；剩余待定的是是否用 `engines.dsh` 拦截跨版本安装。`Session.snapshotEvents()` 已被上游标为 deprecated，本期只把它收口到 `src/plugin/session-log.ts` 并做 fail-closed 降级（不建 grant、不自动放行、回落官方卡）；**触发迁移的条件是上游删除或停止提供该 reader**——届时改为读取投影（投影 state 只放 turn，绝不放 `tool/call` 参数）+ 可选的 `sessionQuery`。
