@@ -79,6 +79,7 @@ DSH does not allow live-appending unknown event types: an unknown event can only
 
 - If a version field (`schemaVersion` / `matcherVersion` / `riskPolicyVersion`) mismatches or is missing, the state is always `unverifiable`.
 - After a restart, records derived from `tool/call` arguments get `matchedBy = derived-session-log`; the risk is recomputed with the current policy, which is explanatory evidence, not proof of the historical policy.
+- When the session history cannot be read, the `/approvals audit` text report starts with the degraded reason code (`no-snapshot-reader` / `snapshot-threw`, …) and rests on the in-memory ledger only; calls that therefore fall back to the official card get `matchedBy = degraded-no-turn` (`no-turn-boundary` when the history was readable but had no turn boundary), and the field still carries no arguments or paths. The v1 `--json` export shape is unchanged; the degradation is only logged.
 - The report shows only summaries and hash prefixes; raw reason, arguments, and commands never enter the report.
 - Facts/ledger rows that fail to parse are recorded as an issue and skipped, so the whole report does not crash.
 

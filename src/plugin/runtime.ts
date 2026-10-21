@@ -40,6 +40,7 @@ import { validatePlan } from '../plan/validate.js'
 import { GrantStore } from '../grants/store.js'
 import type { GrantMatchResult } from '../grants/types.js'
 import { SessionTracker } from './session-tracker.js'
+import { readSessionEvents } from './session-log.js'
 import type {
   Agent,
   ApprovalOutcome,
@@ -70,11 +71,18 @@ interface PreparedApproval {
   args: unknown
   mode?: string
   cwd?: string
-  turn: number
+  /** `undefined` when the session turn cannot be determined (fail closed). */
+  turn: number | undefined
   risk: RiskAssessment
   match?: GrantMatchResult
   platform: PathPlatform
   probe: PathProbe
+  /**
+   * Fixed code for the optional `matchedBy` audit field when the turn is
+   * unknown: `degraded-no-turn` (history unreadable) or `no-turn-boundary`
+   * (history readable, no turn boundary). Absent when the turn is known.
+   */
+  turnFallback?: string
 }
 
 export interface LedgerRuntime {
@@ -213,6 +221,32 @@ function recordAudit(
   }
 }
 
+/**
+ * Fixed short codes for the optional `matchedBy` audit field when the manual
+ * fallback was caused by an unknown turn instead of a real scope mismatch.
+ * `degraded-no-turn` means the session history was unreadable;
+ * `no-turn-boundary` means it was readable but carried no turn boundary. Both
+ * are constants: records still carry no arguments, paths, or reasons.
+ */
+const DEGRADED_TURN_MATCHED_BY = 'degraded-no-turn'
+const NO_TURN_BOUNDARY_MATCHED_BY = 'no-turn-boundary'
+
+/**
+ * Warn once per degraded turn lookup. The message carries the reason code only —
+ * never event contents, tool arguments, paths, or stack traces.
+ */
+function warnUnknownTurn(ctx: Context, runtime: LedgerRuntime, sessionId: string): void {
+  const reason = runtime.tracker.degradedReason(sessionId) ?? 'no-turn-boundary'
+  try {
+    ctx.logger.warn(
+      `approval-ledger: session turn is unknown (${reason}); no automatic grant is used, ` +
+        'the call falls back to the official approval card',
+    )
+  } catch {
+    // A failing logger must never change an approval outcome.
+  }
+}
+
 function prepareApproval(
   ctx: Context,
   runtime: LedgerRuntime,
@@ -236,22 +270,36 @@ function prepareApproval(
       probe,
     })
     let match: GrantMatchResult | undefined
-    try {
-      match = runtime.grants.match({
-        sessionId: req.agent.id,
-        turn,
-        tool: req.toolName,
-        mode,
-        args,
-        cwd,
-        platform,
-        probe,
-        confirmedHighRisk: false,
-      })
-    } catch {
-      match = undefined
+    if (turn === undefined) {
+      // Fail closed: a grant that is not bound to a real turn can never be
+      // revoked by `turn/end`, so no automatic allow is attempted at all and
+      // the official approval card decides.
+      warnUnknownTurn(ctx, runtime, session.id)
+    } else {
+      try {
+        match = runtime.grants.match({
+          sessionId: req.agent.id,
+          turn,
+          tool: req.toolName,
+          mode,
+          args,
+          cwd,
+          platform,
+          probe,
+          confirmedHighRisk: false,
+        })
+      } catch {
+        match = undefined
+      }
     }
-    return { args, mode, cwd, turn, risk, match, platform, probe }
+    let turnFallback: string | undefined
+    if (turn === undefined) {
+      turnFallback =
+        runtime.tracker.degradedReason(session.id) === undefined
+          ? NO_TURN_BOUNDARY_MATCHED_BY
+          : DEGRADED_TURN_MATCHED_BY
+    }
+    return { args, mode, cwd, turn, risk, match, platform, probe, turnFallback }
   } catch {
     return undefined
   }
@@ -306,7 +354,8 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
           mode: prepared.mode,
           planId: prepared.match?.grant?.planId,
           itemId: prepared.match?.grant?.itemId,
-          matchedBy: prepared.match?.decision ?? 'manual',
+          matchedBy:
+            prepared.turnFallback ?? prepared.match?.decision ?? 'manual',
           args: prepared.args,
           cwd: prepared.cwd,
           platform: prepared.platform,
@@ -327,11 +376,12 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
         planId: prepared.match?.grant?.planId,
         itemId: prepared.match?.grant?.itemId,
         matchedBy:
-          prepared.match?.decision === 'would-allow'
+          prepared.turnFallback ??
+          (prepared.match?.decision === 'would-allow'
             ? 'observe-would-allow'
             : prepared.match?.decision === 'needs-confirmation'
               ? 'risk-needs-confirmation'
-              : 'manual',
+              : 'manual'),
         args: prepared.args,
         cwd: prepared.cwd,
         platform: prepared.platform,
@@ -587,15 +637,24 @@ export function registerRequestApprovalsTool(
       }
 
       const turn = runtime.tracker.currentTurn(agent.session)
+      let granted: ReadonlySet<string> = selectedItems
       if (selectedItems.size > 0) {
-        runtime.grants.createFromPlan(grantPlanFor(plan, selectedItems), {
-          sessionId: agent.id,
-          turn,
-          planId,
-        })
+        if (turn === undefined) {
+          // Fail closed: without a known turn the grant could not be revoked at
+          // `turn/end`. Install nothing, record the plan as approved with zero
+          // auto items, and let every call use the official approval card.
+          granted = new Set()
+          warnUnknownTurn(ctx, runtime, agent.id)
+        } else {
+          runtime.grants.createFromPlan(grantPlanFor(plan, selectedItems), {
+            sessionId: agent.id,
+            turn,
+            planId,
+          })
+        }
       }
-      rememberPlan(runtime, agent.id, planId, plan, 'approved', selectedItems)
-      return planDecisionResult(plan, planId, 'approved', selectedItems)
+      rememberPlan(runtime, agent.id, planId, plan, 'approved', granted)
+      return planDecisionResult(plan, planId, 'approved', granted)
     },
   }
   return ctx.tools.register(definition)
@@ -735,9 +794,36 @@ function grantsText(runtime: LedgerRuntime, sessionId: string): string {
     .join('\n')
 }
 
+/**
+ * Replay facts for one session, or an empty list plus a degraded reason code
+ * when the history cannot be read. The reason stays free of event contents.
+ */
+function readSessionFacts(
+  ctx: Context,
+  runtime: LedgerRuntime,
+  session: Session,
+): { facts: ReturnType<typeof eventsToReplayFacts>; degraded?: string } {
+  const read = readSessionEvents(session)
+  if (!read.ok) {
+    runtime.tracker.markDegraded(session.id, read.reason)
+    try {
+      ctx.logger.warn(
+        `approval-ledger: session history is unavailable (${read.reason}); ` +
+          'the audit covers in-memory records only',
+      )
+    } catch {
+      // A failing logger must never change the audit result.
+    }
+    return { facts: [], degraded: read.reason }
+  }
+  return {
+    facts: eventsToReplayFacts(read.events),
+    degraded: runtime.tracker.degradedReason(session.id),
+  }
+}
+
 function auditText(ctx: Context, runtime: LedgerRuntime, agent: Agent): string {
-  const events = agent.session.snapshotEvents()
-  const facts = eventsToReplayFacts(events)
+  const { facts, degraded } = readSessionFacts(ctx, runtime, agent.session)
   const recorded = runtime.audits.list(agent.id)
   const existing = new Set(recorded.map((record) => record.callId))
   const derived = deriveAuditRecords(facts, {
@@ -754,7 +840,12 @@ function auditText(ctx: Context, runtime: LedgerRuntime, agent: Agent): string {
     facts,
     ledger: [...recorded, ...derived],
   })
-  return renderAuditReport(replay, { lang: 'zh' })
+  const report = renderAuditReport(replay, { lang: 'zh' })
+  if (degraded === undefined) return report
+  return (
+    `注意：本会话的历史事件读取不可用（${degraded}）；以下仅基于插件内存记录，` +
+    `历史调用可能缺失，审批判定一律回落到官方卡。\n\n${report}`
+  )
 }
 
 export function registerApprovalsCommand(
@@ -778,8 +869,9 @@ export function registerApprovalsCommand(
           return { kind: 'success', text: lastPlanText(runtime, invocation.agent.id) }
         }
         if (raw === 'audit --json') {
-          const events = invocation.agent.session.snapshotEvents()
-          const facts = eventsToReplayFacts(events)
+          // The v1 export schema is frozen: degradation is only logged here, it
+          // never adds a field to a record or to the export envelope.
+          const { facts } = readSessionFacts(ctx, runtime, invocation.agent.session)
           const recorded = runtime.audits.list(invocation.agent.id)
           const existing = new Set(recorded.map((record) => record.callId))
           const derived = deriveAuditRecords(facts, {

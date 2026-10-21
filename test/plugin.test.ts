@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { apply, inject } from '../src/index.js'
-import type { Context, JsonValue, SessionEvent, ToolDefinition } from '../src/types/dsh-runtime.js'
+import type { Context, JsonValue, Session, SessionEvent, ToolDefinition } from '../src/types/dsh-runtime.js'
 import {
   FakeContext,
   makeAgent,
@@ -139,6 +139,43 @@ async function callApproval(
     }),
   )
   return { outcome, displayReason: request.displayReason }
+}
+
+function degradedSession(id: string): Session {
+  return { id, seq: 0, eventAt: () => undefined } as unknown as Session
+}
+
+function setupWithSession(session: Session): {
+  ctx: FakeContext
+  agent: ReturnType<typeof makeAgent>
+} {
+  const ctx = new FakeContext()
+  ctx.tools.register(dummyTool('write'))
+  ctx.tools.register(dummyTool('pwsh'))
+  apply(ctx as unknown as Context, { mode: 'active', notifications: false, autoSelectAll: true })
+  return { ctx, agent: makeAgent(session) }
+}
+
+function approvalsCommand(
+  ctx: FakeContext,
+  agent: ReturnType<typeof makeAgent>,
+  rawInput: string,
+): ReturnType<FakeContext['runCommand']> {
+  return ctx.runCommand('approvals', {
+    commandId: `cmd-${rawInput.replace(/\s+/g, '-')}`,
+    agent,
+    rawInput,
+    attachments: [],
+    signal: new AbortController().signal,
+  })
+}
+
+function approvalRequest(
+  agent: ReturnType<typeof makeAgent>,
+  callId: string,
+  tool: string,
+): { agent: ReturnType<typeof makeAgent>; toolName: string; callId: string; displayReason: { en: string; zh: string } } {
+  return { agent, toolName: tool, callId, displayReason: { en: 'old', zh: '旧' } }
 }
 
 describe('host plugin integration', () => {
@@ -462,5 +499,105 @@ describe('host plugin integration', () => {
       /invalid/,
     )
     assert.equal(ctx.askCalls.length, 0)
+  })
+
+  it('fails closed when the session history is unreadable: no grants, no auto-allow', async () => {
+    const { ctx, agent } = setupWithSession(degradedSession('session-degraded'))
+    const result = (await ctx.runTool(
+      'request_approvals',
+      PLAN,
+      toolExec(agent, 'plan-call', 'request_approvals', PLAN),
+    )) as Record<string, unknown>
+    assert.equal(result.decision, 'approved')
+    const items = result.items as Array<{ id: string; auto: boolean }>
+    assert.deepEqual(items.map((item) => item.auto), [false, false])
+
+    const grants = approvalsCommand(ctx, agent, 'grants')
+    assert.equal(grants.kind, 'success')
+    if (grants.kind === 'success') assert.match(grants.text ?? '', /No grants/)
+
+    const approval = await ctx.emitApproval(approvalRequest(agent, 'write-call', 'write'), 'rejected')
+    assert.equal(approval, 'rejected')
+    assert.ok(ctx.warnings.some((warning) => /turn is unknown \(no-snapshot-reader\)/.test(warning)))
+    // Warnings carry a stable reason code only, never arguments or paths.
+    for (const warning of ctx.warnings) assert.equal(warning.includes(REPORT), false)
+
+    const audit = approvalsCommand(ctx, agent, 'audit')
+    assert.equal(audit.kind, 'success')
+    if (audit.kind === 'success') {
+      assert.match(audit.text ?? '', /历史事件读取不可用/)
+      assert.match(audit.text ?? '', /no-snapshot-reader/)
+    }
+
+    const json = approvalsCommand(ctx, agent, 'audit --json')
+    assert.equal(json.kind, 'success')
+    if (json.kind === 'success') {
+      const parsed = JSON.parse(json.text ?? '{}') as {
+        schemaVersion?: number
+        rows?: Array<{ matchedBy?: string }>
+      }
+      assert.equal(parsed.schemaVersion, 1)
+      assert.equal(parsed.rows?.[0]?.matchedBy, 'degraded-no-turn')
+    }
+  })
+
+  it('does not create a turn-0 grant when a readable history has no turn boundary', async () => {
+    const events: SessionEvent[] = [
+      makeEvent(1, 'tool/call', {
+        turn: 0,
+        callId: 'write-call',
+        name: 'write',
+        arguments: JSON.stringify({ path: REPORT }),
+      }),
+    ]
+    const session = makeSession('session-no-turn', events)
+    const { ctx, agent } = setupWithSession(session)
+
+    const result = (await ctx.runTool(
+      'request_approvals',
+      PLAN,
+      toolExec(agent, 'plan-call', 'request_approvals', PLAN),
+    )) as Record<string, unknown>
+    assert.equal(result.decision, 'approved')
+
+    const grants = approvalsCommand(ctx, agent, 'grants')
+    assert.equal(grants.kind, 'success')
+    if (grants.kind === 'success') assert.match(grants.text ?? '', /No grants/)
+
+    // The old fallback guessed turn 0 here; such a grant could never be revoked
+    // by `turn/end` and would auto-allow this call.
+    const approval = await ctx.emitApproval(approvalRequest(agent, 'write-call', 'write'), 'rejected')
+    assert.equal(approval, 'rejected')
+  })
+
+  it('records the fail-closed reason when a readable history has no turn at all', async () => {
+    const session = makeSession('session-turnless', [])
+    const { ctx, agent } = setupWithSession(session)
+    await ctx.runTool('request_approvals', PLAN, toolExec(agent, 'plan-call', 'request_approvals', PLAN))
+
+    const approval = await ctx.emitApproval(approvalRequest(agent, 'write-call', 'write'), 'rejected')
+    assert.equal(approval, 'rejected')
+
+    const json = approvalsCommand(ctx, agent, 'audit --json')
+    assert.equal(json.kind, 'success')
+    if (json.kind === 'success') {
+      const parsed = JSON.parse(json.text ?? '{}') as { rows?: Array<{ matchedBy?: string }> }
+      assert.equal(parsed.rows?.[0]?.matchedBy, 'no-turn-boundary')
+    }
+  })
+
+  it('falls back to the official card instead of denying when history is unreadable', async () => {
+    const { ctx, agent } = setupWithSession(degradedSession('session-degraded-allow'))
+    await ctx.runTool('request_approvals', PLAN, toolExec(agent, 'plan-call', 'request_approvals', PLAN))
+
+    const outcome = await ctx.emitApproval(
+      approvalRequest(agent, 'write-call', 'write'),
+      'allowed-once',
+    )
+    assert.equal(outcome, 'allowed-once')
+
+    const grants = approvalsCommand(ctx, agent, 'grants')
+    assert.equal(grants.kind, 'success')
+    if (grants.kind === 'success') assert.match(grants.text ?? '', /No grants/)
   })
 })

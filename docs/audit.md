@@ -79,6 +79,7 @@ DSH 不允许在线追加（live append）未知事件类型：未知事件只�
 
 - 版本字段（`schemaVersion` / `matcherVersion` / `riskPolicyVersion`）不匹配或缺失，一律 `unverifiable`。
 - 重启后由 `tool/call` 参数派生的记录 `matchedBy = derived-session-log`；风险用当前 policy 重算，是解释性证据，不是历史策略的证明。
+- 会话历史读不到时，`/approvals audit` 的文本报告顶部会标注 degraded 原因码（`no-snapshot-reader` / `snapshot-threw` 等），结论只基于内存账本；因此回落官方卡的调用记录 `matchedBy = degraded-no-turn`（历史可读但无 turn 边界时为 `no-turn-boundary`），字段里仍然不含任何参数/路径。`--json` 的 v1 导出结构不变，只在 logger 里告警。
 - 报告只展示摘要和 hash 前缀；原始 reason、参数、命令不进入报告。
 - 解析失败的事实/账本行记为 issue 并跳过，不让整份报告崩溃。
 
