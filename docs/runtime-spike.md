@@ -187,7 +187,7 @@ item/option 的 schema `:26-47`；live-root 门控 `:531-535`。
 interface ToolDefinition {
   name: string
   description: string
-  parameters: Record<string, unknown>   // schema DSL（properties 内用 required: true）
+  parameters: Record<string, unknown>   // 原始 JSON Schema；只有 defineTool() 才用作者 DSL
   output: {
     schema: JsonSchemaNode
     render(args: unknown, value: JsonValue): ContentBlock[]
@@ -207,12 +207,14 @@ interface ToolDefinition {
 - agent loop 会原样（verbatim）持久化它：
   `session.append('tool/result', { turn, step, message, error?, meta? })`
   （`dsh-agent-loop/lib/index.js:697-703`）。它**不是**模型可见的工具内容的一部分。
-- 参数 DSL 就是 `dsh-tool-todo/lib/index.js:98-119` 中的那一套：`type`、`required: true`、
-  `properties`、`items`、`enum`、`description`；对象项使用 `additionalProperties: false`。
+- 作者 DSL（仅 `defineTool()` 路径）就是 `dsh-tool-todo/lib/index.js:98-119` 中的那一套：`type`、
+  `required: true`、`properties`、`items`、`enum`、`description`；对象项使用 `additionalProperties: false`。
 - 工具会收到 `exec.callId`、`exec.agent`、`exec.signal`、`exec.arguments`
   （`dsh-tool-ask-user/lib/index.js:180-199`）。`exec` 上没有 `turn`；见 #9。
 - `output.schema` 必须是受支持的原始 JSON Schema 子集（`assertSupportedJsonSchema`，
-  `dsh-tools/lib/index.js:2977-2978`）；`parameters` 是另一套独立的 DSL，不是原始 JSON Schema。
+  `dsh-tools/lib/index.js:2977-2978`）。`parameters` 分两条路：`ctx.tools.register()` 直接接收
+  **原始 JSON Schema**，原样作为模型可见的 schema、不做参数校验（`dsh-tools/lib/types/index.js:468-488,674-685`；
+  `docs/install-review-p0.md:111`）；只有 `defineTool()` 才把作者 DSL（`required: true` 那一套）编译成 JSON Schema。
 
 ### 7. `ctx.storageDomain` — 已验证，但**不是账本（ledger）**
 

@@ -192,7 +192,7 @@ item/option schemas `:26-47`; live-root gate `:531-535`.
 interface ToolDefinition {
   name: string
   description: string
-  parameters: Record<string, unknown>   // schema DSL (required: true inside properties)
+  parameters: Record<string, unknown>   // raw JSON Schema; only defineTool() uses the author DSL
   output: {
     schema: JsonSchemaNode
     render(args: unknown, value: JsonValue): ContentBlock[]
@@ -211,12 +211,14 @@ interface ToolDefinition {
 - It is persisted by the agent loop verbatim:
   `session.append('tool/result', { turn, step, message, error?, meta? })`
   (`dsh-agent-loop/lib/index.js:697-703`). It is **not** part of the model-visible tool content.
-- The parameter DSL is the one in `dsh-tool-todo/lib/index.js:98-119`: `type`, `required: true`,
-  `properties`, `items`, `enum`, `description`; object items use `additionalProperties: false`.
+- The author DSL (the `defineTool()` path only) is the one in `dsh-tool-todo/lib/index.js:98-119`:
+  `type`, `required: true`, `properties`, `items`, `enum`, `description`; object items use `additionalProperties: false`.
 - The tool receives `exec.callId`, `exec.agent`, `exec.signal`, `exec.arguments`
   (`dsh-tool-ask-user/lib/index.js:180-199`). No `turn` is on `exec`; see #9.
 - `output.schema` must be the supported raw-JSON-Schema subset (`assertSupportedJsonSchema`,
-  `dsh-tools/lib/index.js:2977-2978`); `parameters` is the separate DSL, not raw JSON Schema.
+  `dsh-tools/lib/index.js:2977-2978`). `parameters` has two paths: `ctx.tools.register()` takes **raw JSON Schema**,
+  used verbatim as the model-visible schema and not validated (`dsh-tools/lib/types/index.js:468-488,674-685`;
+  `docs/install-review-p0.md:111`); only `defineTool()` compiles the author DSL (`required: true` style) into JSON Schema.
 
 ### 7. `ctx.storageDomain` — verified, but **not a ledger**
 
