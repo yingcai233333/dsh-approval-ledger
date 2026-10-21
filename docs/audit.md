@@ -98,6 +98,38 @@ DSH 不允许在线追加（live append）未知事件类型：未知事件只�
 校验：4 条审批事件，4 条审计记录，0 条未归属。
 ```
 
+## 格式稳定性 / v1 冻结
+
+从 **0.3.0** 起，审计记录格式 v1（[`schema/audit-v1.json`](../schema/audit-v1.json)）**已冻结**：不再做破坏性改动；确需破坏性变更时只能发布 v2，并继续读 v1。
+
+- **版本标识**：`$id` 以 `/schema/audit-v1.json` 结尾，`properties.schemaVersion.const` 为 `1`，`src/core/version.ts` 的 `SCHEMA_VERSION` 为 `1`；这三者必须一致。schema 顶层 `$comment` 另外标注 `FROZEN`，作为格式已冻结的显式标记。
+- **v1 字段**：顶层必填 `schemaVersion`、`sessionId`、`callId`、`tool`、`risk`、`outcome`、`time`；可选 `seq`、`planId`、`itemId`、`mode`、`targetHash`、`targetSummary`、`matchedBy`、`matcherVersion`、`riskPolicyVersion`。未知字段一律拒绝（`additionalProperties: false`）。
+- **`target.kind`**：v1 记录不保存 `target` 对象，只保存 `targetHash` 与 `targetSummary`；`target.kind` 的枚举（`path` / `command` / `args` / `unknown`）只参与 `targetHash` 的规范化，但同样属于冻结契约——改动它会令所有历史 hash 失效。
+- **`decision` 与 `outcome`**：账本记录的字段名是 `outcome`，枚举为 `allowed-once` / `rejected` / `cancelled` / `unavailable`；回放行与导出的 `decision` 就是这个值。v1 记录没有独立的 `decision` 字段。
+- **护栏**：`test/audit-freeze.test.ts` 钉住上述 required 集合、枚举、`$id` 与版本常量；改动这些必须同步修改该测试，并按下面的 major 流程处理。
+
+### 兼容变更（minor）
+
+- 新增**可选**字段：旧记录缺少该字段仍然合法、可读，无需迁移。
+- 放宽校验，或补充不改变既有字段语义的元数据。
+- 升级读取方时保持对旧记录解释不变；不回写、不重写历史记录。
+
+### 破坏性变更（major，需要 v2）
+
+- 删除或重命名字段（包括把 `outcome` 改名为 `decision`）。
+- 改变字段语义或单位（例如 `time` 从毫秒改成秒、`outcome` 的含义变化）。
+- 新增必填字段，或把可选字段改成必填。
+- 收紧校验：缩小枚举、降低长度/数值上限、拒绝以前合法的记录。
+- 改变 `targetHash` 的规范化算法或 `target.kind` 的取值。
+
+以上任一项都必须发布 v2 schema，并**保留读取 v1 记录的能力**；不得在 `schemaVersion: 1` 下悄悄改变含义。
+
+### 旧记录可读性
+
+- v2 出现后，读取方仍须能解析 `schemaVersion: 1` 的记录，并按 `schemaVersion` 选择校验/解释路径。
+- v1 记录不得被静默重解释为 v2；升级只能显式、单向，历史记录保持原样。
+- 版本无法识别或字段超出已知契约时仍然 fail-closed：记为 issue / `unverifiable`，不猜测、不丢弃。
+
 ## 隐私 / 生命周期
 
 - 账本只存元数据；不存密钥/参数/reason。

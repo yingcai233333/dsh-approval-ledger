@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/yingcai233333/dsh-approval-ledger/schema/audit-v1.json",
+  "$comment": "FROZEN v1 audit format: breaking changes require a new schema version (v2) plus continued v1 read support. See docs/audit.md (Format stability / v1 freeze).",
   "title": "Approval Ledger audit record (v1)",
   "type": "object",
   "additionalProperties": false,
