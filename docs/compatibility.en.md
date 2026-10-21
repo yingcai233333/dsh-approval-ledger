@@ -4,33 +4,83 @@
 
 ## DSH
 
-- Primary target: `0.2.1-rc.2` (Windows desktop).
-- The current install package was statically checked against `0.2.1-rc.2`; before release, re-verify the interfaces in `docs/runtime-spike.md` with a live P0 run on the target version.
-- For now, `dsh.compatibility.dshReleases` in `package.json` lists only `0.2.1-rc.2`.
-- After upgrading DSH, run the P0 spike + a manual smoke test first, then update the compatibility table.
+- Target runtime: DSH `0.2.1-rc.2` (Windows desktop, `@deepseek-ai/dsh-desktop-runtime`; `dsh/package.json:4`). Plugin version `0.3.0`.
+- Verification baseline (2026-10-21): the 0.2.1-rc.2 install package at `D:\software\DS-harness\resources\app.asar`. The whole archive (306 `@deepseek-ai/*` packages, 18,309 files) contains **no `.d.ts` at all**, and the profile's `node_modules` has no `@deepseek-ai/*` either; the static check therefore used the shipped JS implementations, the type-declaration strings embedded in `lib/typert.host.js`, and the package READMEs. `dsh/...:line` below means a body line of that entry inside the archive (same convention as `docs/runtime-spike.md`).
+
+### How far verification goes
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Windows + 0.2.1-rc.2 static interface check | **Done** (12 groups, below) | "Interface check" below |
+| Windows live P0: single approval card title rewrite, detail note, allow/deny, raw reason | **Passed** | `docs/runtime-notes.md`, "Live 双插件同级 approval/request 顺序验证（2026-10-21）", case A; `docs/install-review-p0.md` §8 |
+| Windows live P0: plan-review card, per-item selection, grants, revoke at turn end, fail-closed rejection, `DELEGATED_CALLER`, audit attribution | **Passed** | `docs/install-review-p0.md` §6; `docs/runtime-notes.md`, same section, case B |
+| Sibling `approval/request` ordering: prepend rewrites first; a matched grant claims and short-circuits | **Passed** (A 2/2, B 1/1) | `docs/runtime-notes.md`, same section |
+| macOS / Linux | **Not verified on real hardware** | — |
+| Taskbar flash / sound | Windows-only implementation; unit tests cover script generation, the real effect is not live-verified | `src/notify/flash.ts`; `docs/install-review-p0.md` §8 |
+| DSH versions other than 0.2.1-rc.2 | **Not verified** | — |
+
+> On `dsh.compatibility.dshReleases`: the 0.2.1-rc.2 install/startup compatibility gate reads only `engines.dsh` (otherwise the `@deepseek-ai/dsh*` peerDependencies) (`dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:252,311-326`). This package declares neither, so `dsh.compatibility.dshReleases` is descriptive metadata today and does **not** block a cross-version install; use the self-check below when changing DSH versions. The field itself does not contradict 0.2.1-rc.2 and stays `{"0.2.1-rc.2": "compatible"}`.
+
+### Interface check (0.2.1-rc.2)
+
+| Interface | Plugin declaration (`src/types/dsh-runtime.ts`) | Runtime actual | Verdict | Evidence |
+| --- | --- | --- | --- | --- |
+| `approval/request` listener | `(req, next) => Promise<ApprovalOutcome>`; `ctx.on(..., { prepend: true })` | `ctx.waterfall(scopeTarget(agent, agent), 'approval/request', req, () => 'unavailable')`; not calling `next()` claims the request and stops later listeners; `prepend` uses `unshift` | Match | `dsh-user-approval/lib/index.js:176`; `cordis/lib/index.js:317-324,335-345` |
+| `ApprovalOutcome` | Four literals | The same `OUTCOMES` set; invalid returns and thrown listeners normalize to `unavailable` | Match | `dsh-user-approval/lib/index.js:30,176` |
+| `ApprovalRequestEvent` | `agent, toolName, callId?, reason?, displayReason?, signal?` | `dsh-tools` builds the same fields (`displayReason` optional); the object is not frozen, and live P0 proved a prepended rewrite reaches the card | Match | `dsh-tools/lib/types/index.js:1116-1123`; `docs/runtime-notes.md` case A |
+| `ctx.tools.register` / `get` | Returns a disposer; `get(name, scope?)` | `register(definition)` returns an effect disposer; `get(name, scope)` resolves through the agent scope | Match | `dsh-tools/lib/types/index.js:468-488,624-626` |
+| `ToolDefinition` / `ToolRunContext` | `name/description/parameters/output{schema,render,presentationMeta?}/execute/isConcurrencySafe?`; exec carries `callId/name/arguments/agent?/signal` | The same fields; the local surface is a subset (runtime also has `timeoutMs/finalizeContent/projectContent/presentCall/presentResult/deferLoading`, and `rootCallId/parent` on exec). `register()` does not compile `parameters`: a raw JSON Schema is passed through as the model schema; only `defineTool` compiles the author DSL into JSON Schema | Match (local surface is a subset). `docs/runtime-spike.md:190,215`'s claim that "parameters is not a raw JSON Schema" applies to `defineTool` only and is stale for `register()` | `dsh-tools/lib/types/index.js:468-488,674-685,777-783,959,1206-1216` |
+| `ctx.commands` | `register`; invocation `{commandId, agent, rawInput, attachments, signal}`; result `success{text?}` / `error{text}` | Same; `attachments` is exactly `(ImageBlock \| FileBlock)[]` and success has an optional `sourceEventSeq` | Match (local `ContentBlock[]` is wider; unused by the plugin) | `dsh-commands/lib/types/index.js:235-237,357`; `dsh-commands/lib/typert.host.js:305,333` |
+| `ctx.userQuestions.ask` + plan-review | `{questions, agent?, signal?, wait?}`; intent `{kind:'plan-review', approve, callId?}` | Identical fields; `BAD_INTENT` / `DELEGATED_CALLER` semantics match | Match | `dsh-user-questions/lib/typert.host.js:268-292`; `dsh-user-questions/lib/types/index.js:294-338` |
+| Session readers | `id/seq/eventAt/snapshotEvents` | All present; `eventAt()` / `snapshotEvents()` / `ownEvents()` are **deprecated** ("new production calls are prohibited") | **Drift (docs-level, still works)** | `dsh-session/lib/types/index.js:554-577`; `dsh-session/README.md:62` |
+| Session events | `session/event(session, event)` with `{ global: true }`; `session/disposed(session)`; `turn/start` / `turn/end` / `tool/call` payloads | Match; the embedded `SessionEventMap` declaration gives the same payloads | Match | `dsh-session/lib/types/index.js:1105-1106`; `dsh-session/lib/index.js:1587-1592`; `dsh-commands/lib/typert.host.js:705` |
+| `Agent` / `workingDirectory` | `agent.id`, `agent.session`; `workingDirectory.get(session)` | Match | Match | `dsh-agent/lib/index.js:513-514`; `dsh-working-directory/lib/index.js:76-78` |
+| Client module and slots | `__ModuleLoader__.load({ id, factory })`; `dsh.client.platform/inject/immediately`; `conversation.session.header.utilities`, `shell.overlay`; `register({ name, id, order, label })` | The parser accepts these fields; both slots exist (session/list and root/list respectively); `id` is required, `label` may be a thunk | Match | `dsh-client-modules/lib/index.js:66-74`; `dsh-cordis-client-runner/lib/client.js:3999-4022,5433-5456` |
+| Client standard props / pending interaction / locale | `sessionId`, `useSessionStatus(snapshot => snapshot.get(id)?.pendingInteraction)`; `kind/toolName/callId/displayReason`; `ctx.locale.register/bind` | Standard props include `sessionId` and `useSessionStatus` (root slots have no `sessionId`; the plugin falls back to a full-map scan); `PendingApproval` has the same fields with `kind='approval'`; locale is provided via `ctx.provide('locale', …)` | Match | `dsh-cordis-client-runner/lib/client.js:2459,4026-4052,5458-5469`; `dsh-client-ui-approval/lib/client.js:152-186,291,316-321`; `dsh-client-ui-session/lib/client.js:1092-1097` |
+
+### Known drift
+
+- `session.snapshotEvents()` is **deprecated** in 0.2.1-rc.2: the plugin still uses it on production paths for lazy scans (`src/plugin/session-tracker.ts:67,87`; `src/plugin/runtime.ts:739,781`). Behavior is unchanged today and live P0 passes, but the runtime says new production calls of this kind are prohibited; a future removal would require a migration.
+- Every other difference is "the local declaration is a subset": optional runtime fields (`timeoutMs`, `finalizeContent`, `presentCall`, `result.sourceEventSeq`, …) need no declaration and are not drift.
+
+### After upgrading DSH
+
+- Re-run the static check in `docs/runtime-spike.md`, then one live P0 run (single approval + plan) on the target version, and only then update this page and `dshReleases`.
+- Pay attention to the rows marked **drift** in the interface check above.
 
 ## Tests
 
 - Node 22.8+ / 24; `pnpm test` first compiles to `lib-test/`, then runs with `node --test --test-isolation=none`.
 - No esbuild subprocess is used, so the tests also run under the DSH sandbox (which forbids named pipes).
+- `test/docs-i18n.test.ts` checks that this page and its Chinese counterpart stay paired and cross-linked.
 
 ## OS
 
-- Windows: full functionality (including taskbar flashing).
-- macOS / Linux: approval/plans/audit work; flashing degrades to an in-page alert.
-- Path matching is per platform: Windows is case-insensitive + `realpath` of the nearest ancestor; POSIX is case-sensitive.
+- Windows: full functionality (including taskbar flash / sound; see the not-live-verified note in the table above).
+- macOS / Linux: **not verified on real hardware**. The approval/plan/audit main path has no platform branch and is expected to behave like Windows; platform differences are limited to path matching (Windows is case-insensitive + `realpath` of the nearest ancestor, POSIX is case-sensitive) and notifications. Flash/sound are Windows-only, and `alertPending` is a no-op elsewhere, degrading to in-page reminders: a `● ` prefix on the document title, the red-dot "Approval details" affordance in the session header, and the pending-approval note overlay. POSIX path matching is unit-tested only; it has not run on real hardware.
+
+## Self-check on another machine / platform
+
+1. **Install and confirm the version**: install `0.3.0` on the target machine (desktop installer, or `dsh plugin add dsh-approval-ledger`), run `dsh plugin list`, and confirm the package name, version `0.3.0`, and enabled state.
+2. **Confirm the DSH version and declaration**: `dsh --version` should be `0.2.1-rc.2`; open `node_modules/dsh-approval-ledger/package.json` and confirm `dsh.compatibility.dshReleases` has a key for the current version (only `0.2.1-rc.2` today), remembering that it does not gate installation (see above).
+3. **Command surface**: in a new session run `/approvals audit`; it should print the "Approval decision ledger" report (not an unknown command). Then run `/approvals last` and `/approvals grants`.
+4. **Single approval**: have the model perform a write that needs approval (for example a `danger-full-access` write outside the workspace) and confirm the official card title is the rewritten `写入文件 · <path> · 完全访问` with the pending-approval note at the lower right; reject it, then confirm the file does not exist and `/approvals audit` records the rejection.
+5. **Plan surface**: submit two items with `request_approvals` (one file write, one command) and confirm the plan-review card plus the per-item selection card; approve only one item and confirm only that item runs, and that `/approvals grants` is empty after the turn ends.
+6. **Uninstall regression**: remove the plugin and restart; confirm the official approval card title is back to its original text and no red dot/overlay/process remains.
 
 ## Known conflicts
 
-- Other `approval/request` answerers (`dsh-approval-gate`, `dsh-approval-review`, `dsh-approval-llm`, `dsh-experimental-auto-review`): they contend for auto-approval; do not stack them.
+- Other `approval/request` answerers (`dsh-approval-gate`, `dsh-approval-review`, `dsh-approval-llm`, `dsh-experimental-auto-review`): we are a `{ prepend: true }` listener and return `allowed-once` **without calling `next()`** on a grant, so later listeners never run; conversely, a prepend sibling mounted later can run before us (Cordis mounts with `Promise.all`, so prepend order is a race). Do not stack them.
 - Notification plugins (`dsh-approval-chime`, `dsh-approval-alert`, `dsh-approval-voice`): may alert twice; set `notifications:false`.
-- Hotkey/detail plugins (`dsh-approval-hotkeys`, `dsh-approval-explain`): may overlap with title rewriting/popovers; document this clearly in the README.
-- Command/tool name clashes: check `/approvals`, `request_approvals`, and `ask_choices` before registering; on conflict, fall back to `ledger_*` / `/ledger`.
+- Hotkey/detail plugins (`dsh-approval-hotkeys`, `dsh-approval-explain`): we only register `conversation.session.header.utilities` (list) and `shell.overlay` (list) and never touch `conversation.approval.detail` (single, owned by `dsh-client-ui-chat`); visual overlap with title rewriting/popovers is still possible.
+- Command/tool name clashes: check `/approvals`, `request_approvals`, and `ask_choices` before registering. There is **no automatic fallback** (no `ledger_*` / `/ledger` rename): any registration clash makes `registerRuntime` roll back every registration (`src/plugin/runtime.ts:838-846`), `apply` only logs a warning (`src/index.ts:73-79`), and the plugin stays inactive. Rename or disable the conflicting plugin by hand.
+- A stale older copy in the same profile: the profile manifest decides which package loads; confirm the version in step 1 of the self-check.
 
 ## Smoke checklist
 
-- Single approval: title summary, detail popover, allow/deny, raw reason visible.
-- Plans: plan-review card, full text in the sidebar, approve/discuss, grants take effect, expire at turn end.
-- Risk: critical red dot/recommend denial; high defaults to manual; medium data writes are automatic.
-- Audit: `/approvals audit` has records; unattributed count is 0.
+- Single approval: title summary, detail overlay, allow/deny, raw reason visible; after a rejection the file/command really did not run (fail-closed).
+- Plans: plan-review card, full text in the sidebar, approve/discuss, per-item selection, grants take effect, expire at turn end.
+- Risk: critical is never auto-approved; high defaults to manual; medium data writes are auto-approved only under `mode: active` with a matching grant (the default is `mode: observe`, which auto-approves nothing).
+- Audit: `/approvals audit` has records; unattributed count is 0; `/approvals audit --json` parses.
+- Ordering/coexistence: with another answerer plugin mounted, confirm our prepended rewrite still wins (check the card title) and that the other listener really did not run when a grant claims the request.
 - Uninstall: official approval behavior is restored; no leftover processes/state.
