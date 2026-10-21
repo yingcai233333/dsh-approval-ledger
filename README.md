@@ -67,7 +67,7 @@ dsh plugin --profile <profile> add dsh-approval-ledger@0.3.0
 
 ## 提醒配置
 
-计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡出现时，Windows 下会闪烁任务栏并播放一段合成的柔和「叮咚」提示音（不依赖系统声音方案）。每一项都可以单独关闭：
+计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡出现时，Windows 下会闪烁任务栏并播放一段合成的柔和「叮咚」提示音（不依赖系统声音方案）。每轮对话完成时也会提醒：任务栏闪烁 + 绿色徽标 + 两声短促的「滴滴」。每一项都可以单独关闭：
 
 ```yaml
 - id: approval-ledger
@@ -77,12 +77,16 @@ dsh plugin --profile <profile> add dsh-approval-ledger@0.3.0
     notifyOnPlan: true      # 计划卡
     notifyOnQuestion: true  # ask_choices / 逐项勾选
     notifyOnApproval: true  # 官方审批卡
+    notifyOnTurnEnd: true   # 每轮对话完成（子代理的 turn 不提醒）
     flashWindow: true       # 任务栏/标题闪烁
     soundAlert: true        # 合成「叮咚」提示音
     notifyRepeatSeconds: 0  # >0 时每 N 秒重复，0 = 只提醒一次
+    turnBadgeSeconds: 120   # 完成徽标最长保留秒数；0 = 常驻到你回到窗口
 ```
 
 提醒是 best-effort：找不到窗口、PowerShell/EDR 拒绝或系统静音时静默跳过，不影响审批本身。窗口在前台时 Windows 可能不闪，声音仍会响。
+
+完成提醒的「绿色」用**任务栏 overlay 徽标**表达：`FlashWindowEx` 的闪烁颜色由系统「注意提示」配色决定，应用无法指定绿色。徽标在你回到该窗口时清除，最长保留 `turnBadgeSeconds` 秒（`0` 表示不超时、常驻到回窗口）。完成音是合成的两声短促「滴滴」（B5→E6，上行），审批音是「叮咚」（G5→C5，下行），两者不会混淆。子代理的内部 turn 不触发提醒；turn 被取消（aborted）时也不响。
 
 `ask_choices` 会把选中的选项文本返回给模型；此前只返回“已收到 N 个问题的选择”。
 

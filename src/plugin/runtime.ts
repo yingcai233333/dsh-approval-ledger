@@ -7,6 +7,9 @@ import { renderAuditReport } from '../audit/report.js'
 import { deriveAuditRecords, eventsToReplayFacts } from '../audit/session-facts.js'
 import { createNotifier } from '../notify/notifier.js'
 import type { Notifier } from '../notify/notifier.js'
+import type { TurnEndRunOptions } from '../notify/flash.js'
+import { createTurnEndNotifier } from '../notify/turn-end.js'
+import type { TurnEndNotifier } from '../notify/turn-end.js'
 import { scrubSecrets } from '../core/redact.js'
 import { sanitizePlanText } from '../plan/document.js'
 import {
@@ -92,11 +95,15 @@ export interface LedgerRuntime {
   audits: MemoryAuditStore
   plans: Map<string, CachedPlan>
   notifier: Notifier
+  /** Turn-complete alerts; separate from the pending-interaction notifier. */
+  turnEnds: TurnEndNotifier
   dispose(): void
 }
 
 export interface RuntimeDependencies {
   notifier?: Notifier
+  /** Injection point for tests; production spawns the Windows alert. */
+  turnEndAlert?: (options: TurnEndRunOptions) => void
 }
 
 export function createRuntime(
@@ -113,8 +120,10 @@ export function createRuntime(
     audits: new MemoryAuditStore(),
     plans: new Map(),
     notifier: dependencies.notifier ?? createNotifier(config),
+    turnEnds: createTurnEndNotifier(config, { alert: dependencies.turnEndAlert }),
     dispose(): void {
       runtime.notifier.dispose()
+      runtime.turnEnds.dispose()
       runtime.grants.dispose()
       runtime.plans.clear()
       for (const sessionId of runtime.audits.sessions()) runtime.audits.clear(sessionId)
@@ -898,8 +907,12 @@ export function registerApprovalsCommand(
   })
 }
 
-export function registerRuntime(ctx: Context, config: PluginConfig): () => void {
-  const runtime = createRuntime(config)
+export function registerRuntime(
+  ctx: Context,
+  config: PluginConfig,
+  dependencies: RuntimeDependencies = {},
+): () => void {
+  const runtime = createRuntime(config, dependencies)
   const disposers: Array<() => void> = []
   try {
     disposers.push(
@@ -908,6 +921,13 @@ export function registerRuntime(ctx: Context, config: PluginConfig): () => void 
         (session: Session, event: SessionEvent) => {
           runtime.tracker.observe(session, event)
           if (event.type === 'turn/end') {
+            // Completion reminders are optional: a failing alert must never
+            // affect the tracker, the grants, or the turn itself.
+            try {
+              runtime.turnEnds.observe(session, event)
+            } catch {
+              // Alerts are optional.
+            }
             const data = isPlainObject(event.data) ? event.data : undefined
             const turn = readTurn(data?.turn)
             if (turn !== undefined) runtime.grants.revokeTurn(session.id, turn)
@@ -919,6 +939,7 @@ export function registerRuntime(ctx: Context, config: PluginConfig): () => void 
     disposers.push(
       ctx.on('session/disposed', (session: Session) => {
         runtime.tracker.forget(session.id)
+        runtime.turnEnds.forget(session.id)
         runtime.grants.revokeSession(session.id)
         runtime.audits.clear(session.id)
       }),

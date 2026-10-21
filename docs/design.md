@@ -86,6 +86,7 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 - 批量：官方 plan-review + 侧栏全文。
 - 多选：官方 question + `ask_choices` 结构化内容。
 - 提醒：计划卡、逐项勾选、`ask_choices` 和官方审批卡出现时，Windows 任务栏闪烁 + 合成「叮咚」提示音；范围与两个通道均可配置。
+- 完成提醒：每轮对话结束（`turn/end`）另有一次提示——闪烁 + 绿色任务栏 overlay 徽标（`FlashWindowEx` 的颜色不可指定，绿色只能用徽标表达）+ 两声上行「滴滴」；子代理 turn 与 aborted turn 不提醒。
 - 两个客户端表层的待审批来源不同：头部「审批详情」严格按当前会话（没有 `sessionId` 就不显示、也不跨会话扫）；右下角「待审批说明」是 frame-wide，先取当前会话，取不到再退回扫描全部会话中 `kind === 'approval'` 的项。
 
 ## 发布计划

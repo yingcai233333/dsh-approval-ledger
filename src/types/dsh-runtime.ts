@@ -44,8 +44,27 @@ export interface SessionEvent<T = unknown> {
   readonly data: T
 }
 
+/**
+ * Detached, deep-frozen creation metadata. The store synthesizes one when a
+ * `Session` is created without a store-owned header, so it is always present at
+ * runtime; it is optional here so structural test doubles stay valid.
+ *
+ * Evidence: `dsh-session/lib/index.js:1340` (the `header` field) and
+ * `:1051-1054` (validation: `parentSession` string, `origin` only `'subagent'`,
+ * `delegationDepth` non-negative integer).
+ */
+export interface SessionHeader {
+  readonly id?: string
+  /** Set for a fork or a delegated child; a fork is still a root user session. */
+  readonly parentSession?: string
+  /** Stamped only by the delegation stack on a child session. */
+  readonly origin?: 'subagent'
+  readonly delegationDepth?: number
+}
+
 export interface Session {
   readonly id: string
+  readonly header?: SessionHeader
   readonly seq: number
   eventAt(seq: number): SessionEvent | undefined
   snapshotEvents(fromSeq?: number, toSeqExclusive?: number): readonly SessionEvent[]

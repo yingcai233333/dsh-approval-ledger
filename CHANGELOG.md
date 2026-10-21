@@ -4,6 +4,22 @@
 
 本项目的所有重要变更都记录在此。
 
+## [未发布]
+
+### 新增
+
+- 每轮对话完成时也提醒：任务栏闪烁 + 任务栏绿色 overlay 徽标 + 两声短促「滴滴」（B5→E6）。`notifyOnTurnEnd`（默认 `true`）控制开关，`turnBadgeSeconds`（默认 `120`，`0` = 常驻到你回到窗口）控制徽标保留时长。子代理的 turn 与 aborted turn 不提醒。
+- `src/plugin/session-log.ts`：会话历史读取收口到单点（上游已把 `snapshotEvents()` 标为 deprecated）；读不到时三态降级并 fail-closed——不建 grant、不自动放行，回落官方审批卡。
+- `package.json` 声明 `engines.dsh: ">=0.2.1-rc.2 <0.3.0-0"`，安装与启动时真正拦截跨版本；`dshhub.compatibility.dsh` 同步同一范围。此前 `dsh.compatibility.dshReleases` 并不参与拦截。
+
+### 修复
+
+- 右下角「待审批说明」在没有待审批时不再挂载一个空的 fixed 容器（原来的 `content === null` 判断永远不会成立）。
+
+### 测试
+
+- 客户端半边测试（23 条）、审计格式 v1 冻结护栏、会话历史适配层与三态降级、turn 完成提醒、manifest 闸门。
+
 ## [0.3.0] - 2026-10-21（已发布到 npm，`latest`）
 
 ### 变更

@@ -88,3 +88,12 @@ Once these are satisfied the plan card is rendered; the title/description are ex
 - Against a prepend sibling mounted later, we cannot guarantee that our rewrite still happens first.
 
 **Evidence** (relative to `.p0-test/ordering/`): `summary.json`, `probe-20261021-131214.ndjson`, `A-card.png`, `B-plan.png`, `B-selection.png`, `B-done.png`; session log `C:\Users\36288\.dsh\sessions\--D-AIworkspace-~4F59~70EC~4F59~751F--\session-dc3d8f41-60cb-491a-b125-a662b5e389a8`.
+
+## Turn-complete alerts and Windows limits (2026-10-21)
+
+- **Trigger**: `turn/end` on `session/event`, payload `{ turn, reason }` (`dsh-agent-loop/lib/index.js:1029-1032`). `reason.kind` is one of `completed`, `blocked`, `max-tokens`, `aborted` (`:961,966,981,1013-1016`); the plugin stays silent for `aborted` and alerts for the rest.
+- **Subagent detection**: `SessionHeader` carries `origin?: 'subagent'` and `delegationDepth?: number` (validated at `dsh-session/lib/index.js:1054`, declared in the typert `SessionHeader`). `origin === 'subagent'` or `delegationDepth > 0` means a subagent session, so no alert; `parentSession` alone is not enough (forks record it too, and a fork is a session the user waits on).
+- **The flash colour cannot be chosen**: `FlashWindowEx` takes its colour from the system attention setting, so an app cannot ask for green. Green uses `ITaskbarList3.SetOverlayIcon` (IID `ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf`, `HrInit` first) with a 32x32 green-dot HICON.
+- **Badge lifetime**: after showing it, the helper polls `GetForegroundWindow()` every 450ms; it clears the overlay and calls `DestroyIcon` when the window comes back, when the window disappears, or after `turnBadgeSeconds`. `turnBadgeSeconds: 0` means no timeout (it stays until you return).
+- **Sound**: turn-complete is B5 -> E6, two 0.09s notes, rising; approval is G5 -> C5, falling, 0.15/0.35s. Both are in-memory WAV through `System.Media.SoundPlayer`, so no audio file ships and no QQ/WeChat recording is used.
+- **Cost**: each turn-complete alert spawns a hidden PowerShell process; with a badge it lives up to `turnBadgeSeconds` seconds (polling never blocks the turn or an approval).

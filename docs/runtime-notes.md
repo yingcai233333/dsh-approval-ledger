@@ -88,3 +88,12 @@
 - 在更晚挂载的 prepend sibling 面前，我们不能保证自己的改写仍然先发生。
 
 **证据路径**（相对 `.p0-test/ordering/`）：`summary.json`、`probe-20261021-131214.ndjson`、`A-card.png`、`B-plan.png`、`B-selection.png`、`B-done.png`；会话日志 `C:\Users\36288\.dsh\sessions\--D-AIworkspace-~4F59~70EC~4F59~751F--\session-dc3d8f41-60cb-491a-b125-a662b5e389a8`。
+
+## 对话完成提醒与 Windows 限制（2026-10-21）
+
+- **触发**：`session/event` 的 `turn/end`，负载 `{ turn, reason }`（`dsh-agent-loop/lib/index.js:1029-1032`）。`reason.kind` 有 `completed`、`blocked`、`max-tokens`、`aborted`（`:961,966,981,1013-1016`）；插件对 `aborted` 不提醒，其余都提醒。
+- **子代理判定**：`SessionHeader` 带 `origin?: 'subagent'` 与 `delegationDepth?: number`（`dsh-session/lib/index.js:1054` 校验，typert 的 `SessionHeader` 声明里有这两个字段）。`origin === 'subagent'` 或 `delegationDepth > 0` 视为子代理，不提醒；`parentSession` 不能单独用（fork 也会写它，而 fork 是用户在等的会话）。
+- **闪烁颜色不可指定**：`FlashWindowEx` 的颜色由系统「注意提示」配色决定，应用无法要求绿色。绿色改用 `ITaskbarList3.SetOverlayIcon`（IID `ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf`，需先 `HrInit`）叠一个 32×32 绿点 HICON。
+- **徽标生命周期**：显示后每 450ms 查一次 `GetForegroundWindow()`；窗口回到前台、窗口消失或超过 `turnBadgeSeconds` 时清除并 `DestroyIcon`。`turnBadgeSeconds: 0` 表示不超时（常驻到你回到窗口）。
+- **声音**：完成音 B5→E6、两声各 0.09s、上行；审批音 G5→C5、下行 0.15/0.35s。两者都用内存 WAV + `System.Media.SoundPlayer`，不随包分发音频文件，也不使用 QQ/微信的原始音频。
+- **代价**：每次完成提醒会起一个隐藏 PowerShell 进程；带徽标时它最长存活 `turnBadgeSeconds` 秒（轮询期间不阻塞 turn，也不影响审批）。

@@ -4,6 +4,22 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+
+- A completed turn now alerts too: taskbar flash + a green taskbar overlay badge + two short "di-di" beeps (B5 -> E6). `notifyOnTurnEnd` (default `true`) switches it on or off; `turnBadgeSeconds` (default `120`, `0` = until you come back to the window) caps the badge lifetime. Subagent turns and aborted turns stay silent.
+- `src/plugin/session-log.ts`: session history reads now go through a single point (upstream deprecated `snapshotEvents()`); when the log cannot be read it degrades through three states and fails closed — no grant is created, nothing is auto-allowed, and the official approval card decides.
+- `package.json` declares `engines.dsh: ">=0.2.1-rc.2 <0.3.0-0"`, so installs and startups are actually gated on the DSH version; `dshhub.compatibility.dsh` carries the same range. Previously `dsh.compatibility.dshReleases` gated nothing.
+
+### Fixed
+
+- The bottom-right approval note no longer mounts an empty fixed container when nothing is pending (its old `content === null` check could never be true).
+
+### Tests
+
+- Client-half tests (23), the frozen audit-format guard, the session-history adapter and its three-state degradation, turn-complete alerts, and the manifest gate.
+
 ## [0.3.0] - 2026-10-21 (published to npm, `latest`)
 
 ### Changed

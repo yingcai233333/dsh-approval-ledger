@@ -4,9 +4,12 @@ import {
   alertPending,
   buildAlertScript,
   buildFlashScript,
+  buildTurnEndScript,
   flashApprovalWindow,
   shouldAlert,
   shouldFlash,
+  TURN_END_CHIME,
+  APPROVAL_CHIME,
 } from '../src/notify/flash.js'
 
 describe('Windows pending alerts', () => {
@@ -130,5 +133,39 @@ describe('Windows approval flash', () => {
     const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
     assert.ok(encoded.length > 0)
     assert.match(Buffer.from(encoded, 'base64').toString('utf16le'), /FlashWindowEx/)
+  })
+})
+
+describe('Windows turn-complete alerts', () => {
+  it('uses static helpers for the overlay icon instead of the COM object', () => {
+    const script = buildTurnEndScript({ flash: true, badgeSeconds: 30 })
+    // PowerShell cannot dispatch the ITaskbarList3 members through the
+    // projected coclass, so the call must stay inside C#.
+    assert.ok(script.includes('[DshApprovalBadge]::ShowOverlay($dshBadgeTarget, $dshBadgeIcon)'))
+    assert.ok(script.includes('[DshApprovalBadge]::ClearOverlay($dshBadgeTarget)'))
+    assert.equal(script.includes('$dshBadgeBar.SetOverlayIcon'), false)
+    assert.ok(script.includes("Guid(\"ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf\")"))
+  })
+
+  it('clears the badge when the window returns or the lifetime expires', () => {
+    const script = buildTurnEndScript({ flash: true, badgeSeconds: 45 })
+    assert.ok(script.includes('GetForegroundWindow'))
+    assert.ok(script.includes('Start-Sleep -Milliseconds 450'))
+    assert.ok(script.includes('$dshBadgeSeconds = 45'))
+  })
+
+  it('skips the badge when the look-here channel is off', () => {
+    const script = buildTurnEndScript({ flash: false, sound: true })
+    assert.equal(script.includes('SetOverlayIcon'), false)
+  })
+
+  it('keeps the completion chime short and rising, unlike the approval chime', () => {
+    const approval = APPROVAL_CHIME.notes
+    const turn = TURN_END_CHIME.notes
+    assert.equal(turn.length, 2)
+    assert.ok(turn[1].frequency > turn[0].frequency)
+    assert.ok(approval[1].frequency < approval[0].frequency)
+    for (const note of turn) assert.ok(note.duration <= 0.1)
+    assert.ok(turn[0].duration + turn[1].duration < approval[0].duration + approval[1].duration)
   })
 })

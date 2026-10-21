@@ -27,12 +27,19 @@ export interface PluginConfig {
   notifyOnQuestion: boolean
   /** Alert when an official approval card is waiting. */
   notifyOnApproval: boolean
+  /** Alert when any non-subagent session finishes a turn. */
+  notifyOnTurnEnd: boolean
   /** Windows: flash the taskbar button of the DeepSeek Harness window. */
   flashWindow: boolean
   /** Windows: play a soft synthesized chime (falls back to the system asterisk). */
   soundAlert: boolean
   /** Repeat the alert every N seconds while the card stays pending; 0 = once. */
   notifyRepeatSeconds: number
+  /**
+   * How long the green turn-complete overlay badge may stay before it clears
+   * itself; 0 keeps it until the window comes back to the foreground.
+   */
+  turnBadgeSeconds: number
   auditNotices: AuditNoticeMode
 }
 
@@ -51,9 +58,11 @@ export const DEFAULT_CONFIG: PluginConfig = {
   notifyOnPlan: true,
   notifyOnQuestion: true,
   notifyOnApproval: true,
+  notifyOnTurnEnd: true,
   flashWindow: true,
   soundAlert: true,
   notifyRepeatSeconds: 0,
+  turnBadgeSeconds: 120,
   auditNotices: 'off',
 }
 
@@ -227,6 +236,12 @@ export function sanitizeConfig(input: unknown): SanitizedConfig {
         DEFAULT_CONFIG.notifyOnApproval,
         warnings,
       ),
+      notifyOnTurnEnd: readBoolean(
+        input,
+        'notifyOnTurnEnd',
+        DEFAULT_CONFIG.notifyOnTurnEnd,
+        warnings,
+      ),
       flashWindow: readBoolean(input, 'flashWindow', DEFAULT_CONFIG.flashWindow, warnings),
       soundAlert: readBoolean(input, 'soundAlert', DEFAULT_CONFIG.soundAlert, warnings),
       notifyRepeatSeconds: readInteger(
@@ -235,6 +250,14 @@ export function sanitizeConfig(input: unknown): SanitizedConfig {
         DEFAULT_CONFIG.notifyRepeatSeconds,
         0,
         600,
+        warnings,
+      ),
+      turnBadgeSeconds: readInteger(
+        input,
+        'turnBadgeSeconds',
+        DEFAULT_CONFIG.turnBadgeSeconds,
+        0,
+        3600,
         warnings,
       ),
       auditNotices,

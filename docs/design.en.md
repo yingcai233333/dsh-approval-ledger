@@ -86,6 +86,7 @@ See `docs/audit.md`. Core points: no new event types; `tool/result.meta` + in-me
 - Batch: official plan-review + full text in the sidebar.
 - Multiple choice: official question + structured `ask_choices` content.
 - Alerts: Windows taskbar flash + synthesized "ding-dong" chime for plan review, per-item selection, `ask_choices`, and official approval cards; sources and both channels are configurable.
+- Turn-complete alert: every finished turn (`turn/end`) also alerts — flash + a green taskbar overlay badge (`FlashWindowEx` takes a system colour, so green can only be a badge) + two rising "di-di" beeps; subagent turns and aborted turns stay silent.
 - The two client surfaces pick their pending approval differently: the header "Approval details" is strictly per session (no `sessionId`, nothing shown, no cross-session scan); the bottom-right "Approval note" is frame-wide and falls back to scanning every session for `kind === 'approval'` when the current one has none.
 
 ## Release plan

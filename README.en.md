@@ -67,7 +67,7 @@ To opt into medium auto-approval explicitly:
 
 ## Alert settings
 
-Plan review, the per-item selection, `ask_choices`, and official approval cards raise a Windows alert: the taskbar button flashes and a soft synthesized "ding-dong" chime plays (independent of the system sound scheme). Each source and each channel can be switched off:
+Plan review, the per-item selection, `ask_choices`, and official approval cards raise a Windows alert: the taskbar button flashes and a soft synthesized "ding-dong" chime plays (independent of the system sound scheme). A completed turn also alerts: taskbar flash + a green badge + two short "di-di" beeps. Each source and each channel can be switched off:
 
 ```yaml
 - id: approval-ledger
@@ -77,12 +77,16 @@ Plan review, the per-item selection, `ask_choices`, and official approval cards 
     notifyOnPlan: true      # plan-review card
     notifyOnQuestion: true  # ask_choices / per-item selection
     notifyOnApproval: true  # official approval card
+    notifyOnTurnEnd: true   # every completed turn (subagent turns stay silent)
     flashWindow: true       # taskbar/caption flash
-    soundAlert: true        # system sound
+    soundAlert: true        # the synthesized chime
     notifyRepeatSeconds: 0  # >0 repeats every N seconds; 0 = once
+    turnBadgeSeconds: 120   # longest badge lifetime; 0 = until the window is back
 ```
 
 Alerts are best-effort: a missing window, PowerShell/EDR refusal, or muted system sound is skipped silently and never blocks the decision. Windows may skip the flash while the window is foreground; the sound still plays.
+
+The turn-complete "green" is a **taskbar overlay badge**: `FlashWindowEx` takes its colour from the system attention setting, so an app cannot ask for green. The badge clears when you return to that window, and at most after `turnBadgeSeconds` seconds (`0` means it stays until you come back). The turn-complete chime is two short rising "di-di" beeps (B5 -> E6) while the approval chime falls (G5 -> C5), so the two never get confused. Subagent turns and cancelled (aborted) turns stay silent.
 
 `ask_choices` now returns the selected option text to the model; previously it only said "received N answers".
 
