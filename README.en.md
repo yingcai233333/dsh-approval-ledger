@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: 0.3.0 is published to npm (`latest`); the desktop profile has 0.3.0 installed and enabled (`mode: active`, `autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and the sound is a synthesized "ding-dong". beta.14 fixes why alerts were silent (the `detached`/`windowsHide` spawn flags), the spurious `4100` warning, and the missing bottom-right approval note. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
+> **Status: 1.0.0 is published to npm (`latest`); the desktop profile has 1.0.0 installed and enabled (`mode: active`, `autoSelectAll: false`).** 1.0.0 **marks audit format v1** (`docs/audit.md`) **and the public interface as stable**: any further breaking change must follow the major-version process in `docs/audit.md`. All four changes made after 0.3.0 are included: the turn-complete alert (`turn/end` → flash + a green taskbar overlay badge + two "di-di" beeps; `notifyOnTurnEnd`, `turnBadgeSeconds`), session-history reads confined to `src/plugin/session-log.ts` with a three-state fail-closed degradation, the `engines.dsh` install/startup gate (`>=0.2.1-rc.2 <0.3.0-0`, mirrored in `dshhub.compatibility.dsh`), and the client no longer mounting an empty fixed container when nothing is pending.
 
 ## Screenshots
 
@@ -21,6 +21,10 @@ Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek
 **Structured question card**: `ask_choices` passes the selected options and any free-text note back to the model.
 
 <img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/question-card.png" alt="ask_choices question card" width="520">
+
+**Turn-complete alert**: when a turn finishes, the taskbar flashes, two "di-di" beeps play, and this green overlay badge stays until you return to the window. `FlashWindowEx` takes its flash colour from the system attention setting, so an app cannot ask for green; the badge is how the completion state is shown in green.
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/turn-end-badge.png" alt="Green taskbar badge when a turn completes" width="520">
 
 ## Why
 
@@ -48,10 +52,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `0.3.0`; `next` is still `0.2.0-beta.15`. Desktop has 0.3.0 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `latest` points at `1.0.0`; `next` is still `0.2.0-beta.15`. Desktop has 1.0.0 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.3.0
+dsh plugin --profile <profile> add dsh-approval-ledger@1.0.0
 ```
 
 To opt into medium auto-approval explicitly:
@@ -86,7 +90,7 @@ Plan review, the per-item selection, `ask_choices`, and official approval cards 
 
 Alerts are best-effort: a missing window, PowerShell/EDR refusal, or muted system sound is skipped silently and never blocks the decision. Windows may skip the flash while the window is foreground; the sound still plays.
 
-The turn-complete "green" is a **taskbar overlay badge**: `FlashWindowEx` takes its colour from the system attention setting, so an app cannot ask for green. The badge clears when you return to that window, and at most after `turnBadgeSeconds` seconds (`0` means it stays until you come back). The turn-complete chime is two short rising "di-di" beeps (B5 -> E6) while the approval chime falls (G5 -> C5), so the two never get confused. Subagent turns and cancelled (aborted) turns stay silent.
+The turn-complete alert and the approval alerts are two independent channels: approval alerts fire when a card appears, turn-complete alerts fire on `turn/end`. The turn-complete "green" is a **taskbar overlay badge**: `FlashWindowEx` takes its colour from the system attention setting, so an app cannot ask for green. The badge clears when you return to that window, and at most after `turnBadgeSeconds` seconds (`0` means it stays until you come back). The turn-complete chime is two short rising "di-di" beeps (B5 -> E6) while the approval chime falls (G5 -> C5), so the two never get confused. Subagent turns and cancelled (aborted) turns stay silent.
 
 `ask_choices` now returns the selected option text to the model; previously it only said "received N answers".
 
@@ -111,7 +115,7 @@ The host-side core is dependency-free and does not import DSH types:
 - `/approvals [audit [--json] | grants]` folds durable session events plus plan metadata; missing per-call records are derived from `tool/call` arguments and marked `derived-session-log`, never guessed.
 - `ctx.storageDomain` is a schema-validated KV store, not an append-only log; Sprint 1 deliberately uses the session log + in-memory ledger instead. Cross-session retention is deferred.
 
-## Sprint 3 (delivered: all three items on the 0.2 line; 0.3.0 is the version close-out)
+## Sprint 3 (delivered: all three items on the 0.2 line; 1.0.0 is the stability close-out)
 
 - `ask_choices`: structured single/multi-select questions through the official question card, with option descriptions and a `（推荐）` marker. It only collects choices; it never executes actions or changes grants.
 - `/approvals sessions`: read-only counts of grants across sessions; it exposes no scope, paths, or commands, provides no cross-session match, and cannot use another session's grants.

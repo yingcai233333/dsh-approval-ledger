@@ -4,7 +4,7 @@
 
 ## DSH
 
-- 目标运行时：DSH `0.2.1-rc.2`（Windows 桌面，`@deepseek-ai/dsh-desktop-runtime`；`dsh/package.json:4`）。插件版本 `0.3.0`。
+- 目标运行时：DSH `0.2.1-rc.2`（Windows 桌面，`@deepseek-ai/dsh-desktop-runtime`；`dsh/package.json:4`）。插件版本 `1.0.0`。
 - 核对基准（2026-10-21）：0.2.1-rc.2 安装包 `D:\software\DS-harness\resources\app.asar`。整个归档（306 个 `@deepseek-ai/*` 包、18309 个文件）**没有任何 `.d.ts`**，profile 的 `node_modules` 下也没有 `@deepseek-ai/*`；所以静态核对用的是随包 JS 实现、包内嵌的类型声明字符串（`lib/typert.host.js`）和包 README。下文的 `dsh/...:行号` 都指归档内对应文件的正文行号（记法与 `docs/runtime-spike.md` 一致）。
 
 ### 验证到什么程度
@@ -19,7 +19,7 @@
 | 任务栏闪烁 / 提示音 | 仅 Windows 实现；脚本生成有单测，真机效果未 live 验证 | `src/notify/flash.ts`；`docs/install-review-p0.md` §8 |
 | 0.2.1-rc.2 之外的 DSH | **未验证** | — |
 
-> 关于 `engines.dsh` 与 `dsh.compatibility.dshReleases`：0.2.1-rc.2 的安装/启动闸门只读 `engines.dsh`（没有它时才看 `@deepseek-ai/dsh*` peer），判断用 `semver.satisfies(runtime, range, { includePrerelease: true })`（`dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:252,276-298,311-326`）。从下一个发布版本起（`0.3.0` 已发布，不包含此字段）本包声明 `"dsh": ">=0.2.1-rc.2 <0.3.0-0"`：接受 0.2.x 的补丁与预发布，拒绝整个 0.3 线。不满足**不是警告**：安装会在 pnpm 之前就 `installation rejected`（退出码 1）；启动时整个 bundle 被跳过（`dsh: skipping profile bundle …`），桌面仍能起来，但没有本插件的工具/命令/UI。上界必须写成 `<0.3.0-0`——`<0.3.0` 在 includePrerelease 下挡不住 `0.3.0-rc.1`，而 `>=0.2.1-rc.2-0` 会把 `0.2.1-rc.2` 自己拒掉。`dsh.compatibility.dshReleases` 仍是说明性元数据（没有代码读它）；`dshhub.compatibility.dsh` 与 `engines.dsh` 保持同一范围，避免「市场说兼容、安装被拒」。
+> 关于 `engines.dsh` 与 `dsh.compatibility.dshReleases`：0.2.1-rc.2 的安装/启动闸门只读 `engines.dsh`（没有它时才看 `@deepseek-ai/dsh*` peer），判断用 `semver.satisfies(runtime, range, { includePrerelease: true })`（`dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:252,276-298,311-326`）。从 `1.0.0` 起（`0.3.0` 发布时还不包含此字段）本包声明 `"dsh": ">=0.2.1-rc.2 <0.3.0-0"`：接受 0.2.x 的补丁与预发布，拒绝整个 0.3 线。不满足**不是警告**：安装会在 pnpm 之前就 `installation rejected`（退出码 1）；启动时整个 bundle 被跳过（`dsh: skipping profile bundle …`），桌面仍能起来，但没有本插件的工具/命令/UI。上界必须写成 `<0.3.0-0`——`<0.3.0` 在 includePrerelease 下挡不住 `0.3.0-rc.1`，而 `>=0.2.1-rc.2-0` 会把 `0.2.1-rc.2` 自己拒掉。`dsh.compatibility.dshReleases` 仍是说明性元数据（没有代码读它）；`dshhub.compatibility.dsh` 与 `engines.dsh` 保持同一范围，避免「市场说兼容、安装被拒」。
 
 ### 接口核对（0.2.1-rc.2）
 
@@ -40,7 +40,7 @@
 
 ### 已知漂移
 
-- `session.snapshotEvents()` 在 0.2.1-rc.2 已 **deprecated**：插件仍需要同步读取整段会话历史，而该版本没有受支持的替代（`session/event` 不重放 seed 事件；`ctx.sessionProjections` / `ctx.sessionQuery` 内部同样依赖它），因此本期不迁移。所有调用已收口到唯一适配层 `src/plugin/session-log.ts`；读不到时（缺方法/抛错/返回非数组）返回稳定短码并 **fail-closed 降级**：不建 grant、不自动放行、回落官方审批卡，并在内存里把该会话标为 degraded。上游删除该 reader 时只需改这一个文件；迁移触发条件见 `docs/design.md` 的 1.0 待办。
+- `session.snapshotEvents()` 在 0.2.1-rc.2 已 **deprecated**：插件仍需要同步读取整段会话历史，而该版本没有受支持的替代（`session/event` 不重放 seed 事件；`ctx.sessionProjections` / `ctx.sessionQuery` 内部同样依赖它），因此本期不迁移。所有调用已收口到唯一适配层 `src/plugin/session-log.ts`；读不到时（缺方法/抛错/返回非数组）返回稳定短码并 **fail-closed 降级**：不建 grant、不自动放行、回落官方审批卡，并在内存里把该会话标为 degraded。上游删除该 reader 时只需改这一个文件；迁移触发条件见 `docs/design.md` 的发布计划。
 - 其余差异都是「本地声明是运行时的子集」：运行时多出的可选字段（`timeoutMs`、`finalizeContent`、`presentCall`、`result.sourceEventSeq` 等）插件不需要声明，不构成漂移。
 
 ### 升级 DSH 之后
@@ -61,7 +61,7 @@
 
 ## 在另一台机器/另一个平台自检
 
-1. **装并确认版本**：在目标机器安装 `0.3.0`（desktop 安装器，或 `dsh plugin add dsh-approval-ledger`），跑 `dsh plugin list`，确认包名、版本 `0.3.0`、状态 enabled。
+1. **装并确认版本**：在目标机器安装 `1.0.0`（desktop 安装器，或 `dsh plugin add dsh-approval-ledger`），跑 `dsh plugin list`，确认包名、版本 `1.0.0`、状态 enabled。
 2. **确认 DSH 版本与声明**：`dsh --version` 应为 `0.2.1-rc.2`；打开 `node_modules/dsh-approval-ledger/package.json`，确认 `engines.dsh` 是 `>=0.2.1-rc.2 <0.3.0-0`（它才是真正的安装/启动闸门），`dsh.compatibility.dshReleases` 只是说明性元数据（见上）。
 3. **命令面**：新会话执行 `/approvals audit`，应输出「审批决策记录」报告（而不是 unknown command）；再跑 `/approvals last`、`/approvals grants`。
 4. **单条审批**：让模型做一次需要审批的写操作（例如 `danger-full-access` 写工作区外文件），确认官方卡片标题是改写后的 `写入文件 · <路径> · 完全访问`，右下角有「待审批说明」；点「拒绝」后文件不存在，`/approvals audit` 有该拒绝记录。

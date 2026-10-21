@@ -4,7 +4,7 @@
 
 ## DSH
 
-- Target runtime: DSH `0.2.1-rc.2` (Windows desktop, `@deepseek-ai/dsh-desktop-runtime`; `dsh/package.json:4`). Plugin version `0.3.0`.
+- Target runtime: DSH `0.2.1-rc.2` (Windows desktop, `@deepseek-ai/dsh-desktop-runtime`; `dsh/package.json:4`). Plugin version `1.0.0`.
 - Verification baseline (2026-10-21): the 0.2.1-rc.2 install package at `D:\software\DS-harness\resources\app.asar`. The whole archive (306 `@deepseek-ai/*` packages, 18,309 files) contains **no `.d.ts` at all**, and the profile's `node_modules` has no `@deepseek-ai/*` either; the static check therefore used the shipped JS implementations, the type-declaration strings embedded in `lib/typert.host.js`, and the package READMEs. `dsh/...:line` below means a body line of that entry inside the archive (same convention as `docs/runtime-spike.md`).
 
 ### How far verification goes
@@ -19,7 +19,7 @@
 | Taskbar flash / sound | Windows-only implementation; unit tests cover script generation, the real effect is not live-verified | `src/notify/flash.ts`; `docs/install-review-p0.md` §8 |
 | DSH versions other than 0.2.1-rc.2 | **Not verified** | — |
 
-> On `engines.dsh` and `dsh.compatibility.dshReleases`: the 0.2.1-rc.2 install/startup gate reads only `engines.dsh` (the `@deepseek-ai/dsh*` peers are consulted only when it is absent) and evaluates it with `semver.satisfies(runtime, range, { includePrerelease: true })` (`dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:252,276-298,311-326`). From the next release onward (`0.3.0` is already published without this field) this package declares `"dsh": ">=0.2.1-rc.2 <0.3.0-0"`: it accepts 0.2.x patches and prereleases and rejects the whole 0.3 line. A miss is **not** a warning: an install is rejected before pnpm even runs (`installation rejected`, exit code 1), and at startup the whole bundle is skipped (`dsh: skipping profile bundle …`) so the desktop still starts but without this plugin's tools, command or UI. The upper bound must be `<0.3.0-0` — `<0.3.0` does not stop `0.3.0-rc.1` under `includePrerelease`, and `>=0.2.1-rc.2-0` rejects `0.2.1-rc.2` itself. `dsh.compatibility.dshReleases` remains descriptive metadata (no code reads it); `dshhub.compatibility.dsh` carries the same range as `engines.dsh` so the market and the installer cannot disagree.
+> On `engines.dsh` and `dsh.compatibility.dshReleases`: the 0.2.1-rc.2 install/startup gate reads only `engines.dsh` (the `@deepseek-ai/dsh*` peers are consulted only when it is absent) and evaluates it with `semver.satisfies(runtime, range, { includePrerelease: true })` (`dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:252,276-298,311-326`). From `1.0.0` onward (`0.3.0` was published without this field) this package declares `"dsh": ">=0.2.1-rc.2 <0.3.0-0"`: it accepts 0.2.x patches and prereleases and rejects the whole 0.3 line. A miss is **not** a warning: an install is rejected before pnpm even runs (`installation rejected`, exit code 1), and at startup the whole bundle is skipped (`dsh: skipping profile bundle …`) so the desktop still starts but without this plugin's tools, command or UI. The upper bound must be `<0.3.0-0` — `<0.3.0` does not stop `0.3.0-rc.1` under `includePrerelease`, and `>=0.2.1-rc.2-0` rejects `0.2.1-rc.2` itself. `dsh.compatibility.dshReleases` remains descriptive metadata (no code reads it); `dshhub.compatibility.dsh` carries the same range as `engines.dsh` so the market and the installer cannot disagree.
 
 ### Interface check (0.2.1-rc.2)
 
@@ -40,7 +40,7 @@
 
 ### Known drift
 
-- `session.snapshotEvents()` is **deprecated** in 0.2.1-rc.2: the plugin still needs to read a session's whole history synchronously, and that version offers no supported replacement (`session/event` does not replay seed events, and `ctx.sessionProjections` / `ctx.sessionQuery` rely on it internally), so this cycle does not migrate. Every call is now confined to the single adapter `src/plugin/session-log.ts`; when the history cannot be read (missing method / throws / non-array result) it returns a stable short code and **degrades fail-closed**: no grant, no automatic allow, back to the official approval card, and the session is marked degraded in memory. Removing the reader upstream needs a change in that one file only; the migration trigger is recorded in the 1.0 item of `docs/design.md`.
+- `session.snapshotEvents()` is **deprecated** in 0.2.1-rc.2: the plugin still needs to read a session's whole history synchronously, and that version offers no supported replacement (`session/event` does not replay seed events, and `ctx.sessionProjections` / `ctx.sessionQuery` rely on it internally), so this cycle does not migrate. Every call is now confined to the single adapter `src/plugin/session-log.ts`; when the history cannot be read (missing method / throws / non-array result) it returns a stable short code and **degrades fail-closed**: no grant, no automatic allow, back to the official approval card, and the session is marked degraded in memory. Removing the reader upstream needs a change in that one file only; the migration trigger is recorded in the release plan in `docs/design.md`.
 - Every other difference is "the local declaration is a subset": optional runtime fields (`timeoutMs`, `finalizeContent`, `presentCall`, `result.sourceEventSeq`, …) need no declaration and are not drift.
 
 ### After upgrading DSH
@@ -61,7 +61,7 @@
 
 ## Self-check on another machine / platform
 
-1. **Install and confirm the version**: install `0.3.0` on the target machine (desktop installer, or `dsh plugin add dsh-approval-ledger`), run `dsh plugin list`, and confirm the package name, version `0.3.0`, and enabled state.
+1. **Install and confirm the version**: install `1.0.0` on the target machine (desktop installer, or `dsh plugin add dsh-approval-ledger`), run `dsh plugin list`, and confirm the package name, version `1.0.0`, and enabled state.
 2. **Confirm the DSH version and declaration**: `dsh --version` should be `0.2.1-rc.2`; open `node_modules/dsh-approval-ledger/package.json` and confirm `engines.dsh` is `>=0.2.1-rc.2 <0.3.0-0` (that is the real install/startup gate); `dsh.compatibility.dshReleases` is descriptive metadata only (see above).
 3. **Command surface**: in a new session run `/approvals audit`; it should print the "Approval decision ledger" report (not an unknown command). Then run `/approvals last` and `/approvals grants`.
 4. **Single approval**: have the model perform a write that needs approval (for example a `danger-full-access` write outside the workspace) and confirm the official card title is the rewritten `写入文件 · <path> · 完全访问` with the pending-approval note at the lower right; reject it, then confirm the file does not exist and `/approvals audit` records the rejection.
