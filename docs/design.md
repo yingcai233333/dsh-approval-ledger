@@ -86,10 +86,11 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 - 批量：官方 plan-review + 侧栏全文。
 - 多选：官方 question + `ask_choices` 结构化内容。
 - 提醒：计划卡、逐项勾选、`ask_choices` 和官方审批卡出现时，Windows 任务栏闪烁 + 合成「叮咚」提示音；范围与两个通道均可配置。
+- 两个客户端表层的待审批来源不同：头部「审批详情」严格按当前会话（没有 `sessionId` 就不显示、也不跨会话扫）；右下角「待审批说明」是 frame-wide，先取当前会话，取不到再退回扫描全部会话中 `kind === 'approval'` 的项。
 
 ## 发布计划
 
 - 0.1.0-beta.1：observe（只记录本应放行，不实际放行）+ 计划 + 审计（目标 DSH 0.2.1-rc.2；仓库里程碑，未发布到 npm）。
 - 0.2 线（`0.2.0-beta.1` → `0.2.0-beta.15`，2026-10-19 → 2026-10-20）：medium 自动放行 + 详情弹窗 + 闪烁；high opt-in + 二次确认、`ask_choices`、跨会话只读列表也在这一线交付。
 - 0.3.0（2026-10-21，`latest`）：无新功能，只做版本收口；代码与 `0.2.0-beta.15` 相同。
-- 1.0.0：冻结 API/审计格式，补兼容矩阵和客户端测试。
+- 1.0.0：把 v1 审计格式与对外接口标为稳定（冻结内容见 `docs/audit.md`）；兼容矩阵与客户端测试已完成；剩余待定的是是否用 `engines.dsh` 拦截跨版本安装、以及迁移已被上游标为 deprecated 的 `Session.snapshotEvents()`。

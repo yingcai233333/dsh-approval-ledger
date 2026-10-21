@@ -86,10 +86,11 @@ See `docs/audit.md`. Core points: no new event types; `tool/result.meta` + in-me
 - Batch: official plan-review + full text in the sidebar.
 - Multiple choice: official question + structured `ask_choices` content.
 - Alerts: Windows taskbar flash + synthesized "ding-dong" chime for plan review, per-item selection, `ask_choices`, and official approval cards; sources and both channels are configurable.
+- The two client surfaces pick their pending approval differently: the header "Approval details" is strictly per session (no `sessionId`, nothing shown, no cross-session scan); the bottom-right "Approval note" is frame-wide and falls back to scanning every session for `kind === 'approval'` when the current one has none.
 
 ## Release plan
 
 - 0.1.0-beta.1: observe (record what would have been allowed, without actually allowing it) + plans + audit (target DSH 0.2.1-rc.2; repository milestone, not published to npm).
 - 0.2 line (`0.2.0-beta.1` → `0.2.0-beta.15`, 2026-10-19 → 2026-10-20): medium auto-allow + detail popover + flashing; high opt-in + second confirmation, `ask_choices`, and the cross-session read-only list also shipped on this line.
 - 0.3.0 (2026-10-21, `latest`): no new features, version close-out only; the code is identical to `0.2.0-beta.15`.
-- 1.0.0: freeze the API/audit format, complete the compatibility matrix and client tests.
+- 1.0.0: declare the v1 audit format and the public interface stable (freeze details in `docs/audit.md`); the compatibility matrix and client tests are done; what remains open is whether to gate cross-version installs with `engines.dsh`, and migrating `Session.snapshotEvents()`, which upstream has marked deprecated.
