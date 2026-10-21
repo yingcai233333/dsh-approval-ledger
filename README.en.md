@@ -82,13 +82,14 @@ Plan review, the per-item selection, `ask_choices`, and official approval cards 
     notifyOnQuestion: true  # ask_choices / per-item selection
     notifyOnApproval: true  # official approval card
     notifyOnTurnEnd: true   # every completed turn (subagent turns stay silent)
+    turnEndOnlyWhenAway: true # stay quiet while you watch; alert when you switch away or minimize
     flashWindow: true       # taskbar/caption flash
     soundAlert: true        # the synthesized chime
     notifyRepeatSeconds: 0  # >0 repeats every N seconds; 0 = once
     turnBadgeSeconds: 120   # longest badge lifetime; 0 = until the window is back
 ```
 
-Alerts are best-effort: a missing window, PowerShell/EDR refusal, or muted system sound is skipped silently and never blocks the decision. Windows may skip the flash while the window is foreground; the sound still plays.
+Alerts are best-effort: a missing window, PowerShell/EDR refusal, or muted system sound is skipped silently and never blocks the decision. Windows may skip the flash while the window is foreground; the sound still plays. With `turnEndOnlyWhenAway: true` (the default) the turn-complete alert only fires while the Harness window is **not** foreground — no noise while you are watching, and it alerts when you switch away or minimize; if the window cannot be found it still alerts (the chime is still useful). Approval alerts are unaffected and stay unconditional.
 
 The turn-complete alert and the approval alerts are two independent channels: approval alerts fire when a card appears, turn-complete alerts fire on `turn/end`. The turn-complete "green" is a **taskbar overlay badge**: `FlashWindowEx` takes its colour from the system attention setting, so an app cannot ask for green. The badge clears when you return to that window, and at most after `turnBadgeSeconds` seconds (`0` means it stays until you come back). The turn-complete chime is two short rising "di-di" beeps (B5 -> E6) while the approval chime falls (G5 -> C5), so the two never get confused. Subagent turns and cancelled (aborted) turns stay silent.
 

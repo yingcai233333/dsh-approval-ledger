@@ -4,6 +4,12 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+
+- `turnEndOnlyWhenAway` (default `true`): the turn-complete alert only fires while the DeepSeek Harness window is **not** foreground, skipping the taskbar flash, the green badge, and the sound together — no noise while you are watching, and it alerts when you switch away or minimize; if the window cannot be found it still alerts (the chime is still useful). Set it to `false` for unconditional alerts. It only affects the turn-complete alert; approval, plan, and question alerts are unchanged.
+
 ## [1.0.0] - 2026-10-21 (published to npm, `latest`)
 
 This release **marks audit record format v1** ([`schema/audit-v1.json`](schema/audit-v1.json), documented in [`docs/audit.md`](docs/audit.md)) **and the public interface as stable**: v1 has been frozen since 0.3.0, and 1.0.0 commits to no further breaking changes; if a breaking change is ever required, it must follow the major-version process in `docs/audit.md`, ship a new format, and keep reading v1. All four changes made after 0.3.0 are included in this release.

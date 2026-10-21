@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
   alertPending,
+  alertTurnEnd,
   buildAlertScript,
   buildFlashScript,
   buildTurnEndScript,
@@ -11,6 +12,24 @@ import {
   TURN_END_CHIME,
   APPROVAL_CHIME,
 } from '../src/notify/flash.js'
+
+function spawnedScript(onlyWhenAway: boolean): string {
+  let args: string[] = []
+  alertTurnEnd({
+    flash: true,
+    sound: true,
+    badge: true,
+    badgeSeconds: 120,
+    onlyWhenAway,
+    platform: 'win32',
+    spawnImpl: ((_file: string, nextArgs: string[]) => {
+      args = nextArgs
+      return { on() {}, unref() {} } as never
+    }) as never,
+  })
+  const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
+  return Buffer.from(encoded, 'base64').toString('utf16le')
+}
 
 describe('Windows pending alerts', () => {
   it('is Windows-only and needs at least one channel', () => {
@@ -167,5 +186,48 @@ describe('Windows turn-complete alerts', () => {
     assert.ok(approval[1].frequency < approval[0].frequency)
     for (const note of turn) assert.ok(note.duration <= 0.1)
     assert.ok(turn[0].duration + turn[1].duration < approval[0].duration + approval[1].duration)
+  })
+
+  it('skips the whole alert when the harness window is already foreground', () => {
+    const script = buildTurnEndScript({ onlyWhenAway: true })
+    assert.ok(script.includes('DshApprovalAway'))
+    assert.ok(script.includes('exit 0'))
+    assert.ok(script.includes('[DshApprovalAway]::GetForegroundWindow() -eq $dshAwayTarget'))
+    // The gate must run before the flash, badge, and sound parts.
+    const gate = script.indexOf('DshApprovalAway')
+    for (const later of ['DshApprovalFlash', 'DshApprovalBadge', 'dshOk']) {
+      assert.ok(script.indexOf(later) > gate, later)
+    }
+    // A missing window must keep alerting, so `exit 0` needs a found target.
+    assert.ok(script.includes('$dshAwayTarget -ne [IntPtr]::Zero -and'))
+    assert.match(
+      script,
+      /\[DshApprovalAway\]::GetForegroundWindow\(\) -eq \$dshAwayTarget\) \{ exit 0 \}/,
+    )
+  })
+
+  it('alerts unconditionally when the foreground gate is off', () => {
+    const script = buildTurnEndScript({ onlyWhenAway: false })
+    assert.equal(script.includes('DshApprovalAway'), false)
+    assert.equal(script.includes('exit 0'), false)
+  })
+
+  it('keeps the foreground gate for a sound-only completion alert', () => {
+    const script = buildTurnEndScript({ flash: false, sound: true, onlyWhenAway: true })
+    assert.ok(script.includes('DshApprovalAway'))
+    assert.equal(script.includes('DshApprovalFlash'), false)
+    assert.equal(script.includes('DshApprovalBadge'), false)
+    assert.ok(script.includes('System.Media.SoundPlayer'))
+  })
+
+  it('never adds the foreground gate to approval alerts', () => {
+    const script = buildAlertScript({ flash: true, sound: true })
+    assert.equal(script.includes('DshApprovalAway'), false)
+    assert.equal(script.includes('exit 0'), false)
+  })
+
+  it('passes onlyWhenAway through the spawned turn-end command', () => {
+    assert.ok(spawnedScript(true).includes('exit 0'))
+    assert.equal(spawnedScript(false).includes('exit 0'), false)
   })
 })

@@ -29,6 +29,12 @@ export interface PluginConfig {
   notifyOnApproval: boolean
   /** Alert when any non-subagent session finishes a turn. */
   notifyOnTurnEnd: boolean
+  /**
+   * Turn-complete alert only: when true (default), skip the alert entirely
+   * while the DeepSeek Harness window is already foreground. Approval, plan,
+   * and question alerts are unaffected either way.
+   */
+  turnEndOnlyWhenAway: boolean
   /** Windows: flash the taskbar button of the DeepSeek Harness window. */
   flashWindow: boolean
   /** Windows: play a soft synthesized chime (falls back to the system asterisk). */
@@ -59,6 +65,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
   notifyOnQuestion: true,
   notifyOnApproval: true,
   notifyOnTurnEnd: true,
+  turnEndOnlyWhenAway: true,
   flashWindow: true,
   soundAlert: true,
   notifyRepeatSeconds: 0,
@@ -240,6 +247,12 @@ export function sanitizeConfig(input: unknown): SanitizedConfig {
         input,
         'notifyOnTurnEnd',
         DEFAULT_CONFIG.notifyOnTurnEnd,
+        warnings,
+      ),
+      turnEndOnlyWhenAway: readBoolean(
+        input,
+        'turnEndOnlyWhenAway',
+        DEFAULT_CONFIG.turnEndOnlyWhenAway,
         warnings,
       ),
       flashWindow: readBoolean(input, 'flashWindow', DEFAULT_CONFIG.flashWindow, warnings),

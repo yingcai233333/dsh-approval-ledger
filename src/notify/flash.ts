@@ -101,10 +101,75 @@ export interface AlertScriptOptions {
   badgeSeconds?: number
   /** Chime to synthesize; defaults to the approval "ding-dong". */
   tone?: AlertTone
+  /**
+   * Turn complete only: skip the whole alert (flash, badge, sound) when the
+   * harness window is already foreground. Approval alerts never set this.
+   */
+  foregroundGate?: boolean
 }
 
 function sanitizeProcessName(processName: string): string {
   return processName.replace(/[^A-Za-z0-9 ._-]/g, '')
+}
+
+/**
+ * Turn-complete foreground gate. When the harness window exists and is already
+ * the foreground window, the whole alert is skipped with `exit 0`: the user is
+ * looking at the window, so flashing and beeping is noise.
+ *
+ * Deliberately self-contained and COM-free (user32 P/Invoke only) so it works
+ * for every channel combination, including a sound-only alert where neither the
+ * flash nor the badge type is emitted. A window that cannot be found — or any
+ * failure of the check — must NOT silence the alert, because the chime is still
+ * useful after the window is gone; only "found and foreground" exits.
+ */
+function buildForegroundGatePart(processName: string): string {
+  const safeName = sanitizeProcessName(processName)
+  return `$dshAwayReady = $false
+try {
+Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class DshApprovalAway {
+  public delegate bool DshEnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+  [DllImport("user32.dll")]
+  public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")]
+  public static extern bool EnumWindows(DshEnumWindowsProc callback, IntPtr lParam);
+  [DllImport("user32.dll")]
+  public static extern bool IsWindowVisible(IntPtr hWnd);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+  public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+  [DllImport("user32.dll")]
+  public static extern int GetWindowTextLength(IntPtr hWnd);
+  public static IntPtr FindWindowByTitle(string needle) {
+    IntPtr found = IntPtr.Zero;
+    EnumWindows((hWnd, lParam) => {
+      if (!IsWindowVisible(hWnd)) return true;
+      int length = GetWindowTextLength(hWnd);
+      if (length <= 0) return true;
+      StringBuilder text = new StringBuilder(length + 1);
+      GetWindowText(hWnd, text, text.Capacity);
+      if (text.ToString().IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0) {
+        found = hWnd;
+        return false;
+      }
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
+}
+'@
+$dshAwayReady = $true
+} catch {}
+if ($dshAwayReady) {
+  $dshAwayTarget = [IntPtr]::Zero
+  try { $dshAwayTarget = [DshApprovalAway]::FindWindowByTitle('${safeName}') } catch {}
+  # Foreground means the user is already looking at the window: no flash, no badge, no sound.
+  if ($dshAwayTarget -ne [IntPtr]::Zero -and [DshApprovalAway]::GetForegroundWindow() -eq $dshAwayTarget) { exit 0 }
+}
+`
 }
 
 /**
@@ -433,12 +498,15 @@ if (-not $dshOk) { try { [System.Media.SystemSounds]::${chime.fallback}.Play() }
 
 /**
  * Build one self-contained PowerShell script. Flash, badge, and sound are
- * independent switches; the process name is a constant and is sanitized before
- * embedding. No approval text, path, argument, or reason is interpolated.
+ * independent switches; the turn-complete foreground gate, when enabled, comes
+ * first so `exit 0` runs before any other part. The process name is a constant
+ * and is sanitized before embedding. No approval text, path, argument, or reason
+ * is interpolated.
  */
 export function buildAlertScript(options: AlertScriptOptions): string {
   const processName = options.processName ?? DEFAULT_WINDOW_TITLE
   const parts = [`$ErrorActionPreference = 'SilentlyContinue'`]
+  if (options.foregroundGate === true) parts.push(buildForegroundGatePart(processName))
   if (options.flash) parts.push(buildFlashPart(processName))
   if (options.badge === true) {
     parts.push(buildBadgePart(processName, options.badgeSeconds ?? DEFAULT_BADGE_SECONDS))
@@ -458,9 +526,15 @@ export interface TurnEndScriptOptions {
   flash?: boolean
   sound?: boolean
   badgeSeconds?: number
+  /**
+   * Skip the alert entirely when the harness window is already foreground.
+   * Defaults to true (the product default); `false` restores unconditional
+   * alerts.
+   */
+  onlyWhenAway?: boolean
 }
 
-/** Turn-complete script: flash + green badge + the two-beep "di-di". */
+/** Turn-complete script: foreground gate + flash + green badge + the two-beep "di-di". */
 export function buildTurnEndScript(options: TurnEndScriptOptions = {}): string {
   const flash = options.flash ?? true
   return buildAlertScript({
@@ -470,6 +544,7 @@ export function buildTurnEndScript(options: TurnEndScriptOptions = {}): string {
     badgeSeconds: options.badgeSeconds ?? DEFAULT_BADGE_SECONDS,
     tone: 'turn-end',
     processName: options.processName,
+    foregroundGate: options.onlyWhenAway ?? true,
   })
 }
 
@@ -542,6 +617,12 @@ export interface TurnEndRunOptions {
   badge: boolean
   /** Badge lifetime in seconds; 0 keeps it until the window is foreground. */
   badgeSeconds: number
+  /**
+   * Skip the whole alert (flash, badge, sound) when the harness window is
+   * already foreground. Only the turn-complete alert uses this; approval alerts
+   * stay unconditional.
+   */
+  onlyWhenAway: boolean
   platform?: NodeJS.Platform
   processName?: string
   spawnImpl?: typeof spawn
@@ -562,6 +643,7 @@ export function alertTurnEnd(options: TurnEndRunOptions): void {
       badgeSeconds: options.badgeSeconds,
       tone: 'turn-end',
       processName: options.processName,
+      foregroundGate: options.onlyWhenAway,
     }),
     options.spawnImpl ?? spawn,
   )

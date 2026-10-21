@@ -25,7 +25,9 @@ export interface TurnEndNotifier {
 /**
  * Turn-complete alerts are opt-out, but they stay behind the existing master
  * switch: `notifications: false` silences them, `flashWindow` gates the flash
- * and the green badge, and `soundAlert` gates the two-beep chime.
+ * and the green badge, and `soundAlert` gates the two-beep chime. Separately,
+ * `turnEndOnlyWhenAway` (default `true`) skips the alert while the harness
+ * window is already foreground; it never affects approval/plan/question alerts.
  */
 export function turnEndAlertEnabled(config: PluginConfig): boolean {
   return (
@@ -118,6 +120,7 @@ export function createTurnEndNotifier(
           sound: config.soundAlert,
           badge: config.flashWindow,
           badgeSeconds: config.turnBadgeSeconds,
+          onlyWhenAway: config.turnEndOnlyWhenAway,
           platform,
           processName: dependencies.processName,
           spawnImpl: dependencies.spawnImpl,

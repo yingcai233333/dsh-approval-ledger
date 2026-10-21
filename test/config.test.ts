@@ -52,6 +52,20 @@ describe('plugin config', () => {
     assert.deepEqual(warnings, [])
   })
 
+  it('defaults the turn-complete foreground gate on and accepts an explicit off', () => {
+    assert.equal(DEFAULT_CONFIG.turnEndOnlyWhenAway, true)
+    assert.equal(sanitizeConfig({}).config.turnEndOnlyWhenAway, true)
+    assert.equal(sanitizeConfig({ turnEndOnlyWhenAway: false }).config.turnEndOnlyWhenAway, false)
+
+    const invalid = sanitizeConfig({ turnEndOnlyWhenAway: 'away' })
+    assert.equal(invalid.config.turnEndOnlyWhenAway, true)
+    assert.ok(
+      invalid.warnings.some(
+        (warning) => warning.field === 'turnEndOnlyWhenAway' && warning.code === 'invalid-type',
+      ),
+    )
+  })
+
   it('falls back safely for invalid types and ranges', () => {
     const { config, warnings } = sanitizeConfig({
       mode: 'superuser',

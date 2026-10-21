@@ -82,13 +82,14 @@ dsh plugin --profile <profile> add dsh-approval-ledger@1.0.0
     notifyOnQuestion: true  # ask_choices / 逐项勾选
     notifyOnApproval: true  # 官方审批卡
     notifyOnTurnEnd: true   # 每轮对话完成（子代理的 turn 不提醒）
+    turnEndOnlyWhenAway: true # 只看前台：你盯着屏幕时不打扰；切走或最小化才提醒
     flashWindow: true       # 任务栏/标题闪烁
     soundAlert: true        # 合成「叮咚」提示音
     notifyRepeatSeconds: 0  # >0 时每 N 秒重复，0 = 只提醒一次
     turnBadgeSeconds: 120   # 完成徽标最长保留秒数；0 = 常驻到你回到窗口
 ```
 
-提醒是 best-effort：找不到窗口、PowerShell/EDR 拒绝或系统静音时静默跳过，不影响审批本身。窗口在前台时 Windows 可能不闪，声音仍会响。
+提醒是 best-effort：找不到窗口、PowerShell/EDR 拒绝或系统静音时静默跳过，不影响审批本身。窗口在前台时 Windows 可能不闪，声音仍会响。`turnEndOnlyWhenAway: true`（默认）时，完成提醒只在 Harness 窗口**不是**前台窗口时触发——你盯着屏幕时不打扰，切走或最小化才提醒；窗口找不到时仍会提醒（声音还有用）。审批提醒不受影响，始终无条件。
 
 完成提醒与审批提醒是两条独立通道：审批提醒在卡片出现时触发，完成提醒在 `turn/end` 时触发。完成提醒的「绿色」用**任务栏 overlay 徽标**表达：`FlashWindowEx` 的闪烁颜色由系统「注意提示」配色决定，应用无法指定绿色。徽标在你回到该窗口时清除，最长保留 `turnBadgeSeconds` 秒（`0` 表示不超时、常驻到回窗口）。完成音是合成的两声短促「滴滴」（B5→E6，上行），审批音是「叮咚」（G5→C5，下行），两者不会混淆。子代理的内部 turn 不触发提醒；turn 被取消（aborted）时也不响。
 

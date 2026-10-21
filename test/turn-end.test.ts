@@ -149,10 +149,34 @@ describe('turn-complete reminders', () => {
         badge: alerts[0]?.badge,
         sound: alerts[0]?.sound,
         badgeSeconds: alerts[0]?.badgeSeconds,
+        onlyWhenAway: alerts[0]?.onlyWhenAway,
         platform: alerts[0]?.platform,
       },
-      { flash: true, badge: true, sound: true, badgeSeconds: 0, platform: 'win32' },
+      {
+        flash: true,
+        badge: true,
+        sound: true,
+        badgeSeconds: 0,
+        onlyWhenAway: true,
+        platform: 'win32',
+      },
     )
+  })
+
+  it('passes turnEndOnlyWhenAway to the alert options', () => {
+    const away = recorder()
+    createTurnEndNotifier(config(), { platform: 'win32', alert: away.alert }).observe(
+      session('s1'),
+      turnEnd(1, 1),
+    )
+    assert.equal(away.alerts[0]?.onlyWhenAway, true)
+
+    const always = recorder()
+    createTurnEndNotifier(config({ turnEndOnlyWhenAway: false }), {
+      platform: 'win32',
+      alert: always.alert,
+    }).observe(session('s1'), turnEnd(1, 1))
+    assert.equal(always.alerts[0]?.onlyWhenAway, false)
   })
 
   it('skips cancelled turns', () => {
