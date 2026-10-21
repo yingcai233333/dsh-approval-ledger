@@ -89,7 +89,7 @@ session log (facts) + tool/result.meta (plan decision) + audit store (per-call r
 
 ## 发布计划
 
-- 0.1.0-beta.1：observe（只记录本应放行，不实际放行）+ 计划 + 审计（目标 DSH 0.2.1-rc.2）。
-- 0.2.0：medium 自动放行 + 详情弹窗 + 闪烁。
-- 0.3.0：high opt-in + 二次确认 + `ask_choices` + 跨会话只读列表。
-- 1.0.0：API/审计格式稳定。
+- 0.1.0-beta.1：observe（只记录本应放行，不实际放行）+ 计划 + 审计（目标 DSH 0.2.1-rc.2；仓库里程碑，未发布到 npm）。
+- 0.2 线（`0.2.0-beta.1` → `0.2.0-beta.15`，2026-10-19 → 2026-10-20）：medium 自动放行 + 详情弹窗 + 闪烁；high opt-in + 二次确认、`ask_choices`、跨会话只读列表也在这一线交付。
+- 0.3.0（2026-10-21，`latest`）：无新功能，只做版本收口；代码与 `0.2.0-beta.15` 相同。
+- 1.0.0：冻结 API/审计格式，补兼容矩阵和客户端测试。

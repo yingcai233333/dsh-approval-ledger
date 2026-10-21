@@ -85,11 +85,11 @@ See `docs/audit.md`. Core points: no new event types; `tool/result.meta` + in-me
 - Single approval: official card + title summary + header detail popover; `conversation.approval.detail` is not modified.
 - Batch: official plan-review + full text in the sidebar.
 - Multiple choice: official question + structured `ask_choices` content.
-- Alerts: Windows taskbar flash + system sound for plan review, per-item selection, `ask_choices`, and official approval cards; sources and both channels are configurable.
+- Alerts: Windows taskbar flash + synthesized "ding-dong" chime for plan review, per-item selection, `ask_choices`, and official approval cards; sources and both channels are configurable.
 
 ## Release plan
 
-- 0.1.0-beta.1: observe (record what would have been allowed, without actually allowing it) + plans + audit (target DSH 0.2.1-rc.2).
-- 0.2.0: medium auto-allow + detail popover + flashing.
-- 0.3.0: high opt-in + second confirmation + `ask_choices` + cross-session read-only list.
-- 1.0.0: stable API/audit format.
+- 0.1.0-beta.1: observe (record what would have been allowed, without actually allowing it) + plans + audit (target DSH 0.2.1-rc.2; repository milestone, not published to npm).
+- 0.2 line (`0.2.0-beta.1` → `0.2.0-beta.15`, 2026-10-19 → 2026-10-20): medium auto-allow + detail popover + flashing; high opt-in + second confirmation, `ask_choices`, and the cross-session read-only list also shipped on this line.
+- 0.3.0 (2026-10-21, `latest`): no new features, version close-out only; the code is identical to `0.2.0-beta.15`.
+- 1.0.0: freeze the API/audit format, complete the compatibility matrix and client tests.

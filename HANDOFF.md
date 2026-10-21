@@ -6,11 +6,11 @@
 
 ## 0. 当前状态
 
-- 阶段：**`0.2.0-beta.15` 已发布到 npm（`next`）并安装到 desktop**：修复提醒完全静默的根因——`spawn` 的 `detached: true` / `windowsHide: true` 会让 `powershell.exe` 启动后不执行 `-EncodedCommand`（`detached` 下 exit 0、`windowsHide` 下 `0xC0000142`），现在只保留 `stdio: 'ignore'`；提示音改为合成的柔和「叮咚」；提醒脚本不再调用 `Get-Process`（消除 `4100` 警告）；右下角「待审批说明」在 `shell.overlay` 无 `sessionId` 时回落扫描会话状态；未知工具标题优先显示 `action`。提醒覆盖计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡；292 个单测。desktop 的 `autoSelectAll` 为 `false`（逐项勾选）。
+- 阶段：**`0.3.0` 已于 2026-10-21 发布到 npm（`latest`；tag `v0.3.0`，提交 `6f7d316`）并安装到 desktop（`mode: active`、`autoSelectAll: false`）**；`next` 仍指 `0.2.0-beta.15`。0.3.0 无新功能：0.3 规划的三项（high opt-in + 二次确认、`ask_choices`、跨会话只读列表 `/approvals sessions`）都已在 0.2 线交付，0.3.0 只做版本收口。此前 `0.2.0-beta.15` 的修复仍是当前行为：提醒完全静默的根因——`spawn` 的 `detached: true` / `windowsHide: true` 会让 `powershell.exe` 启动后不执行 `-EncodedCommand`（`detached` 下 exit 0、`windowsHide` 下 `0xC0000142`），现在只保留 `stdio: 'ignore'`；提示音改为合成的柔和「叮咚」；提醒脚本不再调用 `Get-Process`（消除 `4100` 警告）；右下角「待审批说明」在 `shell.overlay` 无 `sessionId` 时回落扫描会话状态；未知工具标题优先显示 `action`。提醒覆盖计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡；292 个单测。desktop 的 `autoSelectAll` 为 `false`（逐项勾选）。
 - 运行时依据：`docs/runtime-spike.md`（静态核对 DSH 0.2.1-rc.2；目标已改为 0.2.1-rc.2）。
 - live P0：临时 profile `approval-p0` 已用无头 Chrome + CDP 自动验证：plan-review → 多选授权（只勾 A）→ A 执行/B 不执行；高风险 `danger-full-access` write 弹出官方审批卡，标题被改写为 `write · …\p0-approval-test.md · danger-full-access`，拒绝后 fail-closed、文件未创建；计划“要求修改”返回 cancelled 且无写入；子代理调用返回 `DELEGATED_CALLER` 错误。audit 已能把无审批事件的 A 按 targetHash 归到计划项（标“无法验证”），把被拒的高风险 write 归到计划项（标“已核对/拒绝”）。
-- desktop 安装：当前为 npm `dsh-approval-ledger@0.2.0-beta.15`（经 `remove_bundle` → `install_bundle` 从官方 registry 安装，手改的 `flash.js`/`client.js`/`target.js` 已被正式包覆盖）；`package.json` 依赖是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices`、`/approvals sessions` 和 client header `approval-ledger-details` 已加载。升级不会重写 `cordis.patch.yml`，`autoSelectAll` 仍为 `false`。**注意：本机 pnpm 配置的 fallback 镜像 `registry.npmmirror.com` 同步有延迟，装新版本时用官方 registry。**`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，并于 2026-10-21 完成 live 双插件验证：同级 `approval/request` 顺序 2/2 样本通过（我们的 prepend 监听器先于两个探针 sibling 改写 `displayReason`），且计划授权命中时短路返回 `allowed-once`、后续 sibling 不运行；细节与保留意见见 `docs/runtime-notes.md`。
-- 下一步：发布 `0.3.0`（0.3 列的三项功能均已在 0.2 线交付，0.3.0 只作版本里程碑；文档里唯一显式未测项——live 双插件同级 `approval/request` 顺序验证——已于 2026-10-21 通过）。
+- desktop 安装：当前为 npm `dsh-approval-ledger@0.3.0`（从官方 registry 安装；beta.15 那次经 `remove_bundle` → `install_bundle`，手改的 `flash.js`/`client.js`/`target.js` 已被正式包覆盖）；`package.json` 依赖是版本号，`node_modules` 是实际包目录（非 junction），`request_approvals`、`ask_choices`、`/approvals sessions` 已注册，client 侧 `approval-ledger-details` 已在 `conversation.session.header.utilities` 生效。`cordis.patch.yml` 里 `approval-ledger` 仍是 `mode: active`、`autoSelectAll: false`；升级不会重写该文件。**注意：本机 pnpm 配置的 fallback 镜像 `registry.npmmirror.com` 同步有延迟，装新版本时用官方 registry。**`pnpm peers check` 的缺失 peer 来自既有 `dsh-context`/`dsh-cost-meter`，本插件无依赖/peer。sibling prepend ordering 已由 FakeContext 单测覆盖，并于 2026-10-21 完成 live 双插件验证：同级 `approval/request` 顺序 2/2 样本通过（我们的 prepend 监听器先于两个探针 sibling 改写 `displayReason`），且计划授权命中时短路返回 `allowed-once`、后续 sibling 不运行；细节与保留意见见 `docs/runtime-notes.md`。
+- 下一步：`1.0.0` 之前还剩三件事——冻结审计格式、补兼容矩阵、补客户端测试（目前没有客户端测试套件，`vitest` 已在 devDependencies）。发布 `1.0.0` 前仍需按用户的安全审查规矩逐条确认。
 - 仓库：<https://github.com/yingcai233333/dsh-approval-ledger>
 - 包名 / Loader row id：`dsh-approval-ledger` / `approval-ledger`
 - License：MIT
@@ -51,7 +51,7 @@ DSH 的写文件/跑命令审批是一个一个串行弹的：第一个审批卡
 | 授权 | 双门匹配；critical 永不；high 默认 manual；medium 仅数据类写入 |
 | 审计 | `tool/result.meta` + 插件账本 + `approval-audit` 投影 |
 | 提醒 | Host 侧 Win32 `FlashWindowEx` + 页面红点/标题 |
-| 版本 | 0.1 observe → 0.2 grants → 0.3 high/ask_choices → 1.0 stable |
+| 版本 | 0.1 observe → 0.2 grants + high/ask_choices + sessions → 0.3 版本收口（无新功能）→ 1.0 stable |
 
 ### 3.1 批量计划：`request_approvals`
 
@@ -170,6 +170,8 @@ ctx.on('approval/request', async (req, next) => {
 
 ## 5. P0 spike 清单（实现前先验）
 
+> 本节是实现前的检查清单快照，保留以示当时的验证计划；当前实际状态见 §0（live P0、live 双插件顺序、安装审查均已完成）。
+
 1. `displayReason` 在 `approval/request` 前置监听器里改写，客户端卡片是否显示新文案；对象是否被冻结。**静态 likely；live 未验。**
 2. plan-review intent 在**非 plan 模式**是否渲染；`查看全文` 是否打开侧栏临时文档。**静态 verified；live 未验。**
 3. `conversation.approval.detail` 单槽冲突（已知会抛错，确认即可）。**静态 verified。**
@@ -201,10 +203,10 @@ dsh-approval-ledger/
 下一步：
 
 1. ~~**Sprint 0**：纯匹配器（path/command/args）、风险引擎、计划 schema/校验、审计 schema/回放 + 单测。无 UI、无安装。~~ **已完成（0.0.2）**。
-2. **Sprint 1**：observe 模式、`request_approvals`、plan-review 文档、审计账本/投影、`/approvals` 命令。**Host 代码已完成（0.1.0-beta.1）**；剩余 live P0（卡片文案、plan-review 渲染、meta 回读、subagent 行为）和安装安全审查，之后才能发布。
-3. **Sprint 2**：medium 自动放行、头部详情按钮/弹窗、Windows 闪烁；发 `0.2.0`。
-4. **Sprint 3**：high opt-in + 二次确认、`ask_choices`、跨会话只读列表；发 `0.3.0`。
-5. **1.0.0**：API/审计格式冻结、兼容矩阵。
+2. **Sprint 1**：observe 模式、`request_approvals`、plan-review 文档、审计账本/投影、`/approvals` 命令。**已完成（仓库里程碑 `0.1.0-beta.1`，2026-10-18；首个 npm 发布是 `0.2.0-beta.1`）**；live P0 与安装安全审查均已完成。
+3. **Sprint 2**：medium 自动放行、头部详情按钮/弹窗、Windows 闪烁。**已完成（0.2 线，`0.2.0-beta.1` → `0.2.0-beta.15`，2026-10-19 → 2026-10-20；`next` 仍指 beta.15）**。
+4. **Sprint 3**：high opt-in + 二次确认、`ask_choices`、跨会话只读列表——三项均已在 0.2 线交付；`0.3.0`（2026-10-21，`latest`）无新功能，只做版本收口。
+5. **1.0.0**：冻结 API 与审计格式、补齐兼容矩阵、补客户端测试。
 
 ## 7. 环境
 
@@ -229,7 +231,7 @@ dsh-approval-ledger/
 
 ## 9. 给新会话的第一句话
 
-> 先读 `HANDOFF.md`、`docs/design.md`、`docs/runtime-spike.md`；Sprint 1 Host 代码已完成（默认 observe），下一步是 live P0 + 安装安全审查，不要先装插件。安装/发布前按用户的插件安全审查规矩逐条确认。
+> 先读 `HANDOFF.md`、`docs/design.md`、`docs/runtime-spike.md`；`0.3.0` 已于 2026-10-21 发布（`latest`）并装在 desktop，live P0、live 双插件顺序验证和安装安全审查都已完成。下一步是 `1.0.0` 之前的三件事：冻结审计格式、补兼容矩阵、补客户端测试。发布/安装前仍按用户的插件安全审查规矩逐条确认。
 
 ## 10. 构建注意（重要）
 

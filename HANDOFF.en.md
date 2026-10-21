@@ -6,11 +6,11 @@
 
 ## 0. Current status
 
-- Phase: **`0.2.0-beta.15` is published to npm (`next`) and installed in desktop with `autoSelectAll: false`**. beta.14 fixed the root cause of the completely silent alerts (`detached: true` / `windowsHide: true` on `spawn`), switched the Windows sound to a synthesized soft "ding-dong", removed the `4100` warning by no longer calling `Get-Process`, restored the bottom-right pending-approval note (falling back to scanning session status when `shell.overlay` has no `sessionId`), and made unknown-tool titles prefer the `action` value. Alerts cover plan review, the per-item selection, `ask_choices`, and official approval cards; 292 unit tests.
+- Phase: **`0.3.0` was published to npm (`latest`) on 2026-10-21 (tag `v0.3.0`, commit `6f7d316`) and is installed in desktop with `mode: active` and `autoSelectAll: false`**; `next` still points at `0.2.0-beta.15`. 0.3.0 has no new features: the three planned 0.3 items (high opt-in + second confirmation, `ask_choices`, the cross-session read-only list `/approvals sessions`) all shipped on the 0.2 line, so 0.3.0 only closes the version. The `0.2.0-beta.15` fixes are still current behavior: the root cause of the completely silent alerts (`detached: true` / `windowsHide: true` on `spawn`), the synthesized soft "ding-dong", the removal of the `4100` warning by no longer calling `Get-Process`, the restored bottom-right pending-approval note (falling back to scanning session status when `shell.overlay` has no `sessionId`), and unknown-tool titles preferring the `action` value. Alerts cover plan review, the per-item selection, `ask_choices`, and official approval cards; 292 unit tests.
 - Runtime basis: `docs/runtime-spike.md` (static verification against DSH 0.2.1-rc.2; target has been changed to 0.2.1-rc.2).
 - live P0: the temporary profile `approval-p0` has already been auto-verified with headless Chrome + CDP: plan-review → multi-select grant (only A checked) → A executes / B does not execute; a high-risk `danger-full-access` write pops up the official approval card, the title is rewritten as `write · …\p0-approval-test.md · danger-full-access`, and after rejection it fails closed and the file is not created; the plan "request changes" returns cancelled with no writes; the subagent call returns a `DELEGATED_CALLER` error. audit can already attribute the A with no approval event to the plan item by targetHash (marked "cannot verify"), and attribute the rejected high-risk write to the plan item (marked "verified/rejected").
-- desktop installation: currently npm `dsh-approval-ledger@0.2.0-beta.15` via `remove_bundle` → `install_bundle` from the official registry (the hand-edited `flash.js`/`client.js`/`target.js` were overwritten by the official package); `package.json` uses the version, `node_modules` is a real package directory (not a junction), and `request_approvals`, `ask_choices`, `/approvals sessions`, plus the client header `approval-ledger-details` are loaded. Upgrading does not rewrite `cordis.patch.yml`; `autoSelectAll` stays `false`. **Note: the pnpm fallback mirror `registry.npmmirror.com` configured on this machine lags behind; use the official registry when installing a new version.** The missing peers from `pnpm peers check` come from the existing `dsh-context`/`dsh-cost-meter`; this plugin has no dependencies/peers. Sibling prepend ordering is covered by FakeContext unit tests and was also verified live with two sibling plugins on 2026-10-21: sibling `approval/request` ordering passed in 2/2 samples (our prepended listener rewrote `displayReason` before both probe siblings ran), and a matching plan grant short-circuited to `allowed-once` so later siblings never ran; details and caveats are in `docs/runtime-notes.md`.
-- Next: release `0.3.0` (all three 0.3 features already shipped on the 0.2 line; 0.3.0 is a version milestone only; the only explicitly untested item, live dual-plugin sibling `approval/request` ordering, passed on 2026-10-21).
+- desktop installation: currently npm `dsh-approval-ledger@0.3.0` (installed from the official registry; the beta.15 install went through `remove_bundle` → `install_bundle`, which overwrote the hand-edited `flash.js`/`client.js`/`target.js` with the official package); `package.json` uses the version, `node_modules` is a real package directory (not a junction), `request_approvals`, `ask_choices`, and `/approvals sessions` are registered, and the client-side `approval-ledger-details` is live in `conversation.session.header.utilities`. In `cordis.patch.yml` the `approval-ledger` row is still `mode: active` with `autoSelectAll: false`; upgrades do not rewrite that file. **Note: the pnpm fallback mirror `registry.npmmirror.com` configured on this machine lags behind; use the official registry when installing a new version.** The missing peers from `pnpm peers check` come from the existing `dsh-context`/`dsh-cost-meter`; this plugin has no dependencies/peers. Sibling prepend ordering is covered by FakeContext unit tests and was also verified live with two sibling plugins on 2026-10-21: sibling `approval/request` ordering passed in 2/2 samples (our prepended listener rewrote `displayReason` before both probe siblings ran), and a matching plan grant short-circuited to `allowed-once` so later siblings never ran; details and caveats are in `docs/runtime-notes.md`.
+- Next: three things remain before `1.0.0` — freeze the audit format, complete the compatibility matrix, and add client tests (there is no client test suite yet; `vitest` is already in devDependencies). Publishing `1.0.0` still requires the user's item-by-item security review.
 - Repository: <https://github.com/yingcai233333/dsh-approval-ledger>
 - Package name / Loader row id: `dsh-approval-ledger` / `approval-ledger`
 - License: MIT
@@ -51,7 +51,7 @@ DSH's file-write/command-run approvals pop up one at a time serially: while the 
 | Grants | Dual-gate matching; critical never; high defaults to manual; medium only for data-type writes |
 | Audit | `tool/result.meta` + plugin ledger + `approval-audit` projection |
 | Reminder | Host-side Win32 `FlashWindowEx` + page red dot/title |
-| Version | 0.1 observe → 0.2 grants → 0.3 high/ask_choices → 1.0 stable |
+| Version | 0.1 observe → 0.2 grants + high/ask_choices + sessions → 0.3 version close-out (no new features) → 1.0 stable |
 
 ### 3.1 Batch plan: `request_approvals`
 
@@ -170,6 +170,8 @@ Optional layer 5: `auditNotices: "plan"` gives one in-conversation notice per pl
 
 ## 5. P0 spike checklist (verify before implementation)
 
+> This section is a snapshot of the pre-implementation checklist, kept to show the verification plan at the time; for the current state see §0 (live P0, live dual-plugin ordering, and the install security review are all complete).
+
 1. If `displayReason` is rewritten in the `approval/request` pre-listener, does the client card show the new text; is the object frozen. **Statically likely; not verified live.**
 2. Whether plan-review intent renders in **non-plan mode**; whether `查看全文` ("view full text") opens the sidebar temporary document. **Statically verified; not verified live.**
 3. The `conversation.approval.detail` single-slot conflict (known to throw; just confirm). **Statically verified.**
@@ -201,10 +203,10 @@ dsh-approval-ledger/
 Next steps:
 
 1. ~~**Sprint 0**: pure matchers (path/command/args), risk engine, plan schema/validation, audit schema/replay + unit tests. No UI, no installation.~~ **Done (0.0.2)**.
-2. **Sprint 1**: observe mode, `request_approvals`, plan-review document, audit ledger/projection, `/approvals` command. **Host code is done (0.1.0-beta.1)**; remaining live P0 (card text, plan-review rendering, meta read-back, subagent behavior) and the install security review must be done before release.
-3. **Sprint 2**: medium auto-allow, header details button/dialog, Windows flashing; release `0.2.0`.
-4. **Sprint 3**: high opt-in + second confirmation, `ask_choices`, cross-session read-only list; release `0.3.0`.
-5. **1.0.0**: API/audit format freeze, compatibility matrix.
+2. **Sprint 1**: observe mode, `request_approvals`, plan-review document, audit ledger/projection, `/approvals` command. **Done (repository milestone `0.1.0-beta.1`, 2026-10-18; the first npm release was `0.2.0-beta.1`)**; live P0 and the install security review are both complete.
+3. **Sprint 2**: medium auto-allow, header details button/dialog, Windows flashing. **Done (0.2 line, `0.2.0-beta.1` → `0.2.0-beta.15`, 2026-10-19 → 2026-10-20; `next` still points at beta.15)**.
+4. **Sprint 3**: high opt-in + second confirmation, `ask_choices`, cross-session read-only list — all three shipped on the 0.2 line; `0.3.0` (2026-10-21, `latest`) has no new features and only closes the version.
+5. **1.0.0**: freeze the API and audit format, complete the compatibility matrix, add client tests.
 
 ## 7. Environment
 
@@ -229,7 +231,7 @@ Next steps:
 
 ## 9. First sentence for a new session
 
-> Read `HANDOFF.md`, `docs/design.md`, `docs/runtime-spike.md` first; Sprint 1 Host code is done (observe by default), the next step is live P0 + install security review, do not install the plugin first. Before installing/publishing, confirm item by item according to the user's plugin security review rules.
+> Read `HANDOFF.md`, `docs/design.md`, `docs/runtime-spike.md` first; `0.3.0` was published (`latest`) on 2026-10-21 and is installed in desktop; live P0, live dual-plugin ordering, and the install security review are all done. The next step is the three things before `1.0.0`: freeze the audit format, complete the compatibility matrix, add client tests. Publishing/installing still follows the user's item-by-item security review rules.
 
 ## 10. Build notes (important)
 
@@ -240,5 +242,5 @@ Next steps:
   2. Use the `.d.ts` from the DSH checkout as a read-only reference;
   3. Do not add unpublished `@deepseek-ai/*` back to the dependencies, otherwise CI will fail.
 - Tests: `pnpm test` first runs `tsc -p tsconfig.test.json` outputting to `lib-test/`, then executes with Node's built-in test runner (`--test-isolation=none`); this way it does not depend on the esbuild subprocess and can also run inside a sandbox. `vitest` is still in devDependencies, reserved for later client tests.
-- Local verification: 273 tests, `pnpm lint` 0 warnings, `pnpm build` succeeds; GitHub Actions passes all four combinations of Ubuntu/Windows × Node 22/24 (run 39135436206).
+- Local verification: 292 tests, `pnpm lint` 0 warnings, `pnpm build` succeeds; GitHub Actions passes all four combinations of Ubuntu/Windows × Node 22/24 (run 39135436206).
 - **Version note**: both the static verification and the repository target are the installed package `0.2.1-rc.2`; before release, the interfaces in `docs/runtime-spike.md` must still be re-verified against that target version.

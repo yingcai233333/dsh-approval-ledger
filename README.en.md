@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: 0.3.0 is published to npm (`latest`); the desktop profile still runs 0.2.0-beta.15 (`autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and the sound is a synthesized "ding-dong". beta.14 fixes why alerts were silent (the `detached`/`windowsHide` spawn flags), the spurious `4100` warning, and the missing bottom-right approval note. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
+> **Status: 0.3.0 is published to npm (`latest`); the desktop profile has 0.3.0 installed and enabled (`mode: active`, `autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and the sound is a synthesized "ding-dong". beta.14 fixes why alerts were silent (the `detached`/`windowsHide` spawn flags), the spurious `4100` warning, and the missing bottom-right approval note. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
 
 ## Screenshots
 
@@ -48,7 +48,7 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `0.3.0`; `next` is still `0.2.0-beta.15`. Desktop has beta.15 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `latest` points at `0.3.0`; `next` is still `0.2.0-beta.15`. Desktop has 0.3.0 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
 dsh plugin --profile <profile> add dsh-approval-ledger@0.3.0
@@ -86,7 +86,7 @@ Alerts are best-effort: a missing window, PowerShell/EDR refusal, or muted syste
 
 `ask_choices` now returns the selected option text to the model; previously it only said "received N answers".
 
-## Sprint 0 core
+## Sprint 0 core (delivered: 0.0.2)
 
 The host-side core is dependency-free and does not import DSH types:
 
@@ -97,7 +97,7 @@ The host-side core is dependency-free and does not import DSH types:
 - `validatePlan` — unique ids, acyclic dependencies, stage computation, use limits, normalized scopes, risk counts, and a stable plan hash.
 - `AuditLedger` / `replayAudit` / `renderAuditReport` — metadata-only records, hash/scrub summaries, append-only sequencing, and replay that marks missing or conflicting evidence instead of guessing.
 
-## Sprint 1 Host wiring
+## Sprint 1 Host wiring (delivered: 0.1.0-beta.1)
 
 - `request_approvals` registers a plain DSH tool definition and asks one official plan-review question; after approval it asks a second multi-select question so you can authorize only the items you want. Unchecked items stay manual.
 - The client half adds a localized **Approval details** button to the session header, with a red dot for a pending approval and a read-only modal showing the Host-rewritten summary and original reason. It never answers the approval.
@@ -107,7 +107,7 @@ The host-side core is dependency-free and does not import DSH types:
 - `/approvals [audit [--json] | grants]` folds durable session events plus plan metadata; missing per-call records are derived from `tool/call` arguments and marked `derived-session-log`, never guessed.
 - `ctx.storageDomain` is a schema-validated KV store, not an append-only log; Sprint 1 deliberately uses the session log + in-memory ledger instead. Cross-session retention is deferred.
 
-## Sprint 3 (implemented)
+## Sprint 3 (delivered: all three items on the 0.2 line; 0.3.0 is the version close-out)
 
 - `ask_choices`: structured single/multi-select questions through the official question card, with option descriptions and a `（推荐）` marker. It only collects choices; it never executes actions or changes grants.
 - `/approvals sessions`: read-only counts of grants across sessions; it exposes no scope, paths, or commands, provides no cross-session match, and cannot use another session's grants.
