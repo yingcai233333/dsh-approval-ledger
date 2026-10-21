@@ -6,7 +6,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：1.0.0 已发布到 npm（`latest`）；desktop 已安装并启用 1.0.0（`mode: active`、`autoSelectAll: false`）。** 1.0.0 把审计格式 v1（`docs/audit.md`）与对外接口**标为稳定**：此后破坏性变更需按 `docs/audit.md` 的 major 流程。0.3.0 之后的四项改动都进了本版本：对话完成提醒（`turn/end` → 闪烁 + 绿色任务栏 overlay 徽标 + 两声「滴滴」；`notifyOnTurnEnd`、`turnBadgeSeconds`）、会话历史读取收口到 `src/plugin/session-log.ts` 并做三态 fail-closed 降级、`engines.dsh` 安装/启动闸门（`>=0.2.1-rc.2 <0.3.0-0`，`dshhub.compatibility.dsh` 同步）、客户端没有待审批时不再挂载空的 fixed 容器。
+> **状态：1.1.0 已发布到 npm（`latest`）；desktop 已安装并启用 1.1.0（`mode: active`、`autoSelectAll: false`）。** 1.1.0 新增可视化设置面板（DSH 设置 → 「审批与提醒」，10 个提醒/显示开关即点即存），并让完成提醒只在窗口不在前台时触发（`turnEndOnlyWhenAway`）。1.0.0 已把审计格式 v1（`docs/audit.md`）与对外接口标为稳定，此后破坏性变更需按 major 流程。
 
 ## 截图
 
@@ -52,10 +52,10 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-npm 上 `latest` 指向 `1.0.0`，`next` 仍是 `0.2.0-beta.15`；desktop 已安装 1.0.0 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
+npm 上 `latest` 指向 `1.1.0`，`next` 仍是 `0.2.0-beta.15`；desktop 已安装 1.1.0 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.0.0
+dsh plugin --profile <profile> add dsh-approval-ledger@1.1.0
 ```
 
 显式开启 medium 自动放行：
@@ -94,6 +94,18 @@ dsh plugin --profile <profile> add dsh-approval-ledger@1.0.0
 完成提醒与审批提醒是两条独立通道：审批提醒在卡片出现时触发，完成提醒在 `turn/end` 时触发。完成提醒的「绿色」用**任务栏 overlay 徽标**表达：`FlashWindowEx` 的闪烁颜色由系统「注意提示」配色决定，应用无法指定绿色。徽标在你回到该窗口时清除，最长保留 `turnBadgeSeconds` 秒（`0` 表示不超时、常驻到回窗口）。完成音是合成的两声短促「滴滴」（B5→E6，上行），审批音是「叮咚」（G5→C5，下行），两者不会混淆。子代理的内部 turn 不触发提醒；turn 被取消（aborted）时也不响。
 
 `ask_choices` 会把选中的选项文本返回给模型；此前只返回“已收到 N 个问题的选择”。
+
+## 设置面板
+
+DSH 设置里新增「审批与提醒」分区（`settings.section`，entry id 为 `approval-ledger`），可以直接可视化修改 10 个提醒/显示开关：总开关、任务栏闪烁、提示音、四类事件的提醒（计划卡 / 问题与逐项勾选卡 / 官方审批卡 / 每轮对话完成）、完成提醒的「窗口在前台时不提醒」与绿色徽标保留时长、未处理时的重复提醒间隔。
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/settings-panel.png" alt="审批与提醒设置面板" width="520">
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/settings-panel-bottom.png" alt="设置面板下半部分：完成提醒与实时保存" width="520">
+
+改动**即点即存**：客户端通过 `configForms` 调 `settings.mutate`，由 DSH 的配置编辑器原子写入当前 profile 的 `cordis.patch.yml` 并热应用——不重启、不重挂插件。插件自己不写任何 profile 文件；首次保存会在该行追加 `config:` 并把当前值合并进去。
+
+其余配置（`mode`、`allowHighRiskGrants`、上限、`auditOnly`、审计保留期等）**不在面板里**，仍只在 `cordis.patch.yml` 维护，避免一次误操作削弱审批策略。若运行环境解析不到 DSH 附带的 Schemastery，面板不会出现，插件继续按 YAML 工作。
 
 ## Sprint 0 纯核心（已交付：0.0.2）
 

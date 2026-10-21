@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: 1.0.0 is published to npm (`latest`); the desktop profile has 1.0.0 installed and enabled (`mode: active`, `autoSelectAll: false`).** 1.0.0 **marks audit format v1** (`docs/audit.md`) **and the public interface as stable**: any further breaking change must follow the major-version process in `docs/audit.md`. All four changes made after 0.3.0 are included: the turn-complete alert (`turn/end` → flash + a green taskbar overlay badge + two "di-di" beeps; `notifyOnTurnEnd`, `turnBadgeSeconds`), session-history reads confined to `src/plugin/session-log.ts` with a three-state fail-closed degradation, the `engines.dsh` install/startup gate (`>=0.2.1-rc.2 <0.3.0-0`, mirrored in `dshhub.compatibility.dsh`), and the client no longer mounting an empty fixed container when nothing is pending.
+> **Status: 1.1.0 is published to npm (`latest`); the desktop profile has 1.1.0 installed and enabled (`mode: active`, `autoSelectAll: false`).** 1.1.0 adds a visual settings panel (DSH Settings → "Approvals & alerts", ten reminder/display switches saved on click) and makes the turn-complete alert fire only while the window is not in front (`turnEndOnlyWhenAway`). 1.0.0 already marked audit format v1 (`docs/audit.md`) and the public interface as stable, so any further breaking change must follow the major-version process.
 
 ## Screenshots
 
@@ -52,10 +52,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `1.0.0`; `next` is still `0.2.0-beta.15`. Desktop has 1.0.0 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `latest` points at `1.1.0`; `next` is still `0.2.0-beta.15`. Desktop has 1.1.0 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.0.0
+dsh plugin --profile <profile> add dsh-approval-ledger@1.1.0
 ```
 
 To opt into medium auto-approval explicitly:
@@ -94,6 +94,18 @@ Alerts are best-effort: a missing window, PowerShell/EDR refusal, or muted syste
 The turn-complete alert and the approval alerts are two independent channels: approval alerts fire when a card appears, turn-complete alerts fire on `turn/end`. The turn-complete "green" is a **taskbar overlay badge**: `FlashWindowEx` takes its colour from the system attention setting, so an app cannot ask for green. The badge clears when you return to that window, and at most after `turnBadgeSeconds` seconds (`0` means it stays until you come back). The turn-complete chime is two short rising "di-di" beeps (B5 -> E6) while the approval chime falls (G5 -> C5), so the two never get confused. Subagent turns and cancelled (aborted) turns stay silent.
 
 `ask_choices` now returns the selected option text to the model; previously it only said "received N answers".
+
+## Settings panel
+
+DSH Settings now has an "Approvals & alerts" section (`settings.section`, entry id `approval-ledger`) that edits the ten reminder/display switches visually: master switch, taskbar flash, sound, the four alert sources (plan review / question and per-item cards / official approval card / every completed turn), the turn-complete "stay quiet while in front" gate and green badge lifetime, and the repeat interval while a card is pending.
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/settings-panel.png" alt="Approvals & alerts settings section" width="520">
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/settings-panel-bottom.png" alt="Lower half of the settings section: turn-complete alerts and live saving" width="520">
+
+Changes are **click-to-save**: the client goes through `configForms` → `settings.mutate`, and the DSH config editor atomically writes the current profile's `cordis.patch.yml` and hot-applies it — no restart and no plugin remount. The plugin never writes a profile file itself; the first save appends a `config:` block to that row and merges the current values.
+
+Everything else (`mode`, `allowHighRiskGrants`, limits, `auditOnly`, audit retention, …) is **not** in the panel and stays in `cordis.patch.yml`, so a stray click cannot weaken the approval policy. If the runtime cannot resolve the Schemastery build shipped with DSH, the panel simply does not appear and the plugin keeps working from YAML.
 
 ## Sprint 0 core (delivered: 0.0.2)
 

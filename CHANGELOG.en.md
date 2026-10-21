@@ -4,11 +4,12 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [1.1.0] - 2026-10-21 (published to npm, `latest`)
 
 ### Added
 
 - `turnEndOnlyWhenAway` (default `true`): the turn-complete alert only fires while the DeepSeek Harness window is **not** foreground, skipping the taskbar flash, the green badge, and the sound together — no noise while you are watching, and it alerts when you switch away or minimize; if the window cannot be found it still alerts (the chime is still useful). Set it to `false` for unconditional alerts. It only affects the turn-complete alert; approval, plan, and question alerts are unchanged.
+- Visual settings panel: DSH Settings gains an "Approvals & alerts" section (`settings.section`, entry `approval-ledger`) that edits the ten reminder/display switches click-to-save (master switch, flash, sound, the four alert sources, the turn-complete foreground gate and badge lifetime, the repeat interval). The write path is `configForms` → `settings.mutate` → the DSH `configEditor`, which atomically writes the profile's `cordis.patch.yml` and hot-applies it — no restart and no plugin remount; the plugin itself never writes a file. `mode`, high-risk grants, limits, and audit retention stay YAML-only.
 
 ## [1.0.0] - 2026-10-21 (published to npm, `latest`)
 

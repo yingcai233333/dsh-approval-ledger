@@ -51,6 +51,80 @@ interface HarnessOptions {
   sessionId?: string
   snapshot?: any
   failInjectAt?: string
+  configForms?: any
+}
+
+interface FakeConfigFormCalls {
+  sets: Array<[string, unknown]>
+}
+
+function makeConfigForm(options: {
+  value?: Record<string, unknown>
+  writable?: boolean
+  status?: string
+  setResult?: unknown
+} = {}): { form: any; calls: FakeConfigFormCalls } {
+  const calls: FakeConfigFormCalls = { sets: [] }
+  const value = {
+    notifications: true,
+    flashWindow: true,
+    soundAlert: true,
+    notifyOnPlan: true,
+    notifyOnQuestion: true,
+    notifyOnApproval: true,
+    notifyOnTurnEnd: true,
+    turnEndOnlyWhenAway: true,
+    notifyRepeatSeconds: 0,
+    turnBadgeSeconds: 120,
+    ...options.value,
+  }
+  const snapshot = {
+    status: options.status ?? 'ready',
+    writable: options.writable ?? true,
+    revision: 1,
+    value,
+  }
+  let listener: (() => void) | undefined
+  const form = {
+    getSnapshot: () => snapshot,
+    subscribe: (next: () => void) => {
+      listener = next
+      return () => {
+        listener = undefined
+      }
+    },
+    set: (field: string, next: unknown) => {
+      calls.sets.push([field, next])
+      if (options.setResult !== undefined) return options.setResult
+      return Promise.resolve(true)
+    },
+    emit: () => {
+      if (listener !== undefined) listener()
+    },
+  }
+  return { form, calls }
+}
+
+function makeConfigForms(form: any, served = true): any {
+  const calls = { gets: [] as string[], watched: [] as string[][] }
+  return {
+    calls,
+    get(entryId: string) {
+      calls.gets.push(entryId)
+      return form
+    },
+    whileServed(namespaces: string[], register: (served: Set<string>) => any) {
+      calls.watched.push(namespaces)
+      if (!served) return () => undefined
+      const disposer = register(new Set(namespaces))
+      return typeof disposer === 'function' ? disposer : () => undefined
+    },
+  }
+}
+
+async function flushPromises(): Promise<void> {
+  await Promise.resolve()
+  await Promise.resolve()
 }
 
 function findRepoRoot(): string {
@@ -383,6 +457,7 @@ function makeHarness(options: HarnessOptions = {}) {
   const React = createFakeReact(runtime)
   const registrations: Registration[] = []
   const injections: Array<{ name: string; install: () => any }> = []
+  const serviceInjections: Array<{ names: readonly string[]; install: (scope: any) => any }> = []
   const effects: Array<{ label: string; dispose: any }> = []
   const dictionaries: Record<string, { zh: Record<string, string>; en: Record<string, string> }> = {}
   const localeId = options.locale ?? 'zh-CN'
@@ -391,6 +466,9 @@ function makeHarness(options: HarnessOptions = {}) {
     get: () => undefined,
     provide: () => undefined,
     on: () => () => undefined,
+    inject(names: readonly string[], install: (scope: any) => any) {
+      serviceInjections.push({ names, install })
+    },
     effect(run: () => any, label: string) {
       effects.push({ label, dispose: run() })
     },
@@ -430,6 +508,11 @@ function makeHarness(options: HarnessOptions = {}) {
   const useSessionStatus = (selector: (snapshot: any) => any): any => selector(snapshotValue)
 
   const install = (): void => {
+    for (const injection of serviceInjections) {
+      if (options.configForms === undefined) continue
+      const scope = Object.assign(Object.create(ctx), { configForms: options.configForms })
+      injection.install(scope)
+    }
     for (const injection of injections) injection.install()
   }
 
@@ -530,7 +613,7 @@ describe('client apply registration', () => {
     const enDictionary = enHarness.dictionaries.approvalLedger
 
     const zhKeys = Object.keys(zhDictionary.zh).sort()
-    assert.deepEqual(zhKeys, [
+    const approvalKeys = [
       'button',
       'callId',
       'close',
@@ -545,7 +628,24 @@ describe('client apply registration', () => {
       'summary',
       'title',
       'tool',
-    ])
+    ]
+    for (const key of approvalKeys) assert.ok(zhKeys.includes(key), key)
+    // The settings panel adds its own strings; they must stay paired too.
+    const settingsKeys = [
+      'groupEvents',
+      'groupOther',
+      'groupSwitches',
+      'groupTurnEnd',
+      'notificationsTitle',
+      'saveFailed',
+      'saving',
+      'settingsLead',
+      'settingsTitle',
+      'turnBadgeSecondsTitle',
+      'turnEndOnlyWhenAwayTitle',
+      'unavailable',
+    ]
+    for (const key of settingsKeys) assert.ok(zhKeys.includes(key), key)
     assert.deepEqual(Object.keys(enDictionary.en).sort(), zhKeys)
 
     for (const key of zhKeys) {
@@ -891,5 +991,204 @@ describe('client locale switching', () => {
     )
     assert.ok(overlay.text().includes('Read this note, then choose Allow or Reject on the official card below.'))
     assert.ok(overlay.text().includes('写入报告'))
+  })
+})
+
+// --- reminder settings panel ------------------------------------------------
+
+const SETTINGS_SLOT = 'settings.section'
+
+function settingsHarness(
+  formOptions: Parameters<typeof makeConfigForm>[0] = {},
+  options: { locale?: string; served?: boolean } = {},
+) {
+  const { form, calls } = makeConfigForm(formOptions)
+  const configForms = makeConfigForms(form, options.served !== false)
+  const harness = installedHarness({ locale: options.locale, configForms })
+  return { harness, form, calls, configForms }
+}
+
+function findSwitch(tree: RenderedTree, field: string): any {
+  return tree.find((node) => node.type === 'button' && node.props['data-field'] === field)
+}
+
+function findNumber(tree: RenderedTree, field: string): any {
+  return tree.find((node) => node.type === 'input' && node.props['data-field'] === field)
+}
+
+describe('reminder settings panel', () => {
+  it('registers settings.section only while the Host serves the entry', () => {
+    const { harness, configForms } = settingsHarness()
+    const registration = harness.registrations.find(
+      (entry) => entry.descriptor.name === SETTINGS_SLOT,
+    )
+    assert.ok(registration, 'the settings section is registered')
+    assert.equal(registration.descriptor.id, 'approval-ledger')
+    assert.equal(registration.descriptor.order, 40)
+    const label = registration.descriptor.label
+    assert.ok(label, 'the section has a label')
+    assert.equal(label(), '审批与提醒')
+    assert.deepEqual(configForms.calls.watched, [['approval-ledger']])
+    assert.deepEqual(configForms.calls.gets, ['approval-ledger'])
+
+    const absent = settingsHarness({}, { served: false })
+    assert.equal(
+      absent.harness.registrations.find((entry) => entry.descriptor.name === SETTINGS_SLOT),
+      undefined,
+      'no panel when the namespace is not served',
+    )
+  })
+
+  it('renders the four groups and keeps other settings in cordis.patch.yml', () => {
+    const tree = settingsHarness().harness.mount(SETTINGS_SLOT)
+    const text = tree.text()
+    for (const expected of [
+      '审批与提醒',
+      '提醒开关',
+      '哪些事件提醒',
+      '完成提醒',
+      '其它',
+      '启用提醒',
+      '任务栏闪烁',
+      '提示音',
+      '计划审阅卡',
+      '问题与逐项勾选卡',
+      '官方审批卡',
+      '每轮对话完成',
+      '窗口在前台时不提醒',
+      '绿色徽标保留时长',
+      '未处理时重复提醒',
+      'cordis.patch.yml',
+    ]) {
+      assert.ok(text.includes(expected), `panel text is missing: ${expected}`)
+    }
+    assert.ok(findSwitch(tree, 'notifications'), 'master switch')
+    assert.ok(findNumber(tree, 'turnBadgeSeconds'), 'badge lifetime input')
+    assert.ok(findNumber(tree, 'notifyRepeatSeconds'), 'repeat interval input')
+  })
+
+  it('writes each toggle through form.set with the exact field and value', async () => {
+    const { harness, calls } = settingsHarness()
+    const tree = harness.mount(SETTINGS_SLOT)
+
+    const flash = findSwitch(tree, 'flashWindow')
+    assert.equal(flash.props['aria-checked'], true)
+    flash.props.onClick()
+    await flushPromises()
+    assert.deepEqual(calls.sets, [['flashWindow', false]])
+
+    const sound = findSwitch(tree, 'soundAlert')
+    sound.props.onClick()
+    await flushPromises()
+    assert.deepEqual(calls.sets[1], ['soundAlert', false])
+
+    const master = findSwitch(tree, 'notifications')
+    master.props.onClick()
+    await flushPromises()
+    assert.deepEqual(calls.sets[2], ['notifications', false])
+  })
+
+  it('disables every other control when the master switch is off', () => {
+    const tree = settingsHarness({ value: { notifications: false } }).harness.mount(SETTINGS_SLOT)
+
+    const master = findSwitch(tree, 'notifications')
+    assert.equal(master.props['aria-checked'], false)
+    assert.equal(master.props.disabled, false)
+    for (const field of [
+      'flashWindow',
+      'soundAlert',
+      'notifyOnPlan',
+      'notifyOnQuestion',
+      'notifyOnApproval',
+      'notifyOnTurnEnd',
+      'turnEndOnlyWhenAway',
+    ]) {
+      assert.equal(findSwitch(tree, field).props.disabled, true, field)
+      // The stored value is kept, only the interaction is blocked.
+      assert.equal(findSwitch(tree, field).props['aria-checked'], true, field)
+    }
+    for (const field of ['turnBadgeSeconds', 'notifyRepeatSeconds']) {
+      assert.equal(findNumber(tree, field).props.disabled, true, field)
+    }
+  })
+
+  it('keeps the whole panel read-only when the form is not writable', async () => {
+    const { harness, calls } = settingsHarness({ writable: false })
+    const tree = harness.mount(SETTINGS_SLOT)
+
+    assert.match(tree.text(), /只读/)
+    assert.equal(findSwitch(tree, 'flashWindow').props.disabled, true)
+    assert.equal(findNumber(tree, 'turnBadgeSeconds').props.disabled, true)
+    const flash = findSwitch(tree, 'flashWindow')
+    if (typeof flash.props.onClick === 'function') flash.props.onClick()
+    await flushPromises()
+    assert.deepEqual(calls.sets, [])
+  })
+
+  it('clamps numeric input to the documented range on blur or Enter', async () => {
+    const { harness, calls } = settingsHarness({ value: { notifyRepeatSeconds: 30 } })
+    const tree = harness.mount(SETTINGS_SLOT)
+
+    const badge = findNumber(tree, 'turnBadgeSeconds')
+    assert.equal(badge.props.min, 0)
+    assert.equal(badge.props.max, 3600)
+    badge.props.onChange({ target: { value: '9999' } })
+    findNumber(tree, 'turnBadgeSeconds').props.onBlur()
+    await flushPromises()
+    assert.deepEqual(calls.sets, [['turnBadgeSeconds', 3600]])
+
+    const repeat = findNumber(tree, 'notifyRepeatSeconds')
+    assert.equal(repeat.props.min, 0)
+    assert.equal(repeat.props.max, 600)
+    repeat.props.onChange({ target: { value: '-5' } })
+    findNumber(tree, 'notifyRepeatSeconds').props.onKeyDown({
+      key: 'Enter',
+      preventDefault() {},
+    })
+    await flushPromises()
+    assert.deepEqual(calls.sets[1], ['notifyRepeatSeconds', 0])
+  })
+
+  it('shows saving and saved feedback', async () => {
+    let settle: (accepted: boolean) => void = () => {}
+    const pending = new Promise<boolean>((resolve) => {
+      settle = resolve
+    })
+    const { harness } = settingsHarness({ setResult: pending })
+    const tree = harness.mount(SETTINGS_SLOT)
+
+    findSwitch(tree, 'turnEndOnlyWhenAway').props.onClick()
+    assert.ok(tree.text().includes('保存中'), 'a pending write is visible')
+
+    settle(true)
+    await flushPromises()
+    assert.ok(tree.text().includes('已保存'))
+  })
+
+  it('rolls back the shown value when the Host rejects the write', async () => {
+    const { harness } = settingsHarness({ setResult: Promise.resolve(false) })
+    const tree = harness.mount(SETTINGS_SLOT)
+
+    findSwitch(tree, 'flashWindow').props.onClick()
+    assert.equal(findSwitch(tree, 'flashWindow').props['aria-checked'], false, 'optimistic value')
+
+    await flushPromises()
+    assert.equal(findSwitch(tree, 'flashWindow').props['aria-checked'], true, 'rolled back')
+    assert.match(tree.text(), /保存失败/)
+  })
+
+  it('localizes the panel and its navigation label', () => {
+    const { harness } = settingsHarness({}, { locale: 'en-US' })
+    const tree = harness.mount(SETTINGS_SLOT)
+    assert.ok(tree.text().includes('Approvals & alerts'))
+    assert.ok(tree.text().includes('Stay quiet while in front'))
+    assert.ok(tree.text().includes('cordis.patch.yml'))
+
+    const registration = harness.registrations.find(
+      (entry) => entry.descriptor.name === SETTINGS_SLOT,
+    )
+    const label = registration?.descriptor.label
+    assert.ok(label, 'the section has a label')
+    assert.equal(label(), 'Approvals & alerts')
   })
 })

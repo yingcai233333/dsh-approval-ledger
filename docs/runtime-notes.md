@@ -98,3 +98,11 @@
 - **徽标生命周期**：显示后每 450ms 查一次 `GetForegroundWindow()`；窗口回到前台、窗口消失或超过 `turnBadgeSeconds` 时清除并 `DestroyIcon`。`turnBadgeSeconds: 0` 表示不超时（常驻到你回到窗口）。
 - **声音**：完成音 B5→E6、两声各 0.09s、上行；审批音 G5→C5、下行 0.15/0.35s。两者都用内存 WAV + `System.Media.SoundPlayer`，不随包分发音频文件，也不使用 QQ/微信的原始音频。
 - **代价**：每次完成提醒会起一个隐藏 PowerShell 进程；带徽标时它最长存活 `turnBadgeSeconds` 秒（轮询期间不阻塞 turn，也不影响审批）。
+
+## 设置面板链路（2026-10-21）
+
+- **Host schema**：`src/config-schema.ts` 用 DSH 安装闭包里的 `@deepseek-ai/schemastery`（**不是**本包的 dependency）导出 partial `Config`，只声明 10 个提醒/显示字段，全部 `.volatile().loose()`，默认值直接取 `DEFAULT_CONFIG`。未声明的键（`mode`、风险策略、限额、审计）由 Schemastery 原样透传，继续走 `sanitizeConfig`。Schemastery 解析不到时 `Config === undefined`：Cordis 跳过 schema 校验、设置页不出现，插件按 YAML 正常工作（`sanitizeConfig` 始终是最后兜底）。
+- **表单投影**：`dsh-settings.describe()` 只暴露 volatile 字段，按 profile entry id（`approval-ledger`）分组，描述符带 `{schema, revision, writable, value, base, user}`；客户端用 `ctx.configForms.get('approval-ledger')` 拿到共享表单 `{getSnapshot, subscribe, set(field,value), unset, mutate, writable}`。
+- **写链路**：客户端 `form.set` → `settings.mutate` → `@deepseek-ai/dsh-config-editor` 先用完整候选配置做 `resolveConfig` 校验、按 id 原子改写 profile 的 `cordis.patch.yml`（保留注释/`!!js`）→ Loader `reconcileProfilePatches` 热应用。只有 volatile 变化时走快路径，`_commitVolatile()` 就地更新运行中的引用并 `emit('loader/volatile-update')`。
+- **插件不写文件**：持久化由 DSH 的编辑器负责；插件只在 `apply()` 时解引用 volatile 引用（`Symbol.for('cosmokit.volatile.write')` 判定，不 import cosmokit），并在 `loader/volatile-update` 时把新值 `Object.assign` 进运行时那个 config 对象——notifier / turn-end 闭包立即读到新开关，**不重挂、不重启**。
+- **边界**：面板只覆盖提醒/显示开关；`mode`、`allowHighRiskGrants`、`max*`、`auditOnly`、`auditRetentionDays`、`auditNotices` 仍是 YAML-only，避免可视化误操作削弱审批策略。

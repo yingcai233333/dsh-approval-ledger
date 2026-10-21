@@ -1,9 +1,11 @@
 /**
- * Client half: a read-only approval-detail affordance.
+ * Client half: the read-only approval-detail affordance and the reminder
+ * settings panel.
  *
  * It never answers an approval. The decision stays on the official approval
- * card; this only exposes the live pending request and the Host-rewritten
- * displayReason for inspection.
+ * card; this only exposes the live pending request, the Host-rewritten
+ * displayReason for inspection, and the ten reminder switches through the DSH
+ * `configForms` bridge (the Host config editor owns persistence).
  */
 window.__ModuleLoader__.load({
   id: 'dsh-approval-ledger',
@@ -51,6 +53,41 @@ window.__ModuleLoader__.load({
       inlineRisk: '高风险、严重风险和未知风险不会自动放行。',
       inlineMissing: '系统未生成可读摘要，请以官方审批卡为准。',
       note: '这是只读详情。允许/拒绝仍请在官方审批卡上操作。计划批准只登记授权，实际调用还会重新判风险。',
+      settingsTitle: '审批与提醒',
+      settingsLead: '控制审批卡、问题卡和对话完成时的提醒方式。修改即时生效并保存在当前 profile。',
+      groupSwitches: '提醒开关',
+      groupEvents: '哪些事件提醒',
+      groupTurnEnd: '完成提醒',
+      groupOther: '其它',
+      notificationsTitle: '启用提醒',
+      notificationsDesc: '总开关，关闭后下列所有提醒都不触发',
+      flashWindowTitle: '任务栏闪烁',
+      flashWindowDesc: '窗口不在前台时，闪烁任务栏按钮吸引注意',
+      soundAlertTitle: '提示音',
+      soundAlertDesc: '审批用合成的「叮咚」，对话完成用两声「滴滴」',
+      notifyOnPlanTitle: '计划审阅卡',
+      notifyOnPlanDesc: '请求一次批准一批操作时',
+      notifyOnQuestionTitle: '问题与逐项勾选卡',
+      notifyOnQuestionDesc: '结构化提问、逐项选择授权时',
+      notifyOnApprovalTitle: '官方审批卡',
+      notifyOnApprovalDesc: '写文件、跑命令等需要你点允许/拒绝时',
+      notifyOnTurnEndTitle: '每轮对话完成',
+      notifyOnTurnEndDesc: '模型结束一轮回复时提醒，方便你切回来',
+      turnEndOnlyWhenAwayTitle: '窗口在前台时不提醒',
+      turnEndOnlyWhenAwayDesc: '你正看着窗口时保持安静，只在切走或最小化时提示',
+      turnBadgeSecondsTitle: '绿色徽标保留时长',
+      turnBadgeSecondsDesc: '任务栏绿点在你回到窗口时清除，这里是最长保留时间',
+      turnBadgeSecondsUnit: '秒（0 = 常驻）',
+      notifyRepeatSecondsTitle: '未处理时重复提醒',
+      notifyRepeatSecondsDesc: '审批卡一直没处理时，每隔这么久再提醒一次',
+      notifyRepeatSecondsUnit: '秒（0 = 只提醒一次）',
+      otherConfigNote: '其余配置（审批模式 mode、高风险授权、上限、审计保留期）仍在 cordis.patch.yml 里维护，不在此面板暴露。保存走 DSH 的配置编辑器，原子写入并即时生效。',
+      saving: '保存中…',
+      saved: '已保存',
+      saveFailed: '保存失败，已恢复原值；请重试或改 cordis.patch.yml。',
+      readOnly: '当前配置为只读（无法写入 profile）。',
+      unavailable: '设置暂不可用：Host 未提供 approval-ledger 的配置表单。',
+      loading: '正在读取配置…',
     }
     const en = {
       button: 'Approval details',
@@ -67,6 +104,41 @@ window.__ModuleLoader__.load({
       inlineRisk: 'High, critical, and unknown risk are never auto-approved.',
       inlineMissing: 'No readable summary was generated; follow the official approval card.',
       note: 'Read-only details. Allow or reject on the official approval card.',
+      settingsTitle: 'Approvals & alerts',
+      settingsLead: 'Choose how approval cards, question cards, and completed turns alert you. Changes apply immediately and are saved to the current profile.',
+      groupSwitches: 'Alert switches',
+      groupEvents: 'Which events alert',
+      groupTurnEnd: 'Turn complete',
+      groupOther: 'Other',
+      notificationsTitle: 'Enable alerts',
+      notificationsDesc: 'Master switch; turning it off suppresses every alert below',
+      flashWindowTitle: 'Taskbar flash',
+      flashWindowDesc: 'Flash the taskbar button when the window is not in front',
+      soundAlertTitle: 'Sound',
+      soundAlertDesc: 'A synthesized "ding-dong" for approvals and two "di-di" beeps for completed turns',
+      notifyOnPlanTitle: 'Plan review card',
+      notifyOnPlanDesc: 'When a batch of operations is submitted for approval',
+      notifyOnQuestionTitle: 'Question and per-item cards',
+      notifyOnQuestionDesc: 'Structured questions and per-item authorization',
+      notifyOnApprovalTitle: 'Official approval card',
+      notifyOnApprovalDesc: 'When a write or command needs your allow/reject',
+      notifyOnTurnEndTitle: 'Every completed turn',
+      notifyOnTurnEndDesc: 'Alert when the model finishes a reply, so you can switch back',
+      turnEndOnlyWhenAwayTitle: 'Stay quiet while in front',
+      turnEndOnlyWhenAwayDesc: 'No noise while you are watching; alert when you switch away or minimize',
+      turnBadgeSecondsTitle: 'Green badge lifetime',
+      turnBadgeSecondsDesc: 'The green taskbar dot clears when you return; this is its longest lifetime',
+      turnBadgeSecondsUnit: 'seconds (0 = until you return)',
+      notifyRepeatSecondsTitle: 'Repeat while pending',
+      notifyRepeatSecondsDesc: 'While an approval card stays unanswered, remind again every N seconds',
+      notifyRepeatSecondsUnit: 'seconds (0 = alert once)',
+      otherConfigNote: 'Everything else (approval mode, high-risk grants, limits, audit retention) stays in cordis.patch.yml and is not exposed here. Saving goes through the DSH config editor: atomic write, applied immediately.',
+      saving: 'Saving…',
+      saved: 'Saved',
+      saveFailed: 'Save failed; the previous value was restored. Retry or edit cordis.patch.yml.',
+      readOnly: 'This configuration is read-only (the profile cannot be written).',
+      unavailable: 'Settings are unavailable: the Host does not serve a config form for approval-ledger.',
+      loading: 'Loading configuration…',
     }
 
     function localized(value, localeId) {
@@ -76,6 +148,367 @@ window.__ModuleLoader__.load({
         return value[key] ?? value.zh ?? value.en ?? ''
       }
       return ''
+    }
+
+    // Limits mirror `REMINDER_FIELDS` in src/config-schema.ts; the Host schema
+    // enforces the same range, the client clamps before writing.
+    const FIELD_LIMITS = {
+      notifyRepeatSeconds: { min: 0, max: 600 },
+      turnBadgeSeconds: { min: 0, max: 3600 },
+    }
+
+    function clampInteger(raw, min, max, fallback) {
+      if (typeof raw === 'string' && raw.trim() === '') return fallback
+      const numeric = Number(raw)
+      if (!Number.isFinite(numeric)) return fallback
+      const rounded = Math.round(numeric)
+      if (rounded < min) return min
+      if (rounded > max) return max
+      return rounded
+    }
+
+    // All colours come from the DSH alias tokens; no literal colour is used.
+    const settingsStyles = {
+      root: { display: 'flex', flexDirection: 'column', paddingTop: 8, color: 'var(--dsw-alias-label-primary)' },
+      head: { margin: '0 0 18px' },
+      title: { margin: 0, fontSize: 17, fontWeight: 600, lineHeight: 1.4 },
+      lead: { margin: '4px 0 0', color: 'var(--dsw-alias-label-secondary)', fontSize: 12, lineHeight: 1.6 },
+      groupTitle: { margin: '18px 2px 8px', color: 'var(--dsw-alias-label-secondary)', fontSize: 12, fontWeight: 600 },
+      card: {
+        border: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 10,
+        background: 'var(--dsw-alias-bg-layer-1)',
+        overflow: 'hidden',
+      },
+      row: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        padding: '11px 16px',
+        borderTop: '1px solid var(--dsw-alias-border-l1)',
+      },
+      rowFirst: { borderTop: 0 },
+      label: { flex: 1, minWidth: 0 },
+      labelTitle: { display: 'block', fontWeight: 600, fontSize: 13 },
+      labelDesc: {
+        display: 'block',
+        marginTop: 2,
+        color: 'var(--dsw-alias-label-secondary)',
+        fontSize: 12,
+        lineHeight: 1.5,
+      },
+      numberWrap: { display: 'inline-flex', alignItems: 'center', gap: 8, flex: '0 0 auto' },
+      unit: { color: 'var(--dsw-alias-label-secondary)', fontSize: 12, whiteSpace: 'nowrap' },
+      foot: { margin: '18px 0 0', color: 'var(--dsw-alias-label-secondary)', fontSize: 12, lineHeight: 1.6 },
+      feedback: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, minHeight: 18 },
+      saving: { color: 'var(--dsw-alias-label-secondary)', fontSize: 12 },
+      saved: { color: 'var(--dsw-alias-state-success-primary)', fontSize: 12 },
+      error: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12 },
+      notice: { margin: '0 0 10px', color: 'var(--dsw-alias-label-secondary)', fontSize: 12, lineHeight: 1.6 },
+    }
+
+    function settingsSwitchStyle(on, disabled) {
+      return {
+        position: 'relative',
+        flex: '0 0 auto',
+        width: 38,
+        height: 22,
+        padding: 0,
+        border: 0,
+        borderRadius: 999,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
+        background: on
+          ? 'var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary))'
+          : 'var(--dsw-alias-border-l2)',
+        transition: 'background .15s',
+      }
+    }
+
+    function settingsKnobStyle(on) {
+      return {
+        position: 'absolute',
+        top: 2,
+        left: on ? 18 : 2,
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        background: 'var(--dsw-alias-label-primary-foreground)',
+        boxShadow: 'var(--dsw-shadow-lv1)',
+        transition: 'left .15s',
+      }
+    }
+
+    function settingsNumberStyle(disabled) {
+      return {
+        width: 84,
+        padding: '5px 8px',
+        border: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 7,
+        background: 'var(--dsw-alias-bg-layer-1)',
+        color: 'var(--dsw-alias-label-primary)',
+        font: 'inherit',
+        textAlign: 'right',
+        opacity: disabled ? 0.45 : 1,
+      }
+    }
+
+    function settingsRow(key, title, description, control, first) {
+      return h(
+        'div',
+        { key, style: first === true ? Object.assign({}, settingsStyles.row, settingsStyles.rowFirst) : settingsStyles.row },
+        h(
+          'div',
+          { style: settingsStyles.label },
+          h('b', { style: settingsStyles.labelTitle }, title),
+          description === undefined || description === '' ? null : h('span', { style: settingsStyles.labelDesc }, description),
+        ),
+        control,
+      )
+    }
+
+    /**
+     * Reminder settings panel. It is a thin view over the shared `configForms`
+     * controller: values come from `getSnapshot()`, every change is written with
+     * `form.set(field, value)` (the Host goes through `configEditor`, which
+     * persists atomically and hot-applies), and a failed write rolls the shown
+     * value back instead of leaving the UI out of sync with the profile.
+     */
+    function ReminderSettings(props) {
+      const ctx = props.__ctx
+      const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
+      const form = props.form
+      const [, bump] = React.useState(0)
+      React.useEffect(() => {
+        if (form === undefined || form === null || typeof form.subscribe !== 'function') return undefined
+        return form.subscribe(() => bump((value) => value + 1))
+      }, [form])
+      const [optimistic, setOptimistic] = React.useState({})
+      const [busy, setBusy] = React.useState({})
+      const [saved, setSaved] = React.useState(false)
+      const [error, setError] = React.useState('')
+      const [drafts, setDrafts] = React.useState({})
+
+      const snapshot =
+        form !== undefined && form !== null && typeof form.getSnapshot === 'function' ? form.getSnapshot() : undefined
+      const values =
+        snapshot !== undefined && snapshot !== null && snapshot.value !== null && typeof snapshot.value === 'object'
+          ? snapshot.value
+          : {}
+      const writable = snapshot === undefined || snapshot === null || snapshot.writable !== false
+      const masterOff = values.notifications === false
+      const hasBusy = Object.keys(busy).length > 0
+
+      const read = (field) =>
+        Object.prototype.hasOwnProperty.call(optimistic, field) ? optimistic[field] : values[field]
+
+      const write = (field, next) => {
+        if (!writable || form === undefined || form === null || typeof form.set !== 'function') return
+        setOptimistic((previous) => Object.assign({}, previous, { [field]: next }))
+        setBusy((previous) => Object.assign({}, previous, { [field]: true }))
+        setError('')
+        setSaved(false)
+        const settle = (accepted) => {
+          setBusy((previous) => {
+            const copy = Object.assign({}, previous)
+            delete copy[field]
+            return copy
+          })
+          setOptimistic((previous) => {
+            const copy = Object.assign({}, previous)
+            delete copy[field]
+            return copy
+          })
+          if (accepted === false) setError(t('saveFailed'))
+          else setSaved(true)
+        }
+        let pending
+        try {
+          pending = form.set(field, next)
+        } catch (_throw) {
+          settle(false)
+          return
+        }
+        if (pending !== null && pending !== undefined && typeof pending.then === 'function') {
+          pending.then(
+            (accepted) => settle(accepted !== false),
+            () => settle(false),
+          )
+          return
+        }
+        settle(pending !== false)
+      }
+
+      const renderSwitch = (field, title, description, first) => {
+        const on = read(field) === true
+        const disabled = !writable || (field !== 'notifications' && masterOff)
+        return settingsRow(
+          field,
+          title,
+          description,
+          h(
+            'button',
+            {
+              type: 'button',
+              role: 'switch',
+              'data-field': field,
+              'aria-label': title,
+              'aria-checked': on,
+              disabled,
+              onClick: disabled ? undefined : () => write(field, !on),
+              style: settingsSwitchStyle(on, disabled),
+            },
+            h('span', { 'aria-hidden': true, style: settingsKnobStyle(on) }),
+          ),
+          first,
+        )
+      }
+
+      const renderNumber = (field, title, description, unit, first) => {
+        const limit = FIELD_LIMITS[field]
+        const disabled = !writable || masterOff
+        const hasDraft = Object.prototype.hasOwnProperty.call(drafts, field)
+        const fallbackValue = Number(read(field))
+        const shown = hasDraft
+          ? drafts[field]
+          : String(Number.isFinite(fallbackValue) ? fallbackValue : limit.min)
+        const commit = () => {
+          if (disabled) return
+          const raw = Object.prototype.hasOwnProperty.call(drafts, field) ? drafts[field] : shown
+          const next = clampInteger(raw, limit.min, limit.max, Number.isFinite(fallbackValue) ? fallbackValue : limit.min)
+          setDrafts((previous) => {
+            const copy = Object.assign({}, previous)
+            delete copy[field]
+            return copy
+          })
+          if (next === read(field)) return
+          write(field, next)
+        }
+        return settingsRow(
+          field,
+          title,
+          description,
+          h(
+            'span',
+            { style: settingsStyles.numberWrap },
+            h('input', {
+              type: 'number',
+              inputMode: 'numeric',
+              step: 1,
+              min: limit.min,
+              max: limit.max,
+              'data-field': field,
+              'aria-label': title,
+              value: shown,
+              disabled,
+              onChange: (event) => {
+                const next =
+                  event !== null && event !== undefined && event.target !== undefined
+                    ? String(event.target.value)
+                    : ''
+                setDrafts((previous) => Object.assign({}, previous, { [field]: next }))
+              },
+              onBlur: commit,
+              onKeyDown: (event) => {
+                if (event === null || event === undefined || event.key !== 'Enter') return
+                if (typeof event.preventDefault === 'function') event.preventDefault()
+                commit()
+              },
+              style: settingsNumberStyle(disabled),
+            }),
+            h('span', { style: settingsStyles.unit }, unit),
+          ),
+          first,
+        )
+      }
+
+      const header = h(
+        'header',
+        { style: settingsStyles.head },
+        h('h2', { style: settingsStyles.title }, t('settingsTitle')),
+        h('p', { style: settingsStyles.lead }, t('settingsLead')),
+      )
+
+      if (form === undefined || form === null || snapshot === undefined || snapshot === null) {
+        return h(
+          'section',
+          { 'aria-label': t('settingsTitle'), style: settingsStyles.root },
+          header,
+          h('p', { style: settingsStyles.notice }, t('unavailable')),
+        )
+      }
+      if (snapshot.status === 'loading') {
+        return h(
+          'section',
+          { 'aria-label': t('settingsTitle'), style: settingsStyles.root },
+          header,
+          h('p', { style: settingsStyles.notice }, t('loading')),
+        )
+      }
+      if (snapshot.status === 'unavailable') {
+        return h(
+          'section',
+          { 'aria-label': t('settingsTitle'), style: settingsStyles.root },
+          header,
+          h('p', { style: settingsStyles.notice }, t('unavailable')),
+        )
+      }
+
+      return h(
+        'section',
+        { 'aria-label': t('settingsTitle'), style: settingsStyles.root },
+        header,
+        writable ? null : h('p', { role: 'status', style: settingsStyles.notice }, t('readOnly')),
+        h('div', { style: settingsStyles.groupTitle }, t('groupSwitches')),
+        h(
+          'div',
+          { style: settingsStyles.card },
+          renderSwitch('notifications', t('notificationsTitle'), t('notificationsDesc'), true),
+          renderSwitch('flashWindow', t('flashWindowTitle'), t('flashWindowDesc')),
+          renderSwitch('soundAlert', t('soundAlertTitle'), t('soundAlertDesc')),
+        ),
+        h('div', { style: settingsStyles.groupTitle }, t('groupEvents')),
+        h(
+          'div',
+          { style: settingsStyles.card },
+          renderSwitch('notifyOnPlan', t('notifyOnPlanTitle'), t('notifyOnPlanDesc'), true),
+          renderSwitch('notifyOnQuestion', t('notifyOnQuestionTitle'), t('notifyOnQuestionDesc')),
+          renderSwitch('notifyOnApproval', t('notifyOnApprovalTitle'), t('notifyOnApprovalDesc')),
+          renderSwitch('notifyOnTurnEnd', t('notifyOnTurnEndTitle'), t('notifyOnTurnEndDesc')),
+        ),
+        h('div', { style: settingsStyles.groupTitle }, t('groupTurnEnd')),
+        h(
+          'div',
+          { style: settingsStyles.card },
+          renderSwitch('turnEndOnlyWhenAway', t('turnEndOnlyWhenAwayTitle'), t('turnEndOnlyWhenAwayDesc'), true),
+          renderNumber(
+            'turnBadgeSeconds',
+            t('turnBadgeSecondsTitle'),
+            t('turnBadgeSecondsDesc'),
+            t('turnBadgeSecondsUnit'),
+          ),
+        ),
+        h('div', { style: settingsStyles.groupTitle }, t('groupOther')),
+        h(
+          'div',
+          { style: settingsStyles.card },
+          renderNumber(
+            'notifyRepeatSeconds',
+            t('notifyRepeatSecondsTitle'),
+            t('notifyRepeatSecondsDesc'),
+            t('notifyRepeatSecondsUnit'),
+            true,
+          ),
+        ),
+        h('p', { style: settingsStyles.foot }, t('otherConfigNote')),
+        h(
+          'div',
+          { style: settingsStyles.feedback },
+          hasBusy ? h('span', { role: 'status', style: settingsStyles.saving }, t('saving')) : null,
+          error === '' ? null : h('span', { role: 'alert', style: settingsStyles.error }, error),
+          !hasBusy && error === '' && saved ? h('span', { role: 'status', style: settingsStyles.saved }, t('saved')) : null,
+        ),
+      )
     }
 
     function Dot() {
@@ -318,6 +751,25 @@ window.__ModuleLoader__.load({
               label: () => ctx.locale.bind(NS)('inlineTitle'),
             }, (props) => h(ApprovalOverlay, { ...props, __ctx: ctx }))
           })
+          // The settings panel only exists while the Host serves this entry's
+          // config form; `whileServed` keeps the registration in sync with that.
+          if (typeof ctx.inject === 'function') {
+            ctx.inject(['configForms'], (scoped) => {
+              const forms = scoped.configForms
+              if (forms === undefined || forms === null) return
+              if (typeof forms.get !== 'function' || typeof forms.whileServed !== 'function') return
+              scoped.effect(() => forms.whileServed(['approval-ledger'], () => {
+                const form = forms.get('approval-ledger')
+                return scoped.slots.inject('settings.section', () => scoped.slots.register({
+                  name: 'settings.section',
+                  id: 'approval-ledger',
+                  order: 40,
+                  locale: NS,
+                  label: () => scoped.locale.bind(NS)('settingsTitle'),
+                }, (props) => h(ReminderSettings, { ...props, form, __ctx: scoped })))
+              }), 'approval-ledger: settings section')
+            })
+          }
         } catch (error) {
           console.error('dsh-approval-ledger client apply failed', error)
           throw error

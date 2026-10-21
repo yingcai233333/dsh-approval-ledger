@@ -4,11 +4,12 @@
 
 本项目的所有重要变更都记录在此。
 
-## [未发布]
+## [1.1.0] - 2026-10-21（已发布到 npm，`latest`）
 
 ### 新增
 
 - `turnEndOnlyWhenAway`（默认 `true`）：完成提醒只在 DeepSeek Harness 窗口**不是**前台窗口时触发，任务栏闪烁、绿色徽标、声音一起跳过——你盯着屏幕时不打扰，切走或最小化才提醒；窗口找不到时仍会提醒（声音还有用）。设为 `false` 恢复无条件提醒。只作用于完成提醒，审批/计划/问题提醒不受影响。
+- 可视化设置面板：DSH 设置新增「审批与提醒」分区（`settings.section`，entry `approval-ledger`），可即点即存地修改 10 个提醒/显示开关（总开关、闪烁、提示音、四类事件提醒、完成提醒的前台静音与徽标时长、重复提醒间隔）。写链路为 `configForms` → `settings.mutate` → DSH `configEditor` 原子写入 profile 的 `cordis.patch.yml` 并热应用，不重启、不重挂插件；插件自己不写文件。`mode`、高风险授权、上限与审计保留期仍只在 YAML。
 
 ## [1.0.0] - 2026-10-21（已发布到 npm，`latest`）
 
