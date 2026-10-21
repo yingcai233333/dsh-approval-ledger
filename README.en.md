@@ -52,10 +52,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `1.1.0`; `next` is still `0.2.0-beta.15`. Desktop has 1.1.0 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `latest` points at `1.1.1`; `next` is still `0.2.0-beta.15`. Desktop has 1.1.1 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.1.0
+dsh plugin --profile <profile> add dsh-approval-ledger@1.1.1
 ```
 
 To opt into medium auto-approval explicitly:
