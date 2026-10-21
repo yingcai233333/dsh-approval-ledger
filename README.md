@@ -6,7 +6,7 @@
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
 
-> **状态：0.2.0-beta.15 已发布到 npm（`next`）并安装到 desktop（`autoSelectAll: false`）。** 计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡都会提醒；闪烁与声音可分别开关，提示音是合成的「叮咚」。beta.14 修复了提醒完全静默的根因（`spawn` 的 `detached`/`windowsHide`）、`4100` 警告和右下角「待审批说明」不显示。`request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 提醒已实现并有用例。
+> **状态：0.3.0 已发布到 npm（`latest`）；desktop 目前安装的仍是 0.2.0-beta.15（`autoSelectAll: false`）。** 计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡都会提醒；闪烁与声音可分别开关，提示音是合成的「叮咚」。beta.14 修复了提醒完全静默的根因（`spawn` 的 `detached`/`windowsHide`）、`4100` 警告和右下角「待审批说明」不显示。`request_approvals`、`/approvals` 命令、`approval/request` 钩子、plan-review 文档、逐项授权选择、session-log 审计投影、头部审批详情面板和 best-effort Windows 提醒已实现并有用例。
 
 ## 截图
 
@@ -48,10 +48,10 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-npm 上 `next` 指向 `0.2.0-beta.15`，`latest` 仍是 `0.2.0-beta.12`；desktop 已安装 beta.15 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
+npm 上 `latest` 指向 `0.3.0`，`next` 仍是 `0.2.0-beta.15`；desktop 已安装 beta.15 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.15
+dsh plugin --profile <profile> add dsh-approval-ledger@0.3.0
 ```
 
 显式开启 medium 自动放行：

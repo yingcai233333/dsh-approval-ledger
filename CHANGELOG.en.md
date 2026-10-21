@@ -4,6 +4,17 @@
 
 All notable changes to this project are documented here.
 
+## [0.3.0] - 2026-10-21 (published to npm, `latest`)
+
+### Changed
+
+- Sprint 3 version milestone: all three features planned for 0.3 — high-risk opt-in with a second confirmation, the `ask_choices` structured question card, and the cross-session read-only list (`/approvals sessions`) — shipped on the 0.2 line. This release adds no new features; it only closes the version.
+- The code is the same as `0.2.0-beta.15`; only the `package.json` version is bumped to `0.3.0`.
+
+### Verification
+
+- On 2026-10-21, live two-sibling `approval/request` ordering was verified: 2/2 samples passed, with our prepended listener rewriting `displayReason` before both probe siblings ran, and a matching plan grant short-circuited to `allowed-once` so later siblings never ran.
+
 ## [0.2.0-beta.15] - 2026-10-20 (published to npm, `next`)
 
 ### Documentation
@@ -11,7 +22,7 @@ All notable changes to this project are documented here.
 - The Chinese and English READMEs now have a "Screenshots" section (plan review, official approval card + pending-approval note, structured question card); images live in `assets/` and use absolute raw URLs.
 - No code changes; this release only refreshes the README shown on npm.
 
-## [0.2.0-beta.14] - 2026-10-20 (pending release)
+## [0.2.0-beta.14] - 2026-10-20 (published to npm, `next`)
 
 ### Fixed
 
@@ -46,28 +57,32 @@ All notable changes to this project are documented here.
 
 - `autoSelectAll` still defaults to `false`; the desktop profile must remove it or set it to `false` to get the per-item selection back.
 
-## [0.2.0-beta.12] - 2026-10-20 (pending release)
+## [0.2.0-beta.12] - 2026-10-20 (published to npm, `next`)
 
 ### Fixed
 
 - Rebuilt the Host artifact for `autoSelectAll`, so approving a plan actually skips the second per-item checklist.
 - The beta.11 package was missing that build artifact and is superseded by beta.12.
 
-## [0.2.0-beta.11] - 2026-10-20 (pending release)
+## [0.2.0-beta.11] - 2026-10-20 (published to npm, `next`; superseded by beta.12)
 
 ### Added
 
 - `autoSelectAll`: after plan approval, all auto-eligible items are authorized without a second per-item checklist; high/critical/unknown items still use the official card per call.
 - Designed for the one-approval batch flow; off by default.
 
-## [0.2.0-beta.10] - 2026-10-20 (pending release)
+### Note
+
+- The published package was missing the Host build artifact for `autoSelectAll`, so the feature did not work; it is superseded by beta.12.
+
+## [0.2.0-beta.10] - 2026-10-20 (published to npm, `next`)
 
 ### Fixed
 
 - The approval-details dialog is now forced to Chinese: tool names, summary, and hints no longer fall back to English when locale detection fails.
 - Removed the English fallback branch from the hint list.
 
-## [0.2.0-beta.9] - 2026-10-20 (pending release)
+## [0.2.0-beta.9] - 2026-10-20 (published to npm, `next`)
 
 ### Added
 

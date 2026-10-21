@@ -6,7 +6,7 @@ Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](doc
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: 0.2.0-beta.15 is published to npm (`next`) and installed in desktop (`autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and the sound is a synthesized "ding-dong". beta.14 fixes why alerts were silent (the `detached`/`windowsHide` spawn flags), the spurious `4100` warning, and the missing bottom-right approval note. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
+> **Status: 0.3.0 is published to npm (`latest`); the desktop profile still runs 0.2.0-beta.15 (`autoSelectAll: false`).** Plan review, per-item selection, `ask_choices`, and official approval cards all raise a Windows alert now; flash and sound are independent switches, and the sound is a synthesized "ding-dong". beta.14 fixes why alerts were silent (the `detached`/`windowsHide` spawn flags), the spurious `4100` warning, and the missing bottom-right approval note. `request_approvals`, the `/approvals` command, the `approval/request` hook, plan-review rendering, per-item selection, the session-log audit fold, the header approval-details panel, and the best-effort Windows alert are implemented and covered by tests.
 
 ## Screenshots
 
@@ -48,10 +48,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `next` points at `0.2.0-beta.15`; `latest` is still `0.2.0-beta.12`. Desktop has beta.15 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `latest` points at `0.3.0`; `next` is still `0.2.0-beta.15`. Desktop has beta.15 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@0.2.0-beta.15
+dsh plugin --profile <profile> add dsh-approval-ledger@0.3.0
 ```
 
 To opt into medium auto-approval explicitly:
