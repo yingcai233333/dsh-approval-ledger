@@ -115,13 +115,7 @@ window.__ModuleLoader__.load({
       })
     }
 
-    function ApprovalInline(props) {
-      const { sessionId, useSessionStatus } = props
-      const ctx = props.__ctx
-      const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
-      const approval = usePendingApproval(useSessionStatus, sessionId)
-      if (approval === undefined) return null
-
+    function ApprovalNote({ approval, t }) {
       const summary = localized(approval.displayReason, 'zh')
       return h('section', {
         'aria-label': t('inlineTitle'),
@@ -150,9 +144,22 @@ window.__ModuleLoader__.load({
       }, h('li', null, t('inlineLead')), h('li', null, t('inlineScope')), h('li', null, t('inlineRisk'))))
     }
 
+    function ApprovalInline(props) {
+      const { sessionId, useSessionStatus } = props
+      const ctx = props.__ctx
+      const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
+      const approval = usePendingApproval(useSessionStatus, sessionId)
+      if (approval === undefined) return null
+      return h(ApprovalNote, { approval, t })
+    }
+
+    // `shell.overlay` is frame-wide: resolve the pending approval here so the
+    // fixed wrapper is only mounted when there is a note to render.
     function ApprovalOverlay(props) {
-      const content = h(ApprovalInline, props)
-      if (content === null) return null
+      const ctx = props.__ctx
+      const t = ctx === undefined ? (key) => en[key] ?? key : ctx.locale.bind(NS)
+      const approval = usePendingApproval(props.useSessionStatus, props.sessionId)
+      if (approval === undefined) return null
       return h('div', {
         style: {
           position: 'fixed',
@@ -162,7 +169,7 @@ window.__ModuleLoader__.load({
           width: 'min(420px, calc(100vw - 32px))',
           pointerEvents: 'auto',
         },
-      }, content)
+      }, h(ApprovalNote, { approval, t }))
     }
 
     function ApprovalDetails(props) {

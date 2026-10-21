@@ -816,17 +816,22 @@ describe('overlay pending-approval selection', () => {
     assert.equal(text.includes('第二个原因'), false)
   })
 
-  it('renders no note for a null snapshot, a missing forEach, or no approval', () => {
-    const nullSnapshot = installedHarness({ snapshot: null })
-    assert.equal(nullSnapshot.mount(OVERLAY_SLOT).find(isInlineNote), undefined)
+  it('mounts nothing when there is no approval to show', () => {
+    const nullSnapshot = installedHarness({ snapshot: null }).mount(OVERLAY_SLOT)
+    assert.equal(
+      nullSnapshot.tree,
+      null,
+      'the fixed wrapper must not be mounted without a note to render',
+    )
+    assert.equal(nullSnapshot.find(isInlineNote), undefined)
 
-    const noForEach = installedHarness({ snapshot: { get: () => undefined } })
-    assert.equal(noForEach.mount(OVERLAY_SLOT).find(isInlineNote), undefined)
+    const noForEach = installedHarness({ snapshot: { get: () => undefined } }).mount(OVERLAY_SLOT)
+    assert.equal(noForEach.tree, null)
 
     const questionsOnly = installedHarness({
       statuses: { a: status({ kind: 'question' }), b: status({ kind: 'question' }) },
-    })
-    assert.equal(questionsOnly.mount(OVERLAY_SLOT).find(isInlineNote), undefined)
+    }).mount(OVERLAY_SLOT)
+    assert.equal(questionsOnly.tree, null)
   })
 
   it('still scans when the snapshot has forEach but no get', () => {
