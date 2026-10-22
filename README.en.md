@@ -1,12 +1,28 @@
 # dsh-approval-ledger
 
+<p>
+  <a href="https://www.npmjs.com/package/dsh-approval-ledger"><img alt="npm version" src="https://img.shields.io/npm/v/dsh-approval-ledger?color=%234D6BFE"></a>
+  <img alt="tests" src="https://img.shields.io/badge/tests-387%20passing-brightgreen">
+  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-339933">
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
+
 > Language: [English](README.en.md) · [中文](README.md)
 
 Documentation index: [docs/README.md](docs/README.md) · [docs/README.en.md](docs/README.en.md)
 
 Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek Harness**.
 
-> **Status: 1.1.0 is published to npm (`latest`); the desktop profile has 1.1.0 installed and enabled (`mode: active`, `autoSelectAll: false`).** 1.1.0 adds a visual settings panel (DSH Settings → "Approvals & alerts", ten reminder/display switches saved on click) and makes the turn-complete alert fire only while the window is not in front (`turnEndOnlyWhenAway`). 1.0.0 already marked audit format v1 (`docs/audit.md`) and the public interface as stable, so any further breaking change must follow the major-version process.
+## What it does
+
+- **Approve a batch at once**: `request_approvals` declares the operations up front and rides the official plan-review card instead of interrupting you card by card.
+- **Risk gate**: medium can auto-allow; high needs opt-in plus a second confirmation; critical is never automatic; anything unreadable stays manual.
+- **Every decision is traceable**: `/approvals audit` lists approvals, plans, rejections and attribution, on a frozen audit format v1 ([`docs/audit.md`](docs/audit.md)).
+- **Configurable alerts**: separate switches for plan cards, question cards, approval cards and every completed turn; the turn-complete alert adds a green taskbar badge and its own chime, and stays quiet while the window is in front.
+- **Settings panel**: DSH Settings → "Approvals & alerts", ten switches saved on click — no YAML editing.
+- **Fail closed**: anything unreadable, unrecognised or broken falls back to the official approval card; the plugin never guesses.
+
+> **Status: 1.1.1 is published to npm (`latest`); the desktop profile has 1.1.1 installed and enabled (`mode: active`, `autoSelectAll: false`).** 1.1.0 adds the settings panel and `turnEndOnlyWhenAway`; 1.1.1 only fixes mangled `dshhub.categories` in the published package. 1.0.0 already marked audit format v1 (`docs/audit.md`) and the public interface as stable, so any further breaking change must follow the major-version process.
 
 ## Screenshots
 
@@ -157,6 +173,14 @@ The package is a Cordis bundle: `cordis.patch.yml` inserts the `approval-ledger`
 - [Runtime spike (0.2.1-rc.2)](docs/runtime-spike.en.md)
 - [Compatibility](docs/compatibility.en.md)
 - [Handoff](HANDOFF.en.md)
+
+## Project avatar
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/avatar.png" alt="Project avatar" width="160" align="right">
+
+The avatar is a community "DeepSeek-chan / whale girl" meme (sticker `027`, "骂我也算 token 哦~") from the non-profit fan archive [梗鲸 aigengtu.com](https://aigengtu.com/zh/whale-chan).
+
+The character is community fan art: the maid whale-girl derives from 上善无形's original character 溟月 (June 2025), with the maid outfit and first sticker pack by ZipZipPipe; 溟月 is released for derivative work under CC BY-NC-SA 4.0. **The avatar is personal presentation for this repository and is not covered by the code licence**; the artwork remains with its authors — contact them for commercial use.
 
 ## License
 

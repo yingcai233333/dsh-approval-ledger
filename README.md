@@ -1,10 +1,26 @@
 # dsh-approval-ledger
 
+<p>
+  <a href="https://www.npmjs.com/package/dsh-approval-ledger"><img alt="npm version" src="https://img.shields.io/npm/v/dsh-approval-ledger?color=%234D6BFE"></a>
+  <img alt="tests" src="https://img.shields.io/badge/tests-387%20passing-brightgreen">
+  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-339933">
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
+
 > Language: [English](README.en.md) · [中文](README.md)
 
 文档索引：[docs/README.md](docs/README.md) · [docs/README.en.md](docs/README.en.md)
 
 为 **DeepSeek Harness** 提供批量审批、风险门控和可追溯决策账本。
+
+## 它能做什么
+
+- **一次批准一批**：`request_approvals` 先把这批操作声明出来，走官方 plan-review 卡，不再一条条弹窗打断。
+- **风险门控**：medium 可配置自动放行；high 需要 opt-in + 二次确认；critical 永不自动；解析不了的一律 manual。
+- **每笔决策可追溯**：`/approvals audit` 把审批、计划、拒绝和归属列清楚，审计格式 v1 已冻结（[`docs/audit.md`](docs/audit.md)）。
+- **提醒可调**：计划卡、问题卡、审批卡、每轮对话完成各有开关；完成提醒带任务栏绿色徽标和专属提示音，窗口在前台时不打扰。
+- **设置面板**：DSH 设置 → 「审批与提醒」，10 个开关即点即存，不用改 YAML。
+- **fail-closed**：任何读不到、认不出、异常的情况都回落官方审批卡，插件不做猜测。
 
 > **状态：1.1.1 已发布到 npm（`latest`）；desktop 已安装并启用 1.1.1（`mode: active`、`autoSelectAll: false`）。** 1.1.0 新增可视化设置面板（DSH 设置 → 「审批与提醒」，10 个提醒/显示开关即点即存），并让完成提醒只在窗口不在前台时触发（`turnEndOnlyWhenAway`）；1.1.1 只修了发布包里 `dshhub.categories` 的乱码。1.0.0 已把审计格式 v1（`docs/audit.md`）与对外接口标为稳定。
 
@@ -157,6 +173,14 @@ pnpm build
 - [运行时核对（0.2.1-rc.2）](docs/runtime-spike.md)
 - [兼容性](docs/compatibility.md)
 - [交接文档](HANDOFF.md)
+
+## 项目形象
+
+<img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/avatar.png" alt="项目头像" width="160" align="right">
+
+头像用的是社区「DeepSeek 娘 / 鲸鱼娘」表情包（编号 `027`「骂我也算 token 哦~」），来自非营利整理站 [梗鲸 aigengtu.com](https://aigengtu.com/zh/whale-chan)。
+
+角色设定出自社区二创：女仆鲸鱼娘原型为上善无形 2025 年 6 月的 OC「溟月」，女仆装与首版表情包由 ZipZipPipe 设计；「溟月」以 CC BY-NC-SA 4.0 开放二创。**头像仅作用于本仓库的个人化展示，不随代码授权**，原图版权归原作者，商用请自行联系授权。
 
 ## License
 
