@@ -5,6 +5,9 @@
  * depending on unpublished `@deepseek-ai/*` packages. They are type-only;
  * `import type` is erased at runtime. See docs/runtime-spike.md for evidence.
  *
+ * Re-checked against DSH 0.2.1-rc.3 (2026-10-26): the rc.3 archive is the same
+ * source rebuilt in CI, so this shape still matches; nothing here changed.
+ *
  * This is a `.ts` module (not `.d.ts`) so `tsc` emits a declaration next to the
  * compiled plugin; a declaration-only input would not be copied to `lib/`.
  */

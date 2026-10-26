@@ -91,7 +91,7 @@
 
 ## 对话完成提醒与 Windows 限制（2026-10-21）
 
-- **触发**：`session/event` 的 `turn/end`，负载 `{ turn, reason }`（`dsh-agent-loop/lib/index.js:1029-1032`）。`reason.kind` 有 `completed`、`blocked`、`max-tokens`、`aborted`（`:961,966,981,1013-1016`）；插件对 `aborted` 不提醒，其余都提醒。
+- **触发**：`session/event` 的 `turn/end`，负载 `{ turn, reason }`（`dsh-agent-loop/lib/index.js:1029-1032`）。`reason.kind` 共 7 个：`completed`、`aborted`（带 `reason`）、`blocked`、`error`（带 `LlmFailure`）、`max-tokens`、`interrupted`、`forked`（`dsh-session` 的 `TurnEndReasonMap`；前五个在 `dsh-agent-loop/lib/index.js:961,966,981,1013-1016,1019-1025` 产生）。插件只对 `aborted` 不提醒，其余都提醒；`interrupted`/`forked` 是 resume / fork 时补写的合成 closer（`dsh-agent-loop/lib/index.js:1992-1993`、`dsh-session/lib/types/repair.js:187`），发生在 session 发布之前，不会出现在 live `session/event` 上，因此实际收不到。
 - **子代理判定**：`SessionHeader` 带 `origin?: 'subagent'` 与 `delegationDepth?: number`（`dsh-session/lib/index.js:1054` 校验，typert 的 `SessionHeader` 声明里有这两个字段）。`origin === 'subagent'` 或 `delegationDepth > 0` 视为子代理，不提醒；`parentSession` 不能单独用（fork 也会写它，而 fork 是用户在等的会话）。
 - **前台闸门**：`turnEndOnlyWhenAway`（默认 `true`）时，脚本先用 `FindWindowByTitle` 找窗口；窗口存在且 `GetForegroundWindow()` 等于它，就在 flash/badge/sound 之前 `exit 0`，三者一起跳过。窗口找不到、或判定本身失败时照常提醒（声音仍然有用），不会静默。判定只用 user32 P/Invoke，不新增 COM 依赖；审批提醒不经过这个闸门。
 - **闪烁颜色不可指定**：`FlashWindowEx` 的颜色由系统「注意提示」配色决定，应用无法要求绿色。绿色改用 `ITaskbarList3.SetOverlayIcon`（IID `ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf`，需先 `HrInit`）叠一个 32×32 绿点 HICON。

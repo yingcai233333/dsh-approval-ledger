@@ -107,7 +107,7 @@ dsh plugin --profile <profile> add dsh-approval-ledger@1.1.1
 
 提醒是 best-effort：找不到窗口、PowerShell/EDR 拒绝或系统静音时静默跳过，不影响审批本身。窗口在前台时 Windows 可能不闪，声音仍会响。`turnEndOnlyWhenAway: true`（默认）时，完成提醒只在 Harness 窗口**不是**前台窗口时触发——你盯着屏幕时不打扰，切走或最小化才提醒；窗口找不到时仍会提醒（声音还有用）。审批提醒不受影响，始终无条件。
 
-完成提醒与审批提醒是两条独立通道：审批提醒在卡片出现时触发，完成提醒在 `turn/end` 时触发。完成提醒的「绿色」用**任务栏 overlay 徽标**表达：`FlashWindowEx` 的闪烁颜色由系统「注意提示」配色决定，应用无法指定绿色。徽标在你回到该窗口时清除，最长保留 `turnBadgeSeconds` 秒（`0` 表示不超时、常驻到回窗口）。完成音是合成的两声短促「滴滴」（B5→E6，上行），审批音是「叮咚」（G5→C5，下行），两者不会混淆。子代理的内部 turn 不触发提醒；turn 被取消（aborted）时也不响。
+完成提醒与审批提醒是两条独立通道：审批提醒在卡片出现时触发，完成提醒在 `turn/end` 时触发。完成提醒的「绿色」用**任务栏 overlay 徽标**表达：`FlashWindowEx` 的闪烁颜色由系统「注意提示」配色决定，应用无法指定绿色。徽标在你回到该窗口时清除，最长保留 `turnBadgeSeconds` 秒（`0` 表示不超时、常驻到回窗口）。完成音是合成的两声短促「滴滴」（B5→E6，上行），审批音是「叮咚」（G5→C5，下行），两者不会混淆。子代理的内部 turn 不触发提醒；turn 被取消（`aborted`）时也不响。`turn/end` 的其余结束原因（`completed`、`blocked`、`max-tokens`、`error`）都会提醒——`error` 也提醒，因为那一轮通常需要你看一眼；`interrupted`/`forked` 是恢复或 fork 时补写的合成结束，不会产生提醒。
 
 `ask_choices` 会把选中的选项文本返回给模型；此前只返回“已收到 N 个问题的选择”。
 

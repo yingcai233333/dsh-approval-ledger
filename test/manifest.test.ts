@@ -29,7 +29,10 @@ describe('package manifest', () => {
   })
 
   it('keeps dshReleases descriptive but in sync with the target release', () => {
-    assert.deepEqual(manifest.dsh?.compatibility?.dshReleases, { '0.2.1-rc.2': 'compatible' })
+    assert.deepEqual(manifest.dsh?.compatibility?.dshReleases, {
+      '0.2.1-rc.2': 'compatible',
+      '0.2.1-rc.3': 'compatible',
+    })
   })
 
   it('ships the built entry point and the client half', () => {

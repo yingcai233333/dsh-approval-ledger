@@ -1,16 +1,19 @@
 /**
  * The plugin's single reading point for a session's historical event log.
  *
- * Why this exists: DSH 0.2.1-rc.2 deprecates `Session.snapshotEvents()` ("new
- * production calls are prohibited") but offers no supported synchronous
- * replacement for reading a session's full history — `session/event` does not
- * replay seed events, and the official seams (`ctx.sessionProjections` /
- * `ctx.sessionQuery`) are themselves backed by `snapshotEvents()`. The plugin
- * therefore keeps using the deprecated reader for now, but confines every call
- * to this one file so a future removal of the reader needs exactly one change
- * here. See the "known drift" subsection of `docs/compatibility.md` (and
- * `docs/compatibility.en.md`); a migration is tracked as a 1.0 item in
- * `docs/design.md`.
+ * Why this exists: DSH 0.2.1-rc.2 deprecates `Session.snapshotEvents()`
+ * ("Existing logic may remain unmigrated for now, but new calls are
+ * prohibited.") and offers no supported *synchronous* replacement for reading
+ * a session's full history — `session/event` does not replay seed events, and
+ * the official seams are async: `ctx.sessionQuery.readSession()` /
+ * `listEvents()` / `observeSession()` (`dsh-session-query/lib/index.js`), which
+ * are themselves still backed by `snapshotEvents()`. Since the approval hook
+ * must answer synchronously, the plugin keeps using the deprecated reader for
+ * now, but confines every call to this one file so a future migration touches
+ * exactly one place. Re-checked against DSH 0.2.1-rc.3 (2026-10-26): the
+ * reader is unchanged. See the "known drift" subsection of
+ * `docs/compatibility.md` (and `docs/compatibility.en.md`); the migration is
+ * tracked as a design item in `docs/design.md`.
  *
  * Degrading is explicit, never silent: callers receive `{ ok: false, reason }`
  * with a stable short code and must fail closed (no grant, no automatic allow,
