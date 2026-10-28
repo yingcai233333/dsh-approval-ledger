@@ -98,6 +98,7 @@
 - **徽标生命周期**：显示后每 450ms 查一次 `GetForegroundWindow()`；窗口回到前台、窗口消失或超过 `turnBadgeSeconds` 时清除并 `DestroyIcon`。`turnBadgeSeconds: 0` 表示不超时（常驻到你回到窗口）。
 - **声音**：完成音 B5→E6、两声各 0.09s、上行；审批音 G5→C5、下行 0.15/0.35s。两者都用内存 WAV + `System.Media.SoundPlayer`，不随包分发音频文件，也不使用 QQ/微信的原始音频。
 - **代价**：每次完成提醒会起一个隐藏 PowerShell 进程；带徽标时它最长存活 `turnBadgeSeconds` 秒（轮询期间不阻塞 turn，也不影响审批）。
+- **命令行长度上限（2026-10-28 修，1.1.0/1.1.1 的静默 bug）**：Windows 单条命令行上限 32,767 字符。完成提醒脚本本身约 13,000 字符，`-EncodedCommand` 会把它扩成 UTF-16 base64 约 34,700 → `spawn` 直接抛 `ENAMETOOLONG`；而提醒是 best-effort，异常被 `try/catch` 和 `child.on('error')` 吞掉，于是"构建了、派发了、但从没执行过"。审批提醒约 30,100 字符，刚好在限内，所以只有完成提醒静默。现在脚本先 deflate，再交给单行 stub 解压执行，编码后约 12,000 字符；`spawnAlertScript` 另加了一道上限保护（超限不 spawn，不留下一个注定失败的进程），单测直接断言各种提醒形状的编码长度。
 
 ## 设置面板链路（2026-10-21）
 

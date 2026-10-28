@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import type { SpawnOptions } from 'node:child_process'
+import { deflateRawSync } from 'node:zlib'
 
 export interface FlashDecision {
   enabled: boolean
@@ -548,8 +549,42 @@ export function buildTurnEndScript(options: TurnEndScriptOptions = {}): string {
   })
 }
 
-function encodePowerShell(script: string): string {
-  return Buffer.from(script, 'utf16le').toString('base64')
+/**
+ * Windows rejects one process command line longer than 32,767 characters.
+ *
+ * The turn-complete script (foreground gate + flash + green badge + chime) is
+ * ~13,000 characters, and `-EncodedCommand` expands it to UTF-16 base64, i.e.
+ * ~34,700 — over the ceiling. `spawn` then throws `ENAMETOOLONG`, and because
+ * alerts are best-effort that failure was swallowed: since 1.1.0 the alert was
+ * built, dispatched, and never ran. Approval alerts (~30,100 encoded) fit, so
+ * only the turn-complete channel went silent.
+ *
+ * The script is therefore deflated and handed to a short single-line stub that
+ * inflates and runs it. That drops every alert shape to a few kilobytes and
+ * removes the coupling between script length and the command-line limit.
+ */
+export const WINDOWS_COMMAND_LINE_LIMIT = 32767
+
+const DEFLATE_STUB_PREFIX = "Add-Type -AssemblyName System.IO.Compression;$b=[Convert]::FromBase64String('"
+const DEFLATE_STUB_SUFFIX =
+  "');$i=[System.IO.MemoryStream]::new($b);" +
+  '$z=[System.IO.Compression.DeflateStream]::new($i,[System.IO.Compression.CompressionMode]::Decompress);' +
+  '$o=[System.IO.MemoryStream]::new();$z.CopyTo($o);' +
+  'Invoke-Expression ([System.Text.Encoding]::UTF8.GetString($o.ToArray()))'
+
+/**
+ * Wrap one generated PowerShell script in the inflate stub. Single-line on
+ * purpose: Windows PowerShell 5.1 parses a multi-line stub identically, but a
+ * one-liner keeps the payload the only thing that can grow.
+ */
+export function buildAlertCommand(script: string): string {
+  const payload = deflateRawSync(Buffer.from(script, 'utf8'), { level: 9 }).toString('base64')
+  return `${DEFLATE_STUB_PREFIX}${payload}${DEFLATE_STUB_SUFFIX}`
+}
+
+/** The `-EncodedCommand` argument (UTF-16LE base64) for one generated script. */
+export function encodeAlertCommand(script: string): string {
+  return Buffer.from(buildAlertCommand(script), 'utf16le').toString('base64')
 }
 
 /**
@@ -558,6 +593,10 @@ function encodePowerShell(script: string): string {
  */
 function spawnAlertScript(script: string, spawnImpl: typeof spawn): void {
   try {
+    const encoded = encodeAlertCommand(script)
+    // Defensive: never hand Windows a command line it will reject (see the
+    // ceiling note above — the 1.1.0 bug was exactly this failure, swallowed).
+    if (encoded.length + 96 > WINDOWS_COMMAND_LINE_LIMIT) return
     // Windows: `detached` (DETACHED_PROCESS) and `windowsHide`
     // (CREATE_NO_WINDOW) both make powershell.exe exit without running
     // `-EncodedCommand` on the desktop runtime, so the alert would silently
@@ -567,14 +606,7 @@ function spawnAlertScript(script: string, spawnImpl: typeof spawn): void {
     }
     const child = spawnImpl(
       'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-WindowStyle',
-        'Hidden',
-        '-EncodedCommand',
-        encodePowerShell(script),
-      ],
+      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-EncodedCommand', encoded],
       spawnOptions,
     )
     child.on?.('error', () => {})

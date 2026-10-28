@@ -1,17 +1,30 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { inflateRawSync } from 'node:zlib'
 import {
   alertPending,
   alertTurnEnd,
+  buildAlertCommand,
   buildAlertScript,
   buildFlashScript,
   buildTurnEndScript,
+  encodeAlertCommand,
   flashApprovalWindow,
   shouldAlert,
   shouldFlash,
   TURN_END_CHIME,
   APPROVAL_CHIME,
+  WINDOWS_COMMAND_LINE_LIMIT,
 } from '../src/notify/flash.js'
+
+/** Unwrap the deflate stub a spawned `-EncodedCommand` argument carries. */
+function decodeAlertCommand(encoded: string): string {
+  const stub = Buffer.from(encoded, 'base64').toString('utf16le')
+  const marker = "FromBase64String('"
+  const start = stub.indexOf(marker) + marker.length
+  const end = stub.indexOf("')", start)
+  return inflateRawSync(Buffer.from(stub.slice(start, end), 'base64')).toString('utf8')
+}
 
 function spawnedScript(onlyWhenAway: boolean): string {
   let args: string[] = []
@@ -27,8 +40,7 @@ function spawnedScript(onlyWhenAway: boolean): string {
       return { on() {}, unref() {} } as never
     }) as never,
   })
-  const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
-  return Buffer.from(encoded, 'base64').toString('utf16le')
+  return decodeAlertCommand(args[args.indexOf('-EncodedCommand') + 1] ?? '')
 }
 
 describe('Windows pending alerts', () => {
@@ -84,9 +96,36 @@ describe('Windows pending alerts', () => {
     })
     assert.equal(calls, 1)
     const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
-    const script = Buffer.from(encoded, 'base64').toString('utf16le')
+    const script = decodeAlertCommand(encoded)
     assert.match(script, /FlashWindowEx/)
     assert.match(script, /System\.Media\.SoundPlayer/)
+  })
+
+  it('keeps the stubbed command line far below the Windows ceiling', () => {
+    // Regression for the 1.1.0 silent-alert bug: the raw turn-complete script
+    // encoded to ~34,700 characters, over the 32,767 command-line limit, so
+    // spawn threw ENAMETOOLONG and the best-effort wrapper swallowed it.
+    for (const script of [
+      buildAlertScript({ flash: true, sound: true, badge: true }),
+      buildTurnEndScript({ onlyWhenAway: true }),
+      buildTurnEndScript({ onlyWhenAway: false }),
+    ]) {
+      const encoded = encodeAlertCommand(script)
+      assert.ok(
+        encoded.length + 96 <= WINDOWS_COMMAND_LINE_LIMIT,
+        `encoded alert command is ${encoded.length} chars`,
+      )
+      assert.ok(encoded.length < 20000, `encoded alert command is ${encoded.length} chars`)
+      assert.equal(decodeAlertCommand(encoded), script)
+    }
+  })
+
+  it('wraps the script in a single-line inflate stub', () => {
+    const command = buildAlertCommand('Write-Output "hi"')
+    assert.equal(command.includes('\n'), false)
+    assert.ok(command.startsWith("Add-Type -AssemblyName System.IO.Compression;"))
+    assert.match(command, /DeflateStream/)
+    assert.match(command, /Invoke-Expression/)
   })
 })
 
@@ -151,7 +190,7 @@ describe('Windows approval flash', () => {
     assert.equal((options as { stdio?: string }).stdio, 'ignore')
     const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
     assert.ok(encoded.length > 0)
-    assert.match(Buffer.from(encoded, 'base64').toString('utf16le'), /FlashWindowEx/)
+    assert.match(decodeAlertCommand(encoded), /FlashWindowEx/)
   })
 })
 
