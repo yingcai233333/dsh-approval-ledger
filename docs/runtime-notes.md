@@ -107,3 +107,10 @@
 - **写链路**：客户端 `form.set` → `settings.mutate` → `@deepseek-ai/dsh-config-editor` 先用完整候选配置做 `resolveConfig` 校验、按 id 原子改写 profile 的 `cordis.patch.yml`（保留注释/`!!js`）→ Loader `reconcileProfilePatches` 热应用。只有 volatile 变化时走快路径，`_commitVolatile()` 就地更新运行中的引用并 `emit('loader/volatile-update')`。
 - **插件不写文件**：持久化由 DSH 的编辑器负责；插件只在 `apply()` 时解引用 volatile 引用（`Symbol.for('cosmokit.volatile.write')` 判定，不 import cosmokit），并在 `loader/volatile-update` 时把新值 `Object.assign` 进运行时那个 config 对象——notifier / turn-end 闭包立即读到新开关，**不重挂、不重启**。
 - **边界**：面板只覆盖提醒/显示开关；`mode`、`allowHighRiskGrants`、`max*`、`auditOnly`、`auditRetentionDays`、`auditNotices` 仍是 YAML-only，避免可视化误操作削弱审批策略。
+
+## PTC 的审批时限（2026-10-28 排查）
+
+- **现象**：用户反馈「审批卡停得很短，没反应过来就没了」，且只在部分会话出现；同期完成提醒也静默（见上一条，两个问题无关）。
+- **不是审批超时**：`dsh-user-approval` / `dsh-client-ui-approval` 里没有任何审批计时器，日志里也没有 `unavailable`；2 天内 359 次审批，取消的 14 次全是 `cancelled`。
+- **真正原因**：`ptc` 预设把工具呈现切到 `run_code`（`@deepseek-ai/dsh-tool-cordis` + `dsh-agent-tool-presentation: mode: ptc`），而 `@deepseek-ai/dsh-ptc-runtime-node` 的执行截止 **默认 `timeoutMs: 120000`，README 明写「包括嵌套工具与审批等待」**（`maxTimeoutMs: 600000`）。`run_code` 里嵌套的审批一旦等超过这个截止，就被 `cancelled` 并变成 `tool/result ERROR`。日志对得上：取消时刻落在 119.7 / 239.7 / 299.7 / 499.7 / 599.7 秒，正好是 120/240/300/500/600 秒截止；`standard`/`cordis` 预设直接调用工具，审批没有截止（有等 2165 秒才点的记录）。
+- **本机处置**：desktop profile 的 `cordis.patch.yml` 增加了 `ptc-runtime` 覆盖（`timeoutMs: 600000`、`maxTimeoutMs: 1800000`），把 `run_code` 的默认截止提到 10 分钟、单次上限 30 分钟。这是 DSH 侧配置，插件不参与，也不应自己改审批时限。
