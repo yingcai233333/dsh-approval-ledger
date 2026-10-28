@@ -4,6 +4,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.2] - 2026-10-28
+
+### Fixed
+
+- **The turn-complete alert has never actually run since 1.1.0**: the script is ~13,000 characters and `-EncodedCommand` expands it to UTF-16 base64, ~34,700 — past Windows' 32,767-character command-line ceiling — so `spawn` threw `ENAMETOOLONG`. Alerts are best-effort, the failure was swallowed, and the alert was built, dispatched, and never executed: no flash, no green badge, no "di-di". Approval alerts encode to ~30,100 and stayed under the ceiling, which is why only the completion channel was silent. The script is now deflated and run from a single-line inflate stub (~12,000 encoded characters), an oversized command is no longer spawned at all, and unit tests assert the encoded length of every alert shape.
+- This was not caused by the desktop update: `0.2.1-rc.3` and `rc.2` ship byte-identical interface implementations (see `docs/compatibility.md`); the 1.1.0 foreground-gate addition pushed the command line over the ceiling.
+
 ## [1.1.1] - 2026-10-21 (published to npm, `latest`)
 
 ### Fixed

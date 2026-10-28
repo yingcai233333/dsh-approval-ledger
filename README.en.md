@@ -22,7 +22,7 @@ Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek
 - **Settings panel**: DSH Settings → "Approvals & alerts", ten switches saved on click — no YAML editing.
 - **Fail closed**: anything unreadable, unrecognised or broken falls back to the official approval card; the plugin never guesses.
 
-> **Status: 1.1.1 is published to npm (`latest`); the desktop profile has 1.1.1 installed and enabled (`mode: active`, `autoSelectAll: false`).** 1.1.0 adds the settings panel and `turnEndOnlyWhenAway`; 1.1.1 only fixes mangled `dshhub.categories` in the published package. 1.0.0 already marked audit format v1 (`docs/audit.md`) and the public interface as stable, so any further breaking change must follow the major-version process.
+> **Status: 1.1.2 is published to npm (`latest`); the desktop profile runs 1.1.2 (`mode: active`, `autoSelectAll: false`, `turnEndOnlyWhenAway: false`).** 1.1.2 fixes a silent and serious bug: the turn-complete alert had never actually run since 1.1.0, because `-EncodedCommand` pushed the command line past Windows' 32,767-character ceiling and `spawn` threw `ENAMETOOLONG`, which the best-effort wrapper swallowed — the script is now deflated and run from a one-line stub. 1.1.1 only fixed mangled `dshhub.categories`; 1.1.0 added the settings panel and `turnEndOnlyWhenAway`.
 
 ## Screenshots
 
@@ -68,10 +68,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `1.1.1`; `next` is still `0.2.0-beta.15`. Desktop has 1.1.1 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `latest` points at `1.1.2`; `next` is still `0.2.0-beta.15`. Desktop runs 1.1.2 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.1.1
+dsh plugin --profile <profile> add dsh-approval-ledger@1.1.2
 ```
 
 To opt into medium auto-approval explicitly:
