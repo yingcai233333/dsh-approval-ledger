@@ -22,7 +22,7 @@ Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek
 - **Settings panel**: DSH Settings → "Approvals & alerts", ten switches saved on click — no YAML editing.
 - **Fail closed**: anything unreadable, unrecognised or broken falls back to the official approval card; the plugin never guesses.
 
-> **Status: 1.1.2 is published to npm (`latest`); the desktop profile runs 1.1.2 (`mode: active`, `autoSelectAll: false`, `turnEndOnlyWhenAway: false`).** 1.1.2 fixes a silent and serious bug: the turn-complete alert had never actually run since 1.1.0, because `-EncodedCommand` pushed the command line past Windows' 32,767-character ceiling and `spawn` threw `ENAMETOOLONG`, which the best-effort wrapper swallowed — the script is now deflated and run from a one-line stub. 1.1.1 only fixed mangled `dshhub.categories`; 1.1.0 added the settings panel and `turnEndOnlyWhenAway`.
+> **Status: 1.1.3 is published to npm (`latest`); the desktop profile runs 1.1.3 (`mode: active`, `autoSelectAll: false`, `turnEndOnlyWhenAway: false`).** 1.1.3 fixes the turn-complete **chime delay**: the sound was emitted after the taskbar badge watcher, so it only played when you clicked back; it now plays before the badge. 1.1.2 fixed "the turn-complete alert never ran since 1.1.0" (`-EncodedCommand` was past Windows' 32,767-character ceiling and `spawn` threw `ENAMETOOLONG`, which the best-effort wrapper swallowed).
 
 ## Screenshots
 
@@ -68,10 +68,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `1.1.2`; `next` is still `0.2.0-beta.15`. Desktop runs 1.1.2 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
+npm `latest` points at `1.1.3`; `next` is still `0.2.0-beta.15`. Desktop runs 1.1.3 with active mode enabled, so low/medium items can run continuously while high/critical/unknown still use the official card. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.1.2
+dsh plugin --profile <profile> add dsh-approval-ledger@1.1.3
 ```
 
 To opt into medium auto-approval explicitly:

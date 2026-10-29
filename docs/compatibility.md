@@ -4,7 +4,7 @@
 
 ## DSH
 
-- 目标运行时：DSH `0.2.1-rc.3`（Windows 桌面，`@deepseek-ai/dsh-desktop-runtime`；`dsh/package.json:4`，build `be72761`）。插件版本 `1.1.2`。
+- 目标运行时：DSH `0.2.1-rc.3`（Windows 桌面，`@deepseek-ai/dsh-desktop-runtime`；`dsh/package.json:4`，build `be72761`）。插件版本 `1.1.3`。
 - 核对基准：0.2.1-rc.3 安装包 `D:\software\DS-harness\resources\app.asar`（2026-10-26 复核；315 个 `@deepseek-ai/*` 包、18188 个文件）。rc.2（2026-10-21；306 个包、18309 个文件）的导出副本留在 `.p0-test/asar/`，两次导出可以逐文件对比：22 个可比包中 73 个 `.js` 有 71 个字节相同，2 个客户端 bundle 的差异只有构建路径（`D:\develop\…` → `D:\ci\runners\…`）和 CSS module 生成的哈希类名，接口实现零变化（详见 `.p0-test/rc3/drift-report.md`）。整个归档**没有任何 `.d.ts`**，profile 的 `node_modules` 下也没有 `@deepseek-ai/*`；所以静态核对用的是随包 JS 实现、包内嵌的类型声明字符串（`lib/typert.host.js`）和包 README。下文的 `dsh/...:行号` 都指归档内对应文件的正文行号（记法与 `docs/runtime-spike.md` 一致）。
 
 ### 验证到什么程度
@@ -63,7 +63,7 @@
 
 ## 在另一台机器/另一个平台自检
 
-1. **装并确认版本**：在目标机器安装 `1.1.2`（desktop 安装器，或 `dsh plugin add dsh-approval-ledger`），跑 `dsh plugin list`，确认包名、版本 `1.1.2`、状态 enabled。
+1. **装并确认版本**：在目标机器安装 `1.1.3`（desktop 安装器，或 `dsh plugin add dsh-approval-ledger`），跑 `dsh plugin list`，确认包名、版本 `1.1.3`、状态 enabled。
 2. **确认 DSH 版本与声明**：`dsh --version` 应为 `0.2.1-rc.2` 或 `0.2.1-rc.3`；打开 `node_modules/dsh-approval-ledger/package.json`，确认 `engines.dsh` 是 `>=0.2.1-rc.2 <0.3.0-0`（它才是真正的安装/启动闸门），`dsh.compatibility.dshReleases` 只是说明性元数据（见上）。
 3. **命令面**：新会话执行 `/approvals audit`，应输出「审批决策记录」报告（而不是 unknown command）；再跑 `/approvals last`、`/approvals grants`。
 4. **单条审批**：让模型做一次需要审批的写操作（例如 `danger-full-access` 写工作区外文件），确认官方卡片标题是改写后的 `写入文件 · <路径> · 完全访问`，右下角有「待审批说明」；点「拒绝」后文件不存在，`/approvals audit` 有该拒绝记录。

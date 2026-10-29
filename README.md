@@ -22,7 +22,7 @@
 - **设置面板**：DSH 设置 → 「审批与提醒」，10 个开关即点即存，不用改 YAML。
 - **fail-closed**：任何读不到、认不出、异常的情况都回落官方审批卡，插件不做猜测。
 
-> **状态：1.1.2 已发布到 npm（`latest`）；desktop 安装 1.1.2（`mode: active`、`autoSelectAll: false`、`turnEndOnlyWhenAway: false`）。** 1.1.2 修掉一个静默的严重 bug：完成提醒从 1.1.0 起其实从未执行过（`-EncodedCommand` 超过 Windows 命令行 32,767 字符上限，`spawn` 抛 `ENAMETOOLONG` 被 best-effort 吞掉）——现在脚本压成 deflate 由单行 stub 解压执行。1.1.1 只修了发布包里 `dshhub.categories` 的乱码；1.1.0 新增可视化设置面板与「窗口在前台时不提醒」。
+> **状态：1.1.3 已发布到 npm（`latest`）；desktop 安装 1.1.3（`mode: active`、`autoSelectAll: false`、`turnEndOnlyWhenAway: false`）。** 1.1.3 修掉完成提醒的**声音延迟**：声音以前排在任务栏徽标的等待循环之后，只有你点回窗口时才响；现在先响再挂徽标。1.1.2 修掉「完成提醒从 1.1.0 起从未执行」（`-EncodedCommand` 超过 Windows 32,767 字符上限，`spawn` 抛 `ENAMETOOLONG` 被吞掉）。
 
 ## 截图
 
@@ -68,10 +68,10 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-npm 上 `latest` 指向 `1.1.2`，`next` 仍是 `0.2.0-beta.15`；desktop 安装 1.1.2 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
+npm 上 `latest` 指向 `1.1.3`，`next` 仍是 `0.2.0-beta.15`；desktop 安装 1.1.3 并启用 active，中/低风险可连续执行，高/严重/未知仍逐条。安装：
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.1.2
+dsh plugin --profile <profile> add dsh-approval-ledger@1.1.3
 ```
 
 显式开启 medium 自动放行：
