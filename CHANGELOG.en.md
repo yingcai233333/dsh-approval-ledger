@@ -4,6 +4,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.3] - 2026-10-29
+
+### Fixed
+
+- **The turn-complete chime waited for the window to come back**: the script emitted the sound after the badge watcher, and that watcher polls until the window is foreground again (or the badge lifetime ends) — so the flash and the green dot appeared on completion while the sound only played when you clicked back; with `turnBadgeSeconds: 0` (stay until you return) it effectively never played. The chime now runs before the badge, so it fires within ~2 s of completion (that ~2 s is PowerShell start-up + C# compilation + waveform synthesis, the same fixed cost approval alerts always had). A unit test asserts the chime precedes the badge wait loop.
+
 ## [1.1.2] - 2026-10-28
 
 ### Fixed

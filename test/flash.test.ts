@@ -251,6 +251,18 @@ describe('Windows turn-complete alerts', () => {
     assert.equal(script.includes('exit 0'), false)
   })
 
+  it('plays the chime before the badge watcher, not when the window returns', () => {
+    // The badge part ends in a loop that waits for the window to come back, so a
+    // chime emitted after it only plays on return (reported 2026-10-29 as "the
+    // sound only fires when I open the window").
+    const script = buildTurnEndScript({ flash: true, sound: true, badgeSeconds: 0 })
+    const sound = script.indexOf('System.Media.SoundPlayer')
+    assert.ok(sound > 0)
+    assert.ok(script.indexOf('PlaySync') > sound)
+    assert.ok(sound < script.indexOf('Start-Sleep -Milliseconds 450'), 'chime must precede the badge wait loop')
+    assert.ok(sound < script.indexOf('[DshApprovalBadge]::ShowOverlay'), 'chime must precede the badge')
+  })
+
   it('keeps the foreground gate for a sound-only completion alert', () => {
     const script = buildTurnEndScript({ flash: false, sound: true, onlyWhenAway: true })
     assert.ok(script.includes('DshApprovalAway'))

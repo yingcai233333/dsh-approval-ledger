@@ -503,16 +503,22 @@ if (-not $dshOk) { try { [System.Media.SystemSounds]::${chime.fallback}.Play() }
  * first so `exit 0` runs before any other part. The process name is a constant
  * and is sanitized before embedding. No approval text, path, argument, or reason
  * is interpolated.
+ *
+ * Order matters: the badge part ends in a watcher loop that only returns when
+ * the window becomes foreground, the window disappears, or the badge lifetime
+ * expires. The chime therefore has to be emitted *before* the badge — a
+ * `PlaySync` queued after that loop only plays when the user comes back, which
+ * looks exactly like "no alert at completion".
  */
 export function buildAlertScript(options: AlertScriptOptions): string {
   const processName = options.processName ?? DEFAULT_WINDOW_TITLE
   const parts = [`$ErrorActionPreference = 'SilentlyContinue'`]
   if (options.foregroundGate === true) parts.push(buildForegroundGatePart(processName))
   if (options.flash) parts.push(buildFlashPart(processName))
+  if (options.sound) parts.push(buildSoundPart(options.tone ?? 'approval'))
   if (options.badge === true) {
     parts.push(buildBadgePart(processName, options.badgeSeconds ?? DEFAULT_BADGE_SECONDS))
   }
-  if (options.sound) parts.push(buildSoundPart(options.tone ?? 'approval'))
   return `${parts.join('\n')}\n`
 }
 
