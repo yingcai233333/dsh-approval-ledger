@@ -4,6 +4,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.2] - 2026-10-31
+
+### Changed
+
+- `dsh.compatibility.dshReleases` now lists `0.2.1-rc.5: compatible` (descriptive metadata only; no code reads it, and the `engines.dsh` range is unchanged and already covered rc.5). Also records that rc.5 was verified live on this machine (approval hook, `/approvals`, the settings panel, and session-scope auto-allow with PTC inner calls and dsh-ops tools), that **rc.4 is unverified**, and that the rc.3 → rc.5 file-by-file static diff is still outstanding.
+
 ## [1.2.1] - 2026-10-31
 
 ### Fixed
