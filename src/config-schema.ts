@@ -2,11 +2,11 @@
  * Host-side partial config schema for the reminder settings panel.
  *
  * DSH turns the volatile fields of a plugin's exported `Config` into a settings
- * form (`dsh-settings` → `configForms` in the client half). Only the ten
- * reminder/display switches are declared: `mode`, the risk policy, plan limits,
- * and audit retention stay YAML-only, so the panel can never weaken the
- * approval policy. Undeclared keys pass through Schemastery untouched and keep
- * flowing into `sanitizeConfig` exactly as before.
+ * form (`dsh-settings` → `configForms` in the client half). This schema declares
+ * the reminder/display switches plus the new-session auto-allow default: `mode`,
+ * the risk policy, plan limits, and audit retention stay YAML-only, so the panel
+ * can never weaken the approval policy. Undeclared keys pass through Schemastery
+ * untouched and keep flowing into `sanitizeConfig` exactly as before.
  *
  * The schema is built lazily: `@deepseek-ai/schemastery` is provided by the DSH
  * installation at runtime (see `docs/runtime-notes.md`) and is not a dependency
@@ -59,6 +59,8 @@ export const REMINDER_FIELDS: readonly ReminderField[] = [
     min: 0,
     max: 3600,
   },
+  // Session behavior rather than a reminder, exposed in the same panel.
+  { key: 'autoAllowSessions', kind: 'boolean', default: DEFAULT_CONFIG.autoAllowSessions },
 ]
 
 interface FieldSchema {
@@ -125,7 +127,7 @@ function isSchemaNode(value: unknown): value is SchemaNodeLike {
 /**
  * Project the volatile fields of a schema, mirroring the rule `dsh-settings`
  * uses to decide what the settings form offers. Exported so the schema contract
- * (exactly ten fields, nothing else) is testable without the DSH runtime.
+ * (the exact field set, nothing else) is testable without the DSH runtime.
  */
 export function volatileFields(schema: unknown): Record<string, unknown> | undefined {
   if (!isSchemaNode(schema)) return undefined

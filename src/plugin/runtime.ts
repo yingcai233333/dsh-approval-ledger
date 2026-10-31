@@ -19,7 +19,7 @@ import {
 } from '../config.js'
 import type { PluginConfig } from '../config.js'
 import { isPlainObject } from '../core/json.js'
-import type { RiskAssessment } from '../core/types.js'
+import type { RiskAssessment, RiskLevel } from '../core/types.js'
 import { createNodePathProbe } from '../path/node-probe.js'
 import type { PathPlatform, PathProbe } from '../path/types.js'
 import { assessRisk } from '../risk/assess.js'
@@ -42,6 +42,9 @@ import type { ValidatedPlan } from '../plan/types.js'
 import { validatePlan } from '../plan/validate.js'
 import { GrantStore } from '../grants/store.js'
 import type { GrantMatchResult } from '../grants/types.js'
+import { hasDeleteIntent } from '../grants/delete-intent.js'
+import { SessionAutoAllow } from '../grants/session-auto.js'
+import { normalizeCommand } from '../command/normalize.js'
 import { SessionTracker } from './session-tracker.js'
 import { readSessionEvents } from './session-log.js'
 import type {
@@ -92,6 +95,8 @@ export interface LedgerRuntime {
   config: PluginConfig
   tracker: SessionTracker
   grants: GrantStore
+  /** Session-scope auto-allow switches; in memory and session-scoped. */
+  sessionAuto: SessionAutoAllow
   audits: MemoryAuditStore
   plans: Map<string, CachedPlan>
   notifier: Notifier
@@ -117,6 +122,7 @@ export function createRuntime(
       mode: isObserveOnly(config) ? 'observe' : 'active',
       policy: riskPolicyFromConfig(config),
     }),
+    sessionAuto: new SessionAutoAllow(),
     audits: new MemoryAuditStore(),
     plans: new Map(),
     notifier: dependencies.notifier ?? createNotifier(config),
@@ -125,6 +131,7 @@ export function createRuntime(
       runtime.notifier.dispose()
       runtime.turnEnds.dispose()
       runtime.grants.dispose()
+      runtime.sessionAuto.clear()
       runtime.plans.clear()
       for (const sessionId of runtime.audits.sessions()) runtime.audits.clear(sessionId)
     },
@@ -241,6 +248,18 @@ const DEGRADED_TURN_MATCHED_BY = 'degraded-no-turn'
 const NO_TURN_BOUNDARY_MATCHED_BY = 'no-turn-boundary'
 
 /**
+ * Fixed `matchedBy` codes for the session-scope auto-allow guard. Both are
+ * constants: the record never carries arguments, paths, commands, or reasons.
+ */
+const SESSION_AUTO_ALLOWED_MATCHED_BY = 'session-scope+risk-gate'
+const SESSION_AUTO_DELETE_BLOCKED_MATCHED_BY = 'session-auto-delete-blocked'
+
+/** Levels the user's session-scope switch may auto-allow. */
+function sessionAutoRiskEligible(level: RiskLevel): boolean {
+  return level === 'low' || level === 'medium' || level === 'high'
+}
+
+/**
  * Warn once per degraded turn lookup. The message carries the reason code only —
  * never event contents, tool arguments, paths, or stack traces.
  */
@@ -348,6 +367,45 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
         return 'allowed-once'
       }
 
+      // Session-scope auto-allow: only when the user armed it for this exact
+      // session (or the session started with the config default on), the store
+      // enforces (active), and the call is not a delete.
+      let sessionAutoDeleteBlocked = false
+      try {
+        // Snapshot the config default on first sight so a settings-panel change
+        // only affects sessions that start afterwards.
+        runtime.sessionAuto.ensure(sessionId, runtime.config.autoAllowSessions)
+        if (
+          runtime.sessionAuto.isEnabled(sessionId, runtime.config.autoAllowSessions) &&
+          runtime.grants.mode === 'active'
+        ) {
+          if (hasDeleteIntent(req.toolName, prepared.args)) {
+            // Deletes always use the official card; remember why in `matchedBy`
+            // instead of adding an audit schema field.
+            sessionAutoDeleteBlocked = true
+          } else if (sessionAutoRiskEligible(prepared.risk.level)) {
+            recordAudit(runtime, {
+              sessionId,
+              callId: req.callId,
+              tool: req.toolName,
+              risk: prepared.risk,
+              outcome: 'allowed-once',
+              mode: prepared.mode,
+              matchedBy: SESSION_AUTO_ALLOWED_MATCHED_BY,
+              args: prepared.args,
+              cwd: prepared.cwd,
+              platform: prepared.platform,
+              probe: prepared.probe,
+            })
+            return 'allowed-once'
+          }
+        }
+      } catch {
+        // Fail closed: an error here must never auto-allow, and a half-computed
+        // delete flag must not leak into the audit.
+        sessionAutoDeleteBlocked = false
+      }
+
       const reminder = runtime.notifier.remind('approval')
 
       let outcome: ApprovalOutcome
@@ -363,8 +421,9 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
           mode: prepared.mode,
           planId: prepared.match?.grant?.planId,
           itemId: prepared.match?.grant?.itemId,
-          matchedBy:
-            prepared.turnFallback ?? prepared.match?.decision ?? 'manual',
+          matchedBy: sessionAutoDeleteBlocked
+            ? SESSION_AUTO_DELETE_BLOCKED_MATCHED_BY
+            : prepared.turnFallback ?? prepared.match?.decision ?? 'manual',
           args: prepared.args,
           cwd: prepared.cwd,
           platform: prepared.platform,
@@ -384,13 +443,14 @@ export function registerApprovalHook(ctx: Context, runtime: LedgerRuntime): () =
         mode: prepared.mode,
         planId: prepared.match?.grant?.planId,
         itemId: prepared.match?.grant?.itemId,
-        matchedBy:
-          prepared.turnFallback ??
-          (prepared.match?.decision === 'would-allow'
-            ? 'observe-would-allow'
-            : prepared.match?.decision === 'needs-confirmation'
-              ? 'risk-needs-confirmation'
-              : 'manual'),
+        matchedBy: sessionAutoDeleteBlocked
+          ? SESSION_AUTO_DELETE_BLOCKED_MATCHED_BY
+          : prepared.turnFallback ??
+            (prepared.match?.decision === 'would-allow'
+              ? 'observe-would-allow'
+              : prepared.match?.decision === 'needs-confirmation'
+                ? 'risk-needs-confirmation'
+                : 'manual'),
         args: prepared.args,
         cwd: prepared.cwd,
         platform: prepared.platform,
@@ -857,17 +917,70 @@ function auditText(ctx: Context, runtime: LedgerRuntime, agent: Agent): string {
   )
 }
 
+/**
+ * `/approvals` subcommand input is whitespace-normalised with the same parser as
+ * plan command scopes, so `auto   on` behaves like `auto on`. Invalid input
+ * falls back to the trimmed raw text for the existing read-only views.
+ */
+function commandInput(rawInput: string): string {
+  const normalized = normalizeCommand(rawInput)
+  return normalized.ok ? normalized.command.text : rawInput.trim()
+}
+
+function sessionAutoStatusText(runtime: LedgerRuntime, sessionId: string): string {
+  runtime.sessionAuto.ensure(sessionId, runtime.config.autoAllowSessions)
+  const enabled = runtime.sessionAuto.isEnabled(sessionId, runtime.config.autoAllowSessions)
+  const explicit = runtime.sessionAuto.hasOverride(sessionId)
+  const mode = runtime.grants.mode
+  const lines = [
+    `会话级自动放行：${enabled ? '已开启' : '已关闭'}`,
+    `来源：${explicit ? `本会话显式：${enabled ? '开' : '关'}` : `默认（配置：${enabled ? '开' : '关'}）`}`,
+    `当前是否放行：${enabled && mode === 'active' ? '是' : '否'}${mode === 'active' ? '' : '（观察模式）'}`,
+    `当前模式：${mode}${mode === 'active' ? '' : '（观察模式不放行，即使开关为开）'}`,
+    '豁免（永远走官方审批卡）：删除文件/目录的指令、critical 风险、unknown 风险。',
+    '作用范围：仅当前会话；turn 结束不会清除，会话结束自动失效，不持久化。',
+    '设置面板的默认值只影响之后新起的会话；已在运行的会话用 /approvals auto on|off 调整。',
+    '用法：/approvals auto（查看）· /approvals auto on · /approvals auto off',
+  ]
+  return lines.join('\n')
+}
+
 export function registerApprovalsCommand(
   ctx: Context,
   runtime: LedgerRuntime,
 ): () => void {
   return ctx.commands.register({
     name: 'approvals',
-    description: 'Inspect approval decisions and active grants for this session',
-    input: { hint: '[audit [--json] | grants | sessions | last]' },
+    description: 'Inspect approval decisions, grants, and the session auto-allow switch',
+    input: { hint: '[audit [--json] | grants | sessions | last | auto [on|off]]' },
     handler: (invocation: CommandInvocation): CommandResult => {
       try {
-        const raw = invocation.rawInput.trim()
+        const raw = commandInput(invocation.rawInput)
+        if (raw === 'auto') {
+          return { kind: 'success', text: sessionAutoStatusText(runtime, invocation.agent.id) }
+        }
+        if (raw === 'auto on') {
+          if (runtime.grants.mode !== 'active') {
+            return {
+              kind: 'error',
+              text: '观察模式不放行：/approvals auto on 需要 mode: active（auditOnly 也会强制观察）。',
+            }
+          }
+          runtime.sessionAuto.ensure(invocation.agent.id, runtime.config.autoAllowSessions)
+          runtime.sessionAuto.enable(invocation.agent.id)
+          return { kind: 'success', text: sessionAutoStatusText(runtime, invocation.agent.id) }
+        }
+        if (raw === 'auto off') {
+          runtime.sessionAuto.ensure(invocation.agent.id, runtime.config.autoAllowSessions)
+          runtime.sessionAuto.disable(invocation.agent.id)
+          return { kind: 'success', text: sessionAutoStatusText(runtime, invocation.agent.id) }
+        }
+        if (raw.startsWith('auto ')) {
+          return {
+            kind: 'error',
+            text: '用法：/approvals auto（查看）· /approvals auto on · /approvals auto off',
+          }
+        }
         if (raw === 'grants') {
           return { kind: 'success', text: grantsText(runtime, invocation.agent.id) }
         }
@@ -919,6 +1032,7 @@ export function registerRuntime(
       ctx.on(
         'session/event',
         (session: Session, event: SessionEvent) => {
+          runtime.sessionAuto.ensure(session.id, runtime.config.autoAllowSessions)
           runtime.tracker.observe(session, event)
           if (event.type === 'turn/end') {
             // Completion reminders are optional: a failing alert must never
@@ -941,6 +1055,7 @@ export function registerRuntime(
         runtime.tracker.forget(session.id)
         runtime.turnEnds.forget(session.id)
         runtime.grants.revokeSession(session.id)
+        runtime.sessionAuto.forget(session.id)
         runtime.audits.clear(session.id)
       }),
     )

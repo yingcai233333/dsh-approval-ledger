@@ -12,6 +12,16 @@
 - sandbox escalation reason: `escalate sandbox to <mode>: <justification>`; `displayReason` is `{en, zh}`.
 - When `tools/pre-execute` returns `{kind:'ask', reason, displayReason}`, it also goes through `approval.request`.
 
+## Session-scope auto-allow (1.2.0)
+
+- **State**: `SessionAutoAllow` in `src/grants/session-auto.ts` stores each session's value in `Map<sessionId, boolean>` and marks explicit overrides in a separate set. The first time a session is seen (`session/event`, or the first approval/status query) snapshots that session's `config.autoAllowSessions`; `/approvals auto on|off` writes an explicit value for the current session only. `turn/end` does not clear it, `session/disposed` calls `forget`, and plugin `dispose()` calls `clear()`. Capacity is 64 and the oldest insertion is evicted first.
+- **Settings-panel semantics**: `autoAllowSessions` (default `false`, volatile) appears under the "Auto-allow" group. It only affects sessions that start afterwards — a running session keeps its start-up snapshot and must use `/approvals auto on|off`.
+- **Decision order**: the `approval/request` hook checks the plan grant first. If that misses and the session switch is on, the store is `active`, `prepared.risk.level` is `low|medium|high`, and there is no delete intent, it returns `allowed-once` and audits `matchedBy: 'session-scope+risk-gate'`. `critical` and `unknown` are outside the allowed set; delete intent takes precedence over the risk level, always uses the official card, and audits `matchedBy: 'session-auto-delete-blocked'`.
+- **Delete intent**: `hasDeleteIntent` in `src/grants/delete-intent.ts`. A `DELETE_TOOLS` name is enough; otherwise `prepared.args` is serialized with `JSON.stringify`, and a payload over 8,192 characters or any serialization failure (cycle, BigInt, throwing `toJSON`, …) counts as a delete. The bounded string is matched against `DELETE_INTENT_PATTERN` exported by `src/risk/commands.ts` (`rm|rmdir|rd|del|erase|unlink|remove-item|trash|rimraf`, `git clean`, `find -delete`, `.delete(`, `shutil.rmtree`, `os.remove`, `fs.rm`, case-insensitive). The command risk engine reuses the same pattern.
+- **observe/auditOnly**: nothing is allowed unless the store is `active`; `/approvals auto on` returns the "observe mode does not allow" error. Status output shows the current mode, the default/explicit source, and the exemptions.
+- **Audit compatibility**: only the existing optional `matchedBy` string (max 160) is used; no field and no v1 schema change. Any exception fails closed to `next()`.
+- **Tests**: `test/session-auto.test.ts` covers the switch, capacity, `forget`/`clear`, snapshot fallback, positive/negative delete detection, the observe rejection, the allow/exemption `matchedBy` values, and the exception fallback.
+
 ## Scheduling
 
 - `dsh-agent-loop` schedules according to `tools.executionMode()`; tools that are not `isConcurrencySafe` are exclusive and run one at a time.

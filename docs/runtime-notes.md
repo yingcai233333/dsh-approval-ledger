@@ -12,6 +12,16 @@
 - sandbox escalation 的 reason：`escalate sandbox to <mode>: <justification>`；`displayReason` 为 `{en, zh}`。
 - `tools/pre-execute` 返回 `{kind:'ask', reason, displayReason}` 时也会走 `approval.request`。
 
+## 会话级自动放行（session auto-allow，1.2.0）
+
+- **开关状态**：`src/grants/session-auto.ts` 的 `SessionAutoAllow` 用 `Map<sessionId, boolean>` 存每个会话的值，另用 `Set` 标记显式覆盖。第一次看到会话时（`session/event`，或首次审批/状态查询）用当时的 `config.autoAllowSessions` 做快照；`/approvals auto on|off` 只写当前会话的显式值。`turn/end` 不清除，`session/disposed` 调 `forget`，插件 `dispose()` 调 `clear()`。容量 64，超出按插入顺序丢最旧。
+- **设置面板语义**：`autoAllowSessions`（默认 `false`，volatile）出现在设置面板「自动放行」分组；它只影响之后新起的会话——已经在跑的会话保留启动时的快照，必须 `/approvals auto on|off`。
+- **放行顺序**：`approval/request` 钩子先判 plan grant；未命中时，若会话开关为开、store 为 `active`、`prepared.risk.level` ∈ `low|medium|high`，并且没有删除意图，就直接返回 `allowed-once`，审计 `matchedBy: 'session-scope+risk-gate'`。`critical`、`unknown` 不在命中集合；删除意图优先于风险等级，一律走官方审批卡并记 `matchedBy: 'session-auto-delete-blocked'`。
+- **删除意图**：`src/grants/delete-intent.ts` 的 `hasDeleteIntent`；工具名命中 `DELETE_TOOLS` 直接为真，否则把 `prepared.args` 用 `JSON.stringify` 序列化，超过 8192 字符、序列化失败（循环、BigInt、`toJSON` 抛错等）都按删除处理；有界字符串再匹配 `src/risk/commands.ts` 导出的 `DELETE_INTENT_PATTERN`（`rm|rmdir|rd|del|erase|unlink|remove-item|trash|rimraf`、`git clean`、`find -delete`、`.delete(`、`shutil.rmtree`、`os.remove`、`fs.rm`，大小写不敏感）。命令风险引擎复用同一份正则。
+- **observe/auditOnly**：store 不是 `active` 时不放行；`/approvals auto on` 直接返回错误「观察模式不放行」。状态输出会写当前模式、默认/显式来源和豁免项。
+- **审计兼容**：只使用既有可选字符串 `matchedBy`（上限 160），不新增字段、不改 v1 schema。异常一律 fail-closed 回落 `next()`。
+- **测试**：`test/session-auto.test.ts` 覆盖开关、容量、`forget`/`clear`、快照回落、删除识别正反例、observe 拒绝、放行/豁免的 `matchedBy` 和异常回落。
+
 ## Scheduling
 
 - `dsh-agent-loop` 按 `tools.executionMode()` 调度；非 `isConcurrencySafe` 的工具是 exclusive，逐个执行。

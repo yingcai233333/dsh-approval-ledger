@@ -67,6 +67,7 @@ function makeConfigForm(options: {
   const calls: FakeConfigFormCalls = { sets: [] }
   const value = {
     notifications: true,
+    autoAllowSessions: false,
     flashWindow: true,
     soundAlert: true,
     notifyOnPlan: true,
@@ -1039,11 +1040,13 @@ describe('reminder settings panel', () => {
     )
   })
 
-  it('renders the four groups and keeps other settings in cordis.patch.yml', () => {
+  it('renders the five groups and keeps other settings in cordis.patch.yml', () => {
     const tree = settingsHarness().harness.mount(SETTINGS_SLOT)
     const text = tree.text()
     for (const expected of [
       '审批与提醒',
+      '自动放行',
+      '新会话默认自动放行',
       '提醒开关',
       '哪些事件提醒',
       '完成提醒',
@@ -1063,6 +1066,7 @@ describe('reminder settings panel', () => {
       assert.ok(text.includes(expected), `panel text is missing: ${expected}`)
     }
     assert.ok(findSwitch(tree, 'notifications'), 'master switch')
+    assert.ok(findSwitch(tree, 'autoAllowSessions'), 'new-session auto-allow switch')
     assert.ok(findNumber(tree, 'turnBadgeSeconds'), 'badge lifetime input')
     assert.ok(findNumber(tree, 'notifyRepeatSeconds'), 'repeat interval input')
   })
@@ -1086,6 +1090,12 @@ describe('reminder settings panel', () => {
     master.props.onClick()
     await flushPromises()
     assert.deepEqual(calls.sets[2], ['notifications', false])
+
+    const autoAllow = findSwitch(tree, 'autoAllowSessions')
+    assert.equal(autoAllow.props['aria-checked'], false)
+    autoAllow.props.onClick()
+    await flushPromises()
+    assert.deepEqual(calls.sets[3], ['autoAllowSessions', true])
   })
 
   it('disables every other control when the master switch is off', () => {
@@ -1110,6 +1120,11 @@ describe('reminder settings panel', () => {
     for (const field of ['turnBadgeSeconds', 'notifyRepeatSeconds']) {
       assert.equal(findNumber(tree, field).props.disabled, true, field)
     }
+    // Auto-allow is an approval behavior, not an alert: the reminder master
+    // switch must not lock it.
+    const autoAllow = findSwitch(tree, 'autoAllowSessions')
+    assert.equal(autoAllow.props.disabled, false)
+    assert.equal(autoAllow.props['aria-checked'], false)
   })
 
   it('keeps the whole panel read-only when the form is not writable', async () => {

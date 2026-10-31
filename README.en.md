@@ -17,9 +17,10 @@ Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek
 
 - **Approve a batch at once**: `request_approvals` declares the operations up front and rides the official plan-review card instead of interrupting you card by card.
 - **Risk gate**: medium can auto-allow; high needs opt-in plus a second confirmation; critical is never automatic; anything unreadable stays manual.
+- **Session-scope auto-allow**: `/approvals auto on` applies to the current session only and allows low/medium/high calls directly; deleting files, critical risk, and unknown risk still require manual approval, and the settings panel can turn it on by default for new sessions.
 - **Every decision is traceable**: `/approvals audit` lists approvals, plans, rejections and attribution, on a frozen audit format v1 ([`docs/audit.md`](docs/audit.md)).
 - **Configurable alerts**: separate switches for plan cards, question cards, approval cards and every completed turn; the turn-complete alert adds a green taskbar badge and its own chime, and stays quiet while the window is in front.
-- **Settings panel**: DSH Settings → "Approvals & alerts", ten switches saved on click — no YAML editing.
+- **Settings panel**: DSH Settings → "Approvals & alerts", eleven switches saved on click — no YAML editing.
 - **Fail closed**: anything unreadable, unrecognised or broken falls back to the official approval card; the plugin never guesses.
 
 > **Status: 1.1.3 is published to npm (`latest`); the desktop profile runs 1.1.3 (`mode: active`, `autoSelectAll: false`, `turnEndOnlyWhenAway: false`).** 1.1.3 fixes the turn-complete **chime delay**: the sound was emitted after the taskbar badge watcher, so it only played when you clicked back; it now plays before the badge. 1.1.2 fixed "the turn-complete alert never ran since 1.1.0" (`-EncodedCommand` was past Windows' 32,767-character ceiling and `spawn` threw `ENAMETOOLONG`, which the best-effort wrapper swallowed).
@@ -85,6 +86,31 @@ To opt into medium auto-approval explicitly:
 
 `high` still needs opt-in plus the second-confirmation interlock; `critical` is never auto-approved; `unknown` stays manual.
 
+## Session-scope auto-allow
+
+With `active` mode you can turn auto-allow on for the **current session only**:
+
+```sh
+/approvals auto        # show the switch, its source, the mode, and the exemptions
+/approvals auto on     # explicitly on for this session
+/approvals auto off    # explicitly off for this session
+```
+
+- It only takes effect while the store is `active`; with `mode: observe` or `auditOnly`, `/approvals auto on` is rejected with "observe mode does not allow".
+- Once on, **low / medium / high** calls are allowed directly; **delete requests, `critical`, and `unknown` always use the official approval card**.
+- The switch is session-scoped: it survives turn end, and disappears on session end, plugin unload, or restart. It is not persisted and never crosses sessions.
+- Delete intent looks at the tool name (`delete` / `remove` / `trash`) and at a bounded serialization of the arguments (`rm`/`rmdir`/`rd`/`del`/`erase`/`unlink`/`remove-item`/`trash`/`rimraf`, `git clean`, `find -delete`, `.delete(`, `shutil.rmtree`, `os.remove`, `fs.rm`, …). A payload that cannot be scanned in full counts as a delete (fail closed).
+- Audit records reuse the existing `matchedBy` string: `session-scope+risk-gate` for an auto-allow and `session-auto-delete-blocked` for a delete sent to the card. No field is added and audit format v1 is unchanged.
+
+The settings panel gains an "Auto-allow" group and "New sessions auto-allow by default" (`autoAllowSessions`, default `false`). **That switch only affects sessions that start afterwards**; a session that is already running needs `/approvals auto on` (or `auto off`).
+
+```yaml
+- id: approval-ledger
+  config:
+    mode: active
+    autoAllowSessions: true   # default for new sessions only; deletes/critical/unknown stay manual
+```
+
 ## Alert settings
 
 Plan review, the per-item selection, `ask_choices`, and official approval cards raise a Windows alert: the taskbar button flashes and a soft synthesized "ding-dong" chime plays (independent of the system sound scheme). A completed turn also alerts: taskbar flash + a green badge + two short "di-di" beeps. Each source and each channel can be switched off:
@@ -113,7 +139,7 @@ The turn-complete alert and the approval alerts are two independent channels: ap
 
 ## Settings panel
 
-DSH Settings now has an "Approvals & alerts" section (`settings.section`, entry id `approval-ledger`) that edits the ten reminder/display switches visually: master switch, taskbar flash, sound, the four alert sources (plan review / question and per-item cards / official approval card / every completed turn), the turn-complete "stay quiet while in front" gate and green badge lifetime, and the repeat interval while a card is pending.
+DSH Settings now has an "Approvals & alerts" section (`settings.section`, entry id `approval-ledger`) that edits eleven switches visually: the master switch, taskbar flash, sound, the four alert sources (plan review / question and per-item cards / official approval card / every completed turn), the turn-complete "stay quiet while in front" gate and green badge lifetime, the repeat interval while a card is pending, and the "Auto-allow" group's "New sessions auto-allow by default" (`autoAllowSessions`, which only affects sessions that start afterwards; running sessions use `/approvals auto on|off`).
 
 <img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/settings-panel.png" alt="Approvals & alerts settings section" width="520">
 

@@ -4,6 +4,25 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.0] - 2026-10-31
+
+### Added
+
+- Session-scope auto-allow: `/approvals auto` shows the state, and `/approvals auto on|off` changes the current session only. The switch survives turn end and disappears on session end, plugin unload, or restart. In `active` mode low/medium/high calls are allowed directly while delete requests, `critical`, and `unknown` still require manual approval. Under `observe`/`auditOnly`, `auto on` is rejected with "observe mode does not allow".
+- The settings panel gains an "Auto-allow" group and "New sessions auto-allow by default" (`autoAllowSessions`, default `false`, volatile). It only affects sessions that start afterwards; a running session keeps its start-up snapshot and must use `/approvals auto on|off`. `src/config-schema.ts`, `client.js`, and the zh/en copy were updated together.
+- Delete-intent detection (`src/grants/delete-intent.ts`): a delete-tool name matches directly; otherwise the arguments are serialized with a bound (≤8,192 characters; a serialization failure or oversized payload counts as a delete, fail closed) and matched against delete features (`rm`/`rmdir`/`rd`/`del`/`erase`/`unlink`/`remove-item`/`trash`/`rimraf`, `git clean`, `find -delete`, `.delete(`, `shutil.rmtree`, `os.remove`, `fs.rm`). `src/risk/commands.ts` exports the same `DELETE_INTENT_PATTERN`, which the command risk engine reuses.
+- Two new fixed `matchedBy` audit values: `session-scope+risk-gate` (session-scope allow) and `session-auto-delete-blocked` (delete exempted, official card used). No new field and no audit format v1 change.
+
+### Security
+
+- Session-scope allow only works while the store is `active`; `critical`/`unknown` are never automatic, deletes always use the official approval card, and any inspection/read failure fails closed to `next()`.
+- `SessionAutoAllow` in `src/grants/session-auto.ts` keeps state per session, caps it at 64 and evicts the oldest, forgets one session on `session/disposed`, and clears everything on plugin `dispose()`.
+
+### Tests
+
+- New `test/session-auto.test.ts`: switch, capacity, `forget`/`clear`, config-default snapshot, positive/negative delete detection, the `observe` rejection, the allow/exemption `matchedBy` values, and the fail-closed exception path.
+- 411 tests pass in total, `pnpm lint` reports 0 warnings, and `pnpm build` succeeds.
+
 ## [1.1.3] - 2026-10-29
 
 ### Fixed

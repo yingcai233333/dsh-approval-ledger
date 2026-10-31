@@ -62,7 +62,9 @@ export * from './audit/session-facts.js'
 export * from './audit/store.js'
 export * from './audit/types.js'
 
+export * from './grants/delete-intent.js'
 export * from './grants/match.js'
+export * from './grants/session-auto.js'
 export * from './grants/store.js'
 export * from './grants/types.js'
 

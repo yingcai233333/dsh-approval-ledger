@@ -17,9 +17,10 @@
 
 - **一次批准一批**：`request_approvals` 先把这批操作声明出来，走官方 plan-review 卡，不再一条条弹窗打断。
 - **风险门控**：medium 可配置自动放行；high 需要 opt-in + 二次确认；critical 永不自动；解析不了的一律 manual。
+- **会话级自动放行**：`/approvals auto on` 只对当前会话生效，low/medium/high 直接放行；删除文件、critical、unknown 仍然必须人工审批；设置面板可让新会话默认开启。
 - **每笔决策可追溯**：`/approvals audit` 把审批、计划、拒绝和归属列清楚，审计格式 v1 已冻结（[`docs/audit.md`](docs/audit.md)）。
 - **提醒可调**：计划卡、问题卡、审批卡、每轮对话完成各有开关；完成提醒带任务栏绿色徽标和专属提示音，窗口在前台时不打扰。
-- **设置面板**：DSH 设置 → 「审批与提醒」，10 个开关即点即存，不用改 YAML。
+- **设置面板**：DSH 设置 → 「审批与提醒」，11 个开关即点即存，不用改 YAML。
 - **fail-closed**：任何读不到、认不出、异常的情况都回落官方审批卡，插件不做猜测。
 
 > **状态：1.1.3 已发布到 npm（`latest`）；desktop 安装 1.1.3（`mode: active`、`autoSelectAll: false`、`turnEndOnlyWhenAway: false`）。** 1.1.3 修掉完成提醒的**声音延迟**：声音以前排在任务栏徽标的等待循环之后，只有你点回窗口时才响；现在先响再挂徽标。1.1.2 修掉「完成提醒从 1.1.0 起从未执行」（`-EncodedCommand` 超过 Windows 32,767 字符上限，`spawn` 抛 `ENAMETOOLONG` 被吞掉）。
@@ -85,6 +86,31 @@ dsh plugin --profile <profile> add dsh-approval-ledger@1.1.3
 
 `high` 仍需 opt-in + 二次确认；`critical` 永不自动放行；`unknown` 保持手动。
 
+## 会话级自动放行
+
+`active` 模式下，可以只对**当前会话**打开自动放行：
+
+```sh
+/approvals auto        # 查看开关、来源、当前模式和豁免
+/approvals auto on     # 仅当前会话显式开启
+/approvals auto off    # 仅当前会话显式关闭
+```
+
+- 生效条件是 store 处于 `active`；`mode: observe` 或 `auditOnly` 时 `/approvals auto on` 会被拒绝，并提示「观察模式不放行」。
+- 开启后 **low / medium / high** 的调用直接放行；**删除文件或目录的指令、`critical`、`unknown` 永远走官方审批卡**。
+- 开关只作用于当前会话：turn 结束不会清除，会话结束/插件卸载/重启即失效；不持久化、不跨会话。
+- 删除意图既看工具名（`delete` / `remove` / `trash`），也看有界序列化后的参数（`rm`/`rmdir`/`rd`/`del`/`erase`/`unlink`/`remove-item`/`trash`/`rimraf`、`git clean`、`find -delete`、`.delete(`、`shutil.rmtree`、`os.remove`、`fs.rm` 等）；参数无法完整检查时按删除处理（fail-closed）。
+- 审计沿用既有 `matchedBy` 字符串：放行是 `session-scope+risk-gate`，删除被豁免是 `session-auto-delete-blocked`；不新增字段，审计格式 v1 不变。
+
+设置面板新增「自动放行」分组和「新会话默认自动放行」（`autoAllowSessions`，默认 `false`）。**这个开关只影响之后新起的会话**；已经在跑的会话要 `/approvals auto on`（或 `auto off`）才生效。
+
+```yaml
+- id: approval-ledger
+  config:
+    mode: active
+    autoAllowSessions: true   # 只作新会话的默认值；删除/critical/unknown 仍人工
+```
+
 ## 提醒配置
 
 计划卡、逐项勾选卡、`ask_choices` 问题卡和官方审批卡出现时，Windows 下会闪烁任务栏并播放一段合成的柔和「叮咚」提示音（不依赖系统声音方案）。每轮对话完成时也会提醒：任务栏闪烁 + 绿色徽标 + 两声短促的「滴滴」。每一项都可以单独关闭：
@@ -113,7 +139,7 @@ dsh plugin --profile <profile> add dsh-approval-ledger@1.1.3
 
 ## 设置面板
 
-DSH 设置里新增「审批与提醒」分区（`settings.section`，entry id 为 `approval-ledger`），可以直接可视化修改 10 个提醒/显示开关：总开关、任务栏闪烁、提示音、四类事件的提醒（计划卡 / 问题与逐项勾选卡 / 官方审批卡 / 每轮对话完成）、完成提醒的「窗口在前台时不提醒」与绿色徽标保留时长、未处理时的重复提醒间隔。
+DSH 设置里新增「审批与提醒」分区（`settings.section`，entry id 为 `approval-ledger`），可以直接可视化修改 11 个开关：总开关、任务栏闪烁、提示音、四类事件的提醒（计划卡 / 问题与逐项勾选卡 / 官方审批卡 / 每轮对话完成）、完成提醒的「窗口在前台时不提醒」与绿色徽标保留时长、未处理时的重复提醒间隔，以及「自动放行」分组里的「新会话默认自动放行」（`autoAllowSessions`，只影响之后新起的会话；已在运行的会话用 `/approvals auto on|off`）。
 
 <img src="https://raw.githubusercontent.com/yingcai233333/dsh-approval-ledger/main/assets/settings-panel.png" alt="审批与提醒设置面板" width="520">
 

@@ -12,6 +12,16 @@ export interface CommandRisk {
   reasons: RiskReason[]
 }
 
+/**
+ * Delete-intent features shared by command risk assessment and the
+ * session-scope auto-allow guard. Keep one list so the two cannot drift apart.
+ *
+ * The command risk engine uses it for the `delete` reason; the session auto
+ * guard uses it to refuse automatic approval of deletion requests.
+ */
+export const DELETE_INTENT_PATTERN =
+  /\b(?:rm|rmdir|rd|del|erase|unlink|remove-item|trash|rimraf)\b|git\s+clean|find\b.*-delete|\.delete\(|shutil\.rmtree|os\.remove|fs\.rm/i
+
 function add(reasonList: RiskReason[], code: string, level: RiskLevel, message: string): void {
   reasonList.push({ code, level, message })
 }
@@ -71,7 +81,7 @@ export function assessCommandRisk(
     'new-partition',
     'remove-partition',
   ])
-  const deleteCommand = /\b(rm|rmdir|rd|del|erase)\b/.test(text)
+  const deleteCommand = DELETE_INTENT_PATTERN.test(text)
   const recursiveFlag = /\s-(?:[a-z]*r[a-z]*|r)\b|--recursive\b|\s\/s\b/.test(text)
   const forceFlag = /\s-(?:[a-z]*f[a-z]*|f)\b|--force\b|\s\/f\b/.test(text)
 
@@ -170,7 +180,7 @@ export function assessCommandRisk(
   ) {
     record('network-download', 'high', 'network download')
   }
-  if (/\b(rm|del|remove-item|rd|rmdir|erase|unlink)\b/.test(text)) {
+  if (deleteCommand) {
     record('delete', 'high', 'deletes files')
   }
   if (/\b(mv|move|rename|ren(\.exe)?)\b/.test(text)) {

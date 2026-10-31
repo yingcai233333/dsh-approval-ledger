@@ -20,6 +20,13 @@ export interface PluginConfig {
   maxTotalUses: number
   /** Active mode only: approving the plan authorizes all auto-eligible items without a second checkbox card. */
   autoSelectAll: boolean
+  /**
+   * Default for sessions that start after this setting is read: when true, a new
+   * session may auto-allow low/medium/high calls. Deletes, critical risk, and
+   * unknown risk still use the official approval card, and `/approvals auto
+   * on|off` always overrides this value for the current session.
+   */
+  autoAllowSessions: boolean
   showDetailsButton: boolean
   /** Alert when the plan-review card is waiting. */
   notifyOnPlan: boolean
@@ -60,6 +67,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
   maxUsesPerItem: 5,
   maxTotalUses: 50,
   autoSelectAll: false,
+  autoAllowSessions: false,
   showDetailsButton: true,
   notifyOnPlan: true,
   notifyOnQuestion: true,
@@ -224,6 +232,12 @@ export function sanitizeConfig(input: unknown): SanitizedConfig {
       ),
       maxTotalUses: readInteger(input, 'maxTotalUses', DEFAULT_CONFIG.maxTotalUses, 1, 100, warnings),
       autoSelectAll: readBoolean(input, 'autoSelectAll', DEFAULT_CONFIG.autoSelectAll, warnings),
+      autoAllowSessions: readBoolean(
+        input,
+        'autoAllowSessions',
+        DEFAULT_CONFIG.autoAllowSessions,
+        warnings,
+      ),
       showDetailsButton: readBoolean(
         input,
         'showDetailsButton',

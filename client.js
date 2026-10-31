@@ -54,11 +54,14 @@ window.__ModuleLoader__.load({
       inlineMissing: '系统未生成可读摘要，请以官方审批卡为准。',
       note: '这是只读详情。允许/拒绝仍请在官方审批卡上操作。计划批准只登记授权，实际调用还会重新判风险。',
       settingsTitle: '审批与提醒',
-      settingsLead: '控制审批卡、问题卡和对话完成时的提醒方式。修改即时生效并保存在当前 profile。',
+      settingsLead: '控制自动放行、审批卡、问题卡和对话完成时的提醒方式。修改即时生效并保存在当前 profile。',
+      groupAutoAllow: '自动放行',
       groupSwitches: '提醒开关',
       groupEvents: '哪些事件提醒',
       groupTurnEnd: '完成提醒',
       groupOther: '其它',
+      autoAllowSessionsTitle: '新会话默认自动放行',
+      autoAllowSessionsDesc: '删除文件、严重风险、未知风险仍然必须人工审批；会话内可用 /approvals auto off 关掉。只影响之后新起的会话。',
       notificationsTitle: '启用提醒',
       notificationsDesc: '总开关，关闭后下列所有提醒都不触发',
       flashWindowTitle: '任务栏闪烁',
@@ -105,11 +108,14 @@ window.__ModuleLoader__.load({
       inlineMissing: 'No readable summary was generated; follow the official approval card.',
       note: 'Read-only details. Allow or reject on the official approval card.',
       settingsTitle: 'Approvals & alerts',
-      settingsLead: 'Choose how approval cards, question cards, and completed turns alert you. Changes apply immediately and are saved to the current profile.',
+      settingsLead: 'Choose how auto-allow, approval cards, question cards, and completed turns behave and alert you. Changes apply immediately and are saved to the current profile.',
+      groupAutoAllow: 'Auto-allow',
       groupSwitches: 'Alert switches',
       groupEvents: 'Which events alert',
       groupTurnEnd: 'Turn complete',
       groupOther: 'Other',
+      autoAllowSessionsTitle: 'New sessions auto-allow by default',
+      autoAllowSessionsDesc: 'Deleting files, critical risk, and unknown risk still require manual approval; turn it off per session with /approvals auto off. Only affects sessions that start afterwards.',
       notificationsTitle: 'Enable alerts',
       notificationsDesc: 'Master switch; turning it off suppresses every alert below',
       flashWindowTitle: 'Taskbar flash',
@@ -341,7 +347,10 @@ window.__ModuleLoader__.load({
 
       const renderSwitch = (field, title, description, first) => {
         const on = read(field) === true
-        const disabled = !writable || (field !== 'notifications' && masterOff)
+        // `autoAllowSessions` is an approval behavior, not an alert, so the
+        // reminder master switch must not disable it.
+        const disabled =
+          !writable || (field !== 'notifications' && field !== 'autoAllowSessions' && masterOff)
         return settingsRow(
           field,
           title,
@@ -459,6 +468,17 @@ window.__ModuleLoader__.load({
         { 'aria-label': t('settingsTitle'), style: settingsStyles.root },
         header,
         writable ? null : h('p', { role: 'status', style: settingsStyles.notice }, t('readOnly')),
+        h('div', { style: settingsStyles.groupTitle }, t('groupAutoAllow')),
+        h(
+          'div',
+          { style: settingsStyles.card },
+          renderSwitch(
+            'autoAllowSessions',
+            t('autoAllowSessionsTitle'),
+            t('autoAllowSessionsDesc'),
+            true,
+          ),
+        ),
         h('div', { style: settingsStyles.groupTitle }, t('groupSwitches')),
         h(
           'div',

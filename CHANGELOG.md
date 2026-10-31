@@ -4,6 +4,25 @@
 
 本项目的所有重要变更都记录在此。
 
+## [1.2.0] - 2026-10-31
+
+### 新增
+
+- 会话级自动放行：`/approvals auto` 查看状态，`/approvals auto on|off` 只改当前会话。开关跨 turn 保留，会话结束/插件卸载/重启失效；`active` 模式下 low/medium/high 直接放行，删除文件或目录的指令、`critical`、`unknown` 仍然必须人工审批。`observe`/`auditOnly` 下 `auto on` 会被拒绝并提示「观察模式不放行」。
+- 设置面板新增「自动放行」分组与「新会话默认自动放行」（`autoAllowSessions`，默认 `false`，volatile）。它只影响之后新起的会话；已在运行的会话保留启动时的快照，需要用 `/approvals auto on|off` 调整。`src/config-schema.ts`、`client.js` 与中英文案同步更新。
+- 删除意图识别（`src/grants/delete-intent.ts`）：删除工具名直接命中；其他请求把参数有界序列化（≤8192 字符；序列化失败或超长按删除处理，fail-closed）后匹配删除特征（`rm`/`rmdir`/`rd`/`del`/`erase`/`unlink`/`remove-item`/`trash`/`rimraf`、`git clean`、`find -delete`、`.delete(`、`shutil.rmtree`、`os.remove`、`fs.rm`）。`src/risk/commands.ts` 导出同一份 `DELETE_INTENT_PATTERN`，命令风险引擎复用。
+- 审计 `matchedBy` 新增两个固定值：`session-scope+risk-gate`（会话级放行）与 `session-auto-delete-blocked`（删除被豁免、回落官方卡）。不新增字段，审计格式 v1 不变。
+
+### 安全
+
+- 会话级放行只在 store 为 `active` 时生效；`critical`/`unknown` 永不自动，删除永远走官方审批卡；判断或读取异常一律 fail-closed 回落 `next()`。
+- 会话状态由 `src/grants/session-auto.ts` 的 `SessionAutoAllow` 管理：按 session 隔离、上限 64、超限丢最旧，`session/disposed` 清理单会话，插件 `dispose()` 全清。
+
+### 测试
+
+- 新增 `test/session-auto.test.ts`：开关、容量、`forget`/`clear`、配置默认快照、删除识别正反例、`observe` 拒绝、放行与豁免的 `matchedBy`、异常 fail-closed。
+- 全量 411 个测试通过，`pnpm lint` 0 warning，`pnpm build` 通过。
+
 ## [1.1.3] - 2026-10-29
 
 ### 修复

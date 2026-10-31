@@ -28,6 +28,7 @@ describe('plugin config', () => {
       maxPlanItems: 10,
       maxUsesPerItem: 3,
       maxTotalUses: 30,
+      autoAllowSessions: true,
       showDetailsButton: false,
       flashWindow: false,
       soundAlert: false,
@@ -42,6 +43,7 @@ describe('plugin config', () => {
     assert.equal(config.auditRetentionDays, 90)
     assert.equal(config.maxPlanItems, 10)
     assert.equal(config.maxUsesPerItem, 3)
+    assert.equal(config.autoAllowSessions, true)
     assert.equal(config.flashWindow, false)
     assert.equal(config.soundAlert, false)
     assert.equal(config.notifyOnPlan, false)
@@ -62,6 +64,20 @@ describe('plugin config', () => {
     assert.ok(
       invalid.warnings.some(
         (warning) => warning.field === 'turnEndOnlyWhenAway' && warning.code === 'invalid-type',
+      ),
+    )
+  })
+
+  it('defaults new-session auto-allow off and rejects a non-boolean', () => {
+    assert.equal(DEFAULT_CONFIG.autoAllowSessions, false)
+    assert.equal(sanitizeConfig({}).config.autoAllowSessions, false)
+    assert.equal(sanitizeConfig({ autoAllowSessions: true }).config.autoAllowSessions, true)
+
+    const invalid = sanitizeConfig({ autoAllowSessions: 'yes' })
+    assert.equal(invalid.config.autoAllowSessions, false)
+    assert.ok(
+      invalid.warnings.some(
+        (warning) => warning.field === 'autoAllowSessions' && warning.code === 'invalid-type',
       ),
     )
   })

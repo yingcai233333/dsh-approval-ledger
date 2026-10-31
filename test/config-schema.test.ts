@@ -13,6 +13,7 @@ import {
 } from '../src/config-volatile.js'
 
 const EXPECTED_FIELDS = [
+  'autoAllowSessions',
   'flashWindow',
   'notifications',
   'notifyOnApproval',
@@ -106,12 +107,12 @@ function volatileRef(initial: unknown): any {
 }
 
 describe('reminder config schema', () => {
-  it('projects exactly the ten reminder fields', () => {
+  it('projects exactly the expected reminder and auto-allow fields', () => {
     const { schema } = buildFakeSchema()
     const fields = volatileFields(schema)
     assert.ok(fields, 'the object schema has a volatile form')
     assert.deepEqual(Object.keys(fields).sort(), EXPECTED_FIELDS)
-    assert.equal(REMINDER_FIELDS.length, 10)
+    assert.equal(REMINDER_FIELDS.length, 11)
     assert.deepEqual(
       REMINDER_FIELDS.map((field) => field.key).sort(),
       EXPECTED_FIELDS,
@@ -120,7 +121,7 @@ describe('reminder config schema', () => {
 
   it('uses DEFAULT_CONFIG for every default', () => {
     const { states } = buildFakeSchema()
-    assert.equal(states.size, 10)
+    assert.equal(states.size, 11)
     for (const field of REMINDER_FIELDS) {
       const state = states.get(field.key)
       assert.ok(state, `${field.key} is declared`)
@@ -133,6 +134,7 @@ describe('reminder config schema', () => {
       assert.equal(state.loose, true, `${field.key} is loose`)
     }
     assert.equal(states.get('notifications')?.kind, 'boolean')
+    assert.equal(states.get('autoAllowSessions')?.kind, 'boolean')
     assert.equal(states.get('notifyRepeatSeconds')?.kind, 'number')
     assert.equal(states.get('turnBadgeSeconds')?.kind, 'number')
   })
@@ -188,7 +190,7 @@ describe('reminder config schema', () => {
     const { factory } = fakeSchemastery()
     const callableFactory = Object.assign(function schema() {}, factory)
     const schema = createConfigSchema(callableFactory)
-    assert.equal(Object.keys(volatileFields(schema) ?? {}).length, 10)
+    assert.equal(Object.keys(volatileFields(schema) ?? {}).length, 11)
 
     const child = Object.assign(function schema() {}, { type: 'boolean', meta: { volatile: true } })
     const node = Object.assign(function schema() {}, {
