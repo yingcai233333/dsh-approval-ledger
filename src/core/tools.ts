@@ -4,6 +4,12 @@
  * The host should pass the actual registered tool set to plan validation.
  * This list is only a fallback for tests and for hosts that cannot enumerate
  * tools; an unknown MCP tool therefore fails closed (the plan is rejected).
+ *
+ * The `ops_*` names are the tools `dsh-ops@0.4.1` registers. They matter beyond
+ * plan validation: the risk engine classifies by name, so an unlisted `ops_*`
+ * tool is `unknown` and can never pass the session-scope risk gate. `ops_batch`
+ * and `ops_load_sdk` stay unlisted on purpose — their semantics are not clear
+ * enough to classify, so they keep failing closed to manual approval.
  */
 
 export const READ_TOOLS: ReadonlySet<string> = new Set([
@@ -25,6 +31,15 @@ export const READ_TOOLS: ReadonlySet<string> = new Set([
   'cordis_inspect_list',
   'cordis_inspect_query',
   'skill',
+  'ops_read_files',
+  'ops_stat',
+  'ops_diff',
+  'ops_read_docx',
+  'ops_read_pdf',
+  'ops_read_table',
+  'ops_job_list',
+  'ops_job_output',
+  'ops_discover_tools',
 ])
 
 export const WRITE_TOOLS: ReadonlySet<string> = new Set([
@@ -37,6 +52,9 @@ export const WRITE_TOOLS: ReadonlySet<string> = new Set([
   'notebook_edit',
   'copy',
   'mkdir',
+  'ops_write_file',
+  'ops_edit_file',
+  'ops_copy',
 ])
 
 export const COMMAND_TOOLS: ReadonlySet<string> = new Set([
@@ -47,11 +65,19 @@ export const COMMAND_TOOLS: ReadonlySet<string> = new Set([
   'powershell',
   'run_command',
   'process',
+  'ops_bash',
+  'ops_run',
+  'ops_run_background',
 ])
 
-export const DELETE_TOOLS: ReadonlySet<string> = new Set(['delete', 'remove', 'trash'])
+export const DELETE_TOOLS: ReadonlySet<string> = new Set([
+  'delete',
+  'remove',
+  'trash',
+  'ops_remove',
+])
 
-export const MOVE_TOOLS: ReadonlySet<string> = new Set(['move', 'rename'])
+export const MOVE_TOOLS: ReadonlySet<string> = new Set(['move', 'rename', 'ops_move'])
 
 export const PLUGIN_TOOLS: ReadonlySet<string> = new Set(['plugin_manager'])
 
@@ -77,6 +103,7 @@ export const INTERFACE_TOOLS: ReadonlySet<string> = new Set([
   'send_message',
   'interrupt_agent',
   'job_kill',
+  'ops_job_kill',
 ])
 
 export const DEFAULT_KNOWN_TOOLS: ReadonlySet<string> = new Set([

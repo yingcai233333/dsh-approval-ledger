@@ -23,7 +23,7 @@
 - **设置面板**：DSH 设置 → 「审批与提醒」，11 个开关即点即存，不用改 YAML。
 - **fail-closed**：任何读不到、认不出、异常的情况都回落官方审批卡，插件不做猜测。
 
-> **状态：1.2.0 已发布到 npm（`latest`）；desktop 安装 1.2.0（`mode: active`、`autoSelectAll: false`、`turnEndOnlyWhenAway: false`、`autoAllowSessions: true`）。** 1.2.0 新增**会话级自动放行**：只对当前会话生效，low/medium/high 直接放行，**删除文件、critical、unknown 永远走官方审批卡**；可用 `/approvals auto on|off` 或设置面板的「新会话默认自动放行」控制。1.1.3 修掉完成提醒的声音延迟；1.1.2 修掉「完成提醒从 1.1.0 起从未执行」。
+> **状态：1.2.1 已发布到 npm（`latest`）；desktop 安装 1.2.1（`mode: active`、`autoSelectAll: false`、`turnEndOnlyWhenAway: false`、`autoAllowSessions: true`）。** 1.2.1 修掉「PTC 会话 / dsh-ops 工具上会话级自动放行不生效」（PTC inner call 的参数改从 `tool/ptc-dispatch-start` 取，`ops_*` 工具补进风险分类）。1.2.0 新增**会话级自动放行**：只对当前会话生效，low/medium/high 直接放行，**删除文件、critical、unknown 永远走官方审批卡**。
 
 ## 截图
 
@@ -69,10 +69,10 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-npm 上 `latest` 指向 `1.2.0`，`next` 仍是 `0.2.0-beta.15`；desktop 安装 1.2.0 并启用 active。安装：
+npm 上 `latest` 指向 `1.2.1`，`next` 仍是 `0.2.0-beta.15`；desktop 安装 1.2.1 并启用 active。安装：
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.2.0
+dsh plugin --profile <profile> add dsh-approval-ledger@1.2.1
 ```
 
 显式开启 medium 自动放行：

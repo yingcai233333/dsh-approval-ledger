@@ -4,6 +4,19 @@
 
 本项目的所有重要变更都记录在此。
 
+## [1.2.1] - 2026-10-31
+
+### 修复
+
+- 会话级自动放行在 PTC 会话和 dsh-ops 工具上完全不生效：PTC inner call 只写 `tool/ptc-dispatch-start`、没有对应的 `tool/call`，`SessionTracker` 取不到参数，写/命令类调用被判 `unknown`；dsh-ops 的 `ops_*` 工具不在风险分类里，被判 `unknown-tool`。现在 `SessionTracker` 从 `tool/ptc-dispatch-start` 取参数（`subCallId` 当 callId、`name` 当工具名、`arguments` 为对象或 JSON 字符串，超 1MB 仍丢弃），历史扫描同样识别该事件；`src/core/tools.ts` 补上 dsh-ops 的读/写/移动/删除/命令工具与 `ops_job_kill`（`ops_batch`/`ops_load_sdk` 语义不明，继续 fail-closed）。`ops_bash` 的 `{command}` 走命令风险评估，`rm -rf` 仍按删除例外、`ops_remove` 永远人工；`ops_copy`/`ops_move` 的目的地 `to` 也纳入路径评估，避免只按源路径判风险。
+
+### 测试
+
+- 扩展 `test/session-tracker.test.ts`：PTC dispatch 经 `observe` 与历史扫描取到 `args`/`tool`/`turn`，参数为对象与 JSON 字符串两种形态，`subCallId` 不匹配、无 turn 边界、超 1MB 仍按 fail-closed 处理。
+- 新增 `test/tools.test.ts`：dsh-ops 工具的读/写/命令/移动/删除/接口分类，`ops_batch`/`ops_load_sdk` 保持 `unknown`，`ops_bash` 的 `{command}` 被命令风险评估识别。
+- `test/session-auto.test.ts` 补充集成用例：PTC dispatch 提供参数后 `ops_bash` 自动放行（`matchedBy: session-scope+risk-gate`），`ops_bash` 带 `rm -rf` 与 `ops_remove` 仍被删除例外拦下（`matchedBy: session-auto-delete-blocked`）。
+- 全量 430 个测试通过，`pnpm lint` 0 warning，`pnpm build` 通过。
+
 ## [1.2.0] - 2026-10-31
 
 ### 新增

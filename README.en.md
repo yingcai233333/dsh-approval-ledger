@@ -23,7 +23,7 @@ Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek
 - **Settings panel**: DSH Settings → "Approvals & alerts", eleven switches saved on click — no YAML editing.
 - **Fail closed**: anything unreadable, unrecognised or broken falls back to the official approval card; the plugin never guesses.
 
-> **Status: 1.2.0 is published to npm (`latest`); the desktop profile runs 1.2.0 (`mode: active`, `autoSelectAll: false`, `turnEndOnlyWhenAway: false`, `autoAllowSessions: true`).** 1.2.0 adds **session-scope auto-allow**: it applies to the current session only, allows low/medium/high, and **deletes, critical and unknown risk always take the official card**; control it with `/approvals auto on|off` or the settings panel's "new sessions auto-allow by default". 1.1.3 fixed the chime delay; 1.1.2 fixed "the turn-complete alert never ran since 1.1.0".
+> **Status: 1.2.1 is published to npm (`latest`); the desktop profile runs 1.2.1 (`mode: active`, `autoSelectAll: false`, `turnEndOnlyWhenAway: false`, `autoAllowSessions: true`).** 1.2.1 fixes "session-scope auto-allow did nothing in PTC sessions or for dsh-ops tools" (PTC inner-call arguments now come from `tool/ptc-dispatch-start`, and `ops_*` tools are classified in the risk policy). 1.2.0 added **session-scope auto-allow**: current session only, low/medium/high allowed, **deletes, critical and unknown risk always take the official card**.
 
 ## Screenshots
 
@@ -69,10 +69,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `1.2.0`; `next` is still `0.2.0-beta.15`. Desktop runs 1.2.0 with active mode enabled. Install:
+npm `latest` points at `1.2.1`; `next` is still `0.2.0-beta.15`. Desktop runs 1.2.1 with active mode enabled. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.2.0
+dsh plugin --profile <profile> add dsh-approval-ledger@1.2.1
 ```
 
 To opt into medium auto-approval explicitly:

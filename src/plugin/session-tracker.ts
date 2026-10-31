@@ -25,6 +25,16 @@ function parseArguments(value: unknown): unknown {
 }
 
 /**
+ * Arguments of a PTC inner call, which `tool/ptc-dispatch-start` stores either
+ * as an already-parsed object/array or as the same JSON string `tool/call`
+ * carries. Oversized strings are dropped exactly like `parseArguments`.
+ */
+function readDispatchedArguments(value: unknown): unknown {
+  if (isPlainObject(value) || Array.isArray(value)) return value
+  return parseArguments(value)
+}
+
+/**
  * Last known turn boundary in a historical log, or `undefined` when the log has
  * none. Never substitutes 0: an invented turn 0 would create a grant that the
  * real `turn/end` can never revoke, leaking it across turns.
@@ -50,6 +60,12 @@ function lastTurn(events: readonly SessionEventLike[]): number | undefined {
  * synchronous history reader). No filesystem, no persistence; session disposal
  * clears everything, and tool-call arguments stay in memory only.
  *
+ * PTC inner calls are folded too: they never append `tool/call` (only the outer
+ * `run_code` call does), so `tool/ptc-dispatch-start` — whose `subCallId` is the
+ * callId the approval asks for and whose `arguments` are the real ones — is the
+ * only place their arguments exist. Without it the arguments are unknown and
+ * writes/commands can never pass the risk gate.
+ *
  * A failed history read is never treated as "no events": the session is marked
  * degraded (a sticky in-memory reason code) and turn lookups return `undefined`
  * so callers fail closed instead of binding grants to an invented turn.
@@ -66,6 +82,21 @@ export class SessionTracker {
     if (event.type === 'turn/start' || event.type === 'turn/end') {
       const turn = readTurn(data.turn)
       if (turn !== undefined) this.turns.set(session.id, turn)
+      return
+    }
+    if (event.type === 'tool/ptc-dispatch-start') {
+      const callId = typeof data.subCallId === 'string' ? data.subCallId : undefined
+      const tool = typeof data.name === 'string' ? data.name : undefined
+      if (callId === undefined || callId.length === 0 || tool === undefined) return
+      // A dispatch always happens inside an already open turn, so the cached
+      // turn is the right binding; never invent one.
+      this.rememberCall(session.id, {
+        callId,
+        tool,
+        args: readDispatchedArguments(data.arguments),
+        turn: this.turns.get(session.id),
+        time: typeof event.time === 'number' ? event.time : undefined,
+      })
       return
     }
     if (event.type !== 'tool/call') return
@@ -129,6 +160,13 @@ export class SessionTracker {
     return turn
   }
 
+  /**
+   * Arguments of one call, from the in-memory cache or the session history.
+   *
+   * History scanning accepts both `tool/call` (matched by `data.callId`) and the
+   * PTC inner call `tool/ptc-dispatch-start` (matched by `data.subCallId`), so a
+   * call can be resolved even when the plugin started after the event fired.
+   */
   toolCall(session: Session, callId: string | undefined): ToolCallInfo | undefined {
     if (callId === undefined) return undefined
     const cached = this.calls.get(session.id)?.get(callId)
@@ -141,19 +179,36 @@ export class SessionTracker {
     const events = read.events
     for (let index = events.length - 1; index >= 0; index -= 1) {
       const event = events[index]
-      if (event === undefined || event.type !== 'tool/call') continue
+      if (event === undefined) continue
       const data = isPlainObject(event.data) ? event.data : undefined
-      if (data === undefined || data.callId !== callId) continue
-      if (typeof data.name !== 'string') continue
-      const info: ToolCallInfo = {
-        callId,
-        tool: data.name,
-        args: parseArguments(data.arguments),
-        turn: readTurn(data.turn),
-        time: typeof event.time === 'number' ? event.time : undefined,
+      if (data === undefined) continue
+      if (event.type === 'tool/call') {
+        if (data.callId !== callId || typeof data.name !== 'string') continue
+        const info: ToolCallInfo = {
+          callId,
+          tool: data.name,
+          args: parseArguments(data.arguments),
+          turn: readTurn(data.turn),
+          time: typeof event.time === 'number' ? event.time : undefined,
+        }
+        this.rememberCall(session.id, info)
+        return info
       }
-      this.rememberCall(session.id, info)
-      return info
+      if (event.type === 'tool/ptc-dispatch-start') {
+        if (data.subCallId !== callId || typeof data.name !== 'string') continue
+        const info: ToolCallInfo = {
+          callId,
+          tool: data.name,
+          args: readDispatchedArguments(data.arguments),
+          // Dispatch events generally carry no `turn`; the last turn boundary in
+          // the same log is the open turn, exactly what `currentTurn` would
+          // return. Still never invented: no boundary means `undefined`.
+          turn: readTurn(data.turn) ?? lastTurn(events),
+          time: typeof event.time === 'number' ? event.time : undefined,
+        }
+        this.rememberCall(session.id, info)
+        return info
+      }
     }
     return undefined
   }

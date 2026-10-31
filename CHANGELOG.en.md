@@ -4,6 +4,19 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.1] - 2026-10-31
+
+### Fixed
+
+- **Session-scope auto-allow did nothing in PTC sessions and for dsh-ops tools**: a PTC inner call writes only `tool/ptc-dispatch-start` and never a matching `tool/call`, so `SessionTracker` had no arguments and write/command calls were assessed as `unknown`; dsh-ops `ops_*` tools were absent from the risk policy and were assessed as `unknown-tool`. `SessionTracker` now reads the arguments from `tool/ptc-dispatch-start` (`subCallId` as the callId, `name` as the tool, `arguments` as an object or a JSON string, still dropped above 1 MB) and its history scan recognises that event too; `src/core/tools.ts` now covers the dsh-ops read/write/move/delete/command tools and `ops_job_kill` (`ops_batch`/`ops_load_sdk` keep failing closed because their semantics are unclear). `ops_bash`'s `{command}` goes through command risk assessment, `rm -rf` still hits the delete exemption, and `ops_remove` always stays manual; the `to` destination of `ops_copy`/`ops_move` is assessed too, so the risk is never derived from the source path alone.
+
+### Tests
+
+- Extended `test/session-tracker.test.ts`: a PTC dispatch resolves `args`/`tool`/`turn` through both `observe` and the history scan, with object and JSON-string arguments, a non-matching `subCallId`, no turn boundary, and the over-1 MB fail-closed case.
+- New `test/tools.test.ts`: the dsh-ops read/write/command/move/delete/interface classification, `ops_batch`/`ops_load_sdk` staying `unknown`, and `ops_bash`'s `{command}` being recognised by command risk assessment.
+- `test/session-auto.test.ts` gains integration cases: with dispatch arguments present, `ops_bash` is auto-allowed (`matchedBy: session-scope+risk-gate`), while `ops_bash` with `rm -rf` and `ops_remove` are still stopped by the delete exemption (`matchedBy: session-auto-delete-blocked`).
+- 430 tests pass in total, `pnpm lint` reports 0 warnings, and `pnpm build` succeeds.
+
 ## [1.2.0] - 2026-10-31
 
 ### Added

@@ -299,6 +299,57 @@ describe('/approvals auto', () => {
   })
 })
 
+interface PtcDispatchInput {
+  seq: number
+  callId: string
+  tool: string
+  args: unknown
+  /** Push the dispatch only into the log, without observing it live. */
+  historyOnly?: boolean
+}
+
+/**
+ * A PTC inner call: the session log carries `tool/ptc-dispatch-start` with the
+ * real `arguments`, and no `tool/call` for the `subCallId` at all — exactly the
+ * shape that used to leave `prepareApproval` with `args === undefined`.
+ */
+async function callApprovalViaPtc(
+  harness: Harness,
+  input: PtcDispatchInput,
+  fallback: ApprovalOutcome = 'rejected',
+): Promise<ApprovalOutcome> {
+  const { ctx, agent, session, events } = harness
+  const dispatch = makeEvent(input.seq, 'tool/ptc-dispatch-start', {
+    rootCallId: 'call_root',
+    parentCallId: 'call_root',
+    subCallId: input.callId,
+    name: input.tool,
+    arguments: input.args,
+  })
+  events.push(dispatch)
+  if (input.historyOnly !== true) ctx.emitSessionEvent(session, dispatch)
+  events.push(
+    makeEvent(input.seq + 1, 'approval/asked', {
+      id: `ask-${input.callId}`,
+      toolName: input.tool,
+      callId: input.callId,
+    }),
+  )
+  const outcome = await ctx.emitApproval(
+    {
+      agent,
+      toolName: input.tool,
+      callId: input.callId,
+      displayReason: { en: 'old', zh: '旧' },
+    },
+    fallback,
+  )
+  events.push(
+    makeEvent(input.seq + 2, 'approval/decided', { id: `ask-${input.callId}`, outcome }),
+  )
+  return outcome
+}
+
 describe('session auto-allow integration', () => {
   it('auto-allows a medium write once enabled and records the matchedBy code', async () => {
     const harness = setup()
@@ -496,6 +547,62 @@ describe('session auto-allow integration', () => {
     } finally {
       dispose()
       runtime.dispose()
+    }
+  })
+
+  it('auto-allows an ops_bash PTC inner call once dispatch arguments are known', async () => {
+    const harness = setup()
+    runApprovals(harness.ctx, harness.agent, 'auto on')
+
+    // Live dispatch event (the production path: session/event is observed).
+    const live = await callApprovalViaPtc(harness, {
+      seq: 70,
+      callId: 'call_root:ptc:1',
+      tool: 'ops_bash',
+      args: { command: 'npm test' },
+    })
+    assert.equal(live, 'allowed-once')
+
+    // The dispatch only exists in the history (plugin started after the event).
+    const scanned = await callApprovalViaPtc(harness, {
+      seq: 73,
+      callId: 'call_root:ptc:2',
+      tool: 'ops_bash',
+      args: { command: 'pnpm build' },
+      historyOnly: true,
+    })
+    assert.equal(scanned, 'allowed-once')
+
+    const rows = auditRows(harness.ctx, harness.agent)
+    for (const callId of ['call_root:ptc:1', 'call_root:ptc:2']) {
+      assert.equal(rowFor(rows, callId)?.matchedBy, 'session-scope+risk-gate', callId)
+      assert.equal(rowFor(rows, callId)?.decision, 'allowed-once', callId)
+    }
+  })
+
+  it('keeps a PTC ops_bash delete and an ops_remove on the official card', async () => {
+    const harness = setup()
+    runApprovals(harness.ctx, harness.agent, 'auto on')
+
+    const recursive = await callApprovalViaPtc(harness, {
+      seq: 80,
+      callId: 'call_root:ptc:3',
+      tool: 'ops_bash',
+      args: { command: IS_WIN ? 'rm -rf C:\\ws' : 'rm -rf /ws' },
+    })
+    assert.equal(recursive, 'rejected')
+
+    const remove = await callApprovalViaPtc(harness, {
+      seq: 83,
+      callId: 'call_root:ptc:4',
+      tool: 'ops_remove',
+      args: { path: REPORT },
+    })
+    assert.equal(remove, 'rejected')
+
+    const rows = auditRows(harness.ctx, harness.agent)
+    for (const callId of ['call_root:ptc:3', 'call_root:ptc:4']) {
+      assert.equal(rowFor(rows, callId)?.matchedBy, 'session-auto-delete-blocked', callId)
     }
   })
 })

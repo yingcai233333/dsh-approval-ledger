@@ -4,7 +4,7 @@
 
 ## DSH
 
-- Target runtime: DSH `0.2.1-rc.3` (Windows desktop, `@deepseek-ai/dsh-desktop-runtime`; `dsh/package.json:4`, build `be72761`). Plugin version `1.2.0`.
+- Target runtime: DSH `0.2.1-rc.5` (Windows desktop, `@deepseek-ai/dsh-desktop-runtime`; verified live on this machine on 2026-10-31 — approval hook, `/approvals`, the settings panel, and session-scope auto-allow all work). The **static** interface baseline is still `0.2.1-rc.3` (build `be72761`); the rc.3 → rc.5 file-by-file diff has not been re-checked yet. Plugin version `1.2.1`.
 - Verification baseline: the 0.2.1-rc.3 install package at `D:\software\DS-harness\resources\app.asar` (re-checked 2026-10-26; 315 `@deepseek-ai/*` packages, 18,188 files). The rc.2 export (2026-10-21; 306 packages, 18,309 files) is kept under `.p0-test/asar/`, so the two exports can be compared file by file: of 73 `.js` files in 22 comparable packages, 71 are byte-identical, and the two differing client bundles differ only in build paths (`D:\develop\…` → `D:\ci\runners\…`) and CSS-module hash class names — zero interface change (see `.p0-test/rc3/drift-report.md`). The whole archive contains **no `.d.ts` at all**, and the profile's `node_modules` has no `@deepseek-ai/*` either; the static check therefore used the shipped JS implementations, the type-declaration strings embedded in `lib/typert.host.js`, and the package READMEs. `dsh/...:line` below means a body line of that entry inside the archive (same convention as `docs/runtime-spike.md`).
 
 ### How far verification goes
@@ -63,8 +63,8 @@
 
 ## Self-check on another machine / platform
 
-1. **Install and confirm the version**: install `1.2.0` on the target machine (desktop installer, or `dsh plugin add dsh-approval-ledger`), run `dsh plugin list`, and confirm the package name, version `1.2.0`, and enabled state.
-2. **Confirm the DSH version and declaration**: `dsh --version` should be `0.2.1-rc.2` or `0.2.1-rc.3`; open `node_modules/dsh-approval-ledger/package.json` and confirm `engines.dsh` is `>=0.2.1-rc.2 <0.3.0-0` (that is the real install/startup gate); `dsh.compatibility.dshReleases` is descriptive metadata only (see above).
+1. **Install and confirm the version**: install `1.2.1` on the target machine (desktop installer, or `dsh plugin add dsh-approval-ledger`), run `dsh plugin list`, and confirm the package name, version `1.2.1`, and enabled state.
+2. **Confirm the DSH version and declaration**: `dsh --version` should be `0.2.1-rc.2` through `0.2.1-rc.5`; open `node_modules/dsh-approval-ledger/package.json` and confirm `engines.dsh` is `>=0.2.1-rc.2 <0.3.0-0` (that is the real install/startup gate); `dsh.compatibility.dshReleases` is descriptive metadata only (see above).
 3. **Command surface**: in a new session run `/approvals audit`; it should print the "Approval decision ledger" report (not an unknown command). Then run `/approvals last` and `/approvals grants`.
 4. **Single approval**: have the model perform a write that needs approval (for example a `danger-full-access` write outside the workspace) and confirm the official card title is the rewritten `写入文件 · <path> · 完全访问` with the pending-approval note at the lower right; reject it, then confirm the file does not exist and `/approvals audit` records the rejection.
 5. **Plan surface**: submit two items with `request_approvals` (one file write, one command) and confirm the plan-review card plus the per-item selection card; approve only one item and confirm only that item runs, and that `/approvals grants` is empty after the turn ends.

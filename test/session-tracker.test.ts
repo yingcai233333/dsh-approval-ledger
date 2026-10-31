@@ -108,3 +108,107 @@ describe('session tracker', () => {
     assert.equal(tracker.isDegraded('s1'), false)
   })
 })
+
+// PTC inner calls never append `tool/call`; the dispatch event carries the
+// arguments and the `subCallId` the approval asks about.
+function dispatchEvent(
+  seq: number,
+  subCallId: string,
+  name: string,
+  args: unknown,
+): SessionEvent {
+  return event(seq, 'tool/ptc-dispatch-start', {
+    rootCallId: 'call_root',
+    parentCallId: 'call_root',
+    subCallId,
+    name,
+    arguments: args,
+  })
+}
+
+describe('session tracker: PTC dispatch', () => {
+  it('folds a dispatch event with object arguments and the observed turn', () => {
+    const tracker = new SessionTracker()
+    const s = session('s1', [])
+    tracker.observe(s, event(1, 'turn/start', { turn: 4 }))
+    tracker.observe(
+      s,
+      dispatchEvent(2, 'call_root:ptc:1', 'ops_inspect_local_file', {
+        path: 'C:\\ws\\a.md',
+        limit: 20,
+      }),
+    )
+    const call = tracker.toolCall(s, 'call_root:ptc:1')
+    assert.equal(call?.callId, 'call_root:ptc:1')
+    assert.equal(call?.tool, 'ops_inspect_local_file')
+    assert.deepEqual(call?.args, { path: 'C:\\ws\\a.md', limit: 20 })
+    assert.equal(call?.turn, 4)
+    assert.equal(call?.time, 20)
+    // The approval only asks about the sub-call; the outer callId stays unknown.
+    assert.equal(tracker.toolCall(s, 'call_root'), undefined)
+  })
+
+  it('folds a dispatch event whose arguments are a JSON string', () => {
+    const tracker = new SessionTracker()
+    const s = session('s1', [])
+    tracker.observe(s, event(1, 'turn/start', { turn: 2 }))
+    tracker.observe(
+      s,
+      dispatchEvent(2, 'call_root:ptc:2', 'ops_write_file', JSON.stringify({ path: 'C:\\ws\\b.md' })),
+    )
+    assert.deepEqual(tracker.toolCall(s, 'call_root:ptc:2')?.args, { path: 'C:\\ws\\b.md' })
+  })
+
+  it('scans history for a dispatch event matched by subCallId', () => {
+    const tracker = new SessionTracker()
+    const s = session('s1', [
+      event(1, 'turn/start', { turn: 7 }),
+      dispatchEvent(2, 'call_x:ptc:1', 'ops_bash', { command: 'npm test' }),
+    ])
+    const call = tracker.toolCall(s, 'call_x:ptc:1')
+    assert.equal(call?.tool, 'ops_bash')
+    assert.deepEqual(call?.args, { command: 'npm test' })
+    assert.equal(call?.turn, 7)
+  })
+
+  it('scans history for a JSON string dispatch payload', () => {
+    const tracker = new SessionTracker()
+    const s = session('s1', [
+      event(1, 'turn/start', { turn: 3 }),
+      dispatchEvent(2, 'call_x:ptc:2', 'ops_read_files', '{"files":[{"path":"C:\\\\ws\\\\c.ts"}]}'),
+    ])
+    assert.deepEqual(tracker.toolCall(s, 'call_x:ptc:2')?.args, {
+      files: [{ path: 'C:\\ws\\c.ts' }],
+    })
+  })
+
+  it('returns undefined when no dispatch matches the requested callId', () => {
+    const tracker = new SessionTracker()
+    const s = session('s1', [
+      event(1, 'turn/start', { turn: 1 }),
+      dispatchEvent(2, 'call_x:ptc:1', 'ops_bash', { command: 'npm test' }),
+    ])
+    assert.equal(tracker.toolCall(s, 'call_x:ptc:2'), undefined)
+  })
+
+  it('never invents a turn for a dispatch observed outside a turn', () => {
+    const tracker = new SessionTracker()
+    const s = session('s1', [])
+    tracker.observe(s, dispatchEvent(1, 'call_x:ptc:1', 'ops_bash', { command: 'npm test' }))
+    assert.deepEqual(tracker.toolCall(s, 'call_x:ptc:1')?.args, { command: 'npm test' })
+    assert.equal(tracker.toolCall(s, 'call_x:ptc:1')?.turn, undefined)
+  })
+
+  it('drops oversized dispatch arguments but keeps the call itself', () => {
+    const tracker = new SessionTracker()
+    const s = session('s1', [])
+    tracker.observe(s, event(1, 'turn/start', { turn: 1 }))
+    tracker.observe(
+      s,
+      dispatchEvent(2, 'call_x:ptc:1', 'ops_write_file', JSON.stringify({ content: 'a'.repeat(1_000_001) })),
+    )
+    const call = tracker.toolCall(s, 'call_x:ptc:1')
+    assert.equal(call?.tool, 'ops_write_file')
+    assert.equal(call?.args, undefined)
+  })
+})

@@ -50,6 +50,10 @@ const PATH_VALUE_KEYS = [
   'target',
   'destination',
   'source',
+  // dsh-ops `ops_copy`/`ops_move` spell the destination `to`; both ends of a
+  // move/copy must be assessed, or a destination outside the workspace would
+  // inherit the source's lower risk level.
+  'to',
 ] as const
 
 function reason(code: string, level: RiskLevel, message: string): RiskReason {
