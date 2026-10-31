@@ -32,6 +32,7 @@ describe('package manifest', () => {
     assert.deepEqual(manifest.dsh?.compatibility?.dshReleases, {
       '0.2.1-rc.2': 'compatible',
       '0.2.1-rc.3': 'compatible',
+      '0.2.1-rc.5': 'compatible',
     })
   })
 

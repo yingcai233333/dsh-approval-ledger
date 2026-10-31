@@ -49,6 +49,7 @@
 - Pay attention to the rows marked **drift** in the interface check above.
 - The archive's JS can be compared with the previous export by SHA256: `extract` into `.p0-test/<version>/` first, then diff. If only build paths and hashed class names differ, it is the same source rebuilt in CI and the interface check does not need to be repeated (that is exactly what rc.2 → rc.3 turned out to be).
 - Record: `0.2.1-rc.3` (2026-10-26) was re-checked against this page; the tools, the command and all three client slots are mounted on the live instance (see `.p0-test/rc3/live-verification.md`). Only docs and `dshReleases` changed — no code.
+- Record: `0.2.1-rc.5` (2026-10-31) was verified on the live instance: the approval hook, the `/approvals` command, the settings panel, and session-scope auto-allow (including PTC inner calls and dsh-ops tools) all work; `dshReleases` marks it `compatible`. **rc.4 is unverified**, and the rc.3 → rc.5 file-by-file static diff has not been done — until it is, do not treat rc.5 as statically checked.
 
 ## Tests
 
