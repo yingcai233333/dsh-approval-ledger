@@ -4,6 +4,16 @@
 
 本项目的所有重要变更都记录在此。
 
+## [1.2.3] - 2026-11-12
+
+### 修复
+
+- 「设置面板开了『新会话默认自动放行』，但 profile 里没有 `mode: active`」这个组合以前**完全静默**：插件保持 observe，只记 `would-allow`，每个调用照样弹官方卡，`/approvals auto on` 还会被拒——实测有 profile 装完插件后从没配过 `mode`，用户一直以为开关坏了。现在 `apply()` 检测到该组合会打一条 `logger.warn`（跨越到该组合时只警告一次，判定由纯函数 `sessionAutoBlockedReason()` 完成），设置面板里这一项的说明也写明「需要 mode: active，观察模式下不生效」。
+
+### 文档
+
+- README 新增「开了自动放行，为什么还在弹卡」排查清单：① profile 缺 `mode: active`；② 会话早于开关，需要 `/approvals auto on`（插件重载会重新取快照）；③ 改错 profile（`desktop` / `web` 各有自己的 `cordis.patch.yml`）。`docs/runtime-notes.md` 同步记录。
+
 ## [1.2.2] - 2026-10-31
 
 ### 变更

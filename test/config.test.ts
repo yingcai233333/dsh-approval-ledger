@@ -6,6 +6,7 @@ import {
   planLimitsFromConfig,
   riskPolicyFromConfig,
   sanitizeConfig,
+  sessionAutoBlockedReason,
 } from '../src/config.js'
 
 describe('plugin config', () => {
@@ -133,6 +134,22 @@ describe('plugin config', () => {
     assert.equal(isObserveOnly(config), true)
     assert.equal(riskPolicyFromConfig(config).allowHighRiskGrants, false)
     assert.ok(warnings.some((warning) => warning.code === 'audit-only-forces-observe'))
+  })
+
+  it('explains why an enabled auto-allow switch cannot run', () => {
+    // Reported 2026-11-12: the `web` profile enabled nothing and ran the default
+    // observe mode, so every approval kept asking with no hint about `mode`.
+    const { config: observe } = sanitizeConfig({ autoAllowSessions: true })
+    assert.equal(sessionAutoBlockedReason(observe), 'observe')
+
+    const { config: auditOnly } = sanitizeConfig({ mode: 'active', auditOnly: true, autoAllowSessions: true })
+    assert.equal(sessionAutoBlockedReason(auditOnly), 'auditOnly')
+
+    const { config: active } = sanitizeConfig({ mode: 'active', autoAllowSessions: true })
+    assert.equal(sessionAutoBlockedReason(active), undefined)
+
+    const { config: off } = sanitizeConfig({ mode: 'active', autoAllowSessions: false })
+    assert.equal(sessionAutoBlockedReason(off), undefined)
   })
 
   it('maps active high-risk opt-in to the risk policy', () => {

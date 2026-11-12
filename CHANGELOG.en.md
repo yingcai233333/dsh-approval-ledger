@@ -4,6 +4,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.3] - 2026-11-12
+
+### Fixed
+
+- "The settings panel's 'new sessions auto-allow by default' is on but the profile has no `mode: active`" used to be **completely silent**: the plugin stayed in observe, only recorded `would-allow`, still sent every call to the official card, and rejected `/approvals auto on`. A real profile had never configured `mode` after installing the plugin, so the switch looked broken. `apply()` now logs a `logger.warn` for that combination (once per transition, decided by the pure `sessionAutoBlockedReason()`), and the settings switch's description states the `mode: active` requirement.
+
+### Docs
+
+- README gains an "Auto-allow is on but approvals still ask" checklist: (1) the profile lacks `mode: active`; (2) the session started before the switch, so it needs `/approvals auto on` (a plugin reload re-captures the default); (3) the wrong profile was edited (`desktop` and `web` each have their own `cordis.patch.yml`). `docs/runtime-notes.md` records the same.
+
 ## [1.2.2] - 2026-10-31
 
 ### Changed

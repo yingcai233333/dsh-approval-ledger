@@ -23,7 +23,7 @@
 - **设置面板**：DSH 设置 → 「审批与提醒」，11 个开关即点即存，不用改 YAML。
 - **fail-closed**：任何读不到、认不出、异常的情况都回落官方审批卡，插件不做猜测。
 
-> **状态：1.2.2 已发布到 npm（`latest`）；desktop 安装 1.2.2（`mode: active`、`autoSelectAll: false`、`turnEndOnlyWhenAway: false`、`autoAllowSessions: true`）。** 1.2.2 只是把 `dshReleases` 补上 `0.2.1-rc.5`（说明性元数据）并记录 rc.5 的运行验证。1.2.1 修掉「PTC 会话 / dsh-ops 工具上会话级自动放行不生效」；1.2.0 新增**会话级自动放行**：只对当前会话生效，low/medium/high 直接放行，**删除文件、critical、unknown 永远走官方审批卡**。
+> **状态：1.2.3 已发布到 npm（`latest`）；desktop 与 web profile 都跑 1.2.3。** 1.2.3 修掉「面板开了自动放行、但 profile 没有 `mode: active`」的静默失效（现在会在日志警告，并补了 README 排查清单）。1.2.2 补 `dshReleases` 的 `0.2.1-rc.5`；1.2.1 修掉「PTC 会话 / dsh-ops 工具上会话级自动放行不生效」；1.2.0 新增**会话级自动放行**：只对当前会话生效，low/medium/high 直接放行，**删除文件、critical、unknown 永远走官方审批卡**。
 
 ## 截图
 
@@ -69,10 +69,10 @@ DSH 的写文件/跑命令审批是一个一个弹的。写/命令类工具是�
 
 ## 安装
 
-npm 上 `latest` 指向 `1.2.2`，`next` 仍是 `0.2.0-beta.15`；desktop 安装 1.2.2 并启用 active。安装：
+npm 上 `latest` 指向 `1.2.3`，`next` 仍是 `0.2.0-beta.15`；desktop 与 web profile 都装 1.2.3 并启用 active。安装：
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.2.2
+dsh plugin --profile <profile> add dsh-approval-ledger@1.2.3
 ```
 
 显式开启 medium 自动放行：
@@ -110,6 +110,16 @@ dsh plugin --profile <profile> add dsh-approval-ledger@1.2.2
     mode: active
     autoAllowSessions: true   # 只作新会话的默认值；删除/critical/unknown 仍人工
 ```
+
+### 开了自动放行，为什么还在弹卡
+
+按这个顺序查，三个原因覆盖了目前遇到的全部情况：
+
+1. **profile 里没有 `mode: active`**：设置面板的开关改不了 `mode`（它是 YAML-only）。`mode` 缺失时默认是 `observe`——只记录「本该放行」，每个调用照样弹官方卡，而且 `/approvals auto on` 会被拒绝。1.2.3 起插件会在日志里明确警告这个组合，设置面板那一项的说明也写了。
+2. **会话是在开启之前就开着的**：`autoAllowSessions` 只给之后新起的会话做默认值；已经在跑的会话发一次 `/approvals auto on` 即可（插件重载后会自动按新配置重新取快照）。
+3. **profile 搞错了**：`desktop` 和 `web`（或你自建的其他 profile）各有自己的 `cordis.patch.yml`，配置不共享。你在 `dsh web` 里跑，就得改 `~/.dsh/profiles/web/cordis.patch.yml`。
+
+排除法：`/approvals auto` 的输出第一行就是「当前是否放行：是/否」和第二行的模式；显示 `否（观察模式）` 就是第 1 条。
 
 ## 提醒配置
 

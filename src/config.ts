@@ -303,6 +303,23 @@ export function isObserveOnly(config: PluginConfig): boolean {
   return config.mode === 'observe' || config.auditOnly
 }
 
+/**
+ * Why the session-scope auto-allow switch cannot do anything right now, or
+ * `undefined` when it can.
+ *
+ * `autoAllowSessions` is a settings-panel switch, but session-scope allow only
+ * runs while the store enforces (`mode: active`), and `mode` is YAML-only. A
+ * profile that enabled the switch without `mode: active` therefore silently
+ * keeps asking for every approval — the exact confusion reported on 2026-11-12.
+ * Pure so the warning text is unit-testable.
+ */
+export function sessionAutoBlockedReason(config: PluginConfig): string | undefined {
+  if (config.autoAllowSessions !== true) return undefined
+  if (config.auditOnly) return 'auditOnly'
+  if (config.mode !== 'active') return 'observe'
+  return undefined
+}
+
 /** Map config to the risk policy used by the matcher. */
 export function riskPolicyFromConfig(config: PluginConfig): RiskPolicy {
   return {

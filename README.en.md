@@ -23,7 +23,7 @@ Batch approvals with a risk gate and an auditable decision ledger for **DeepSeek
 - **Settings panel**: DSH Settings → "Approvals & alerts", eleven switches saved on click — no YAML editing.
 - **Fail closed**: anything unreadable, unrecognised or broken falls back to the official approval card; the plugin never guesses.
 
-> **Status: 1.2.2 is published to npm (`latest`); the desktop profile runs 1.2.2 (`mode: active`, `autoSelectAll: false`, `turnEndOnlyWhenAway: false`, `autoAllowSessions: true`).** 1.2.2 only adds `0.2.1-rc.5` to `dshReleases` (descriptive metadata) and records the rc.5 live check. 1.2.1 fixed "session-scope auto-allow did nothing in PTC sessions or for dsh-ops tools"; 1.2.0 added **session-scope auto-allow**: current session only, low/medium/high allowed, **deletes, critical and unknown risk always take the official card**.
+> **Status: 1.2.3 is published to npm (`latest`); both the `desktop` and `web` profiles run 1.2.3.** 1.2.3 fixes the silent no-op when "auto-allow by default" is on but the profile has no `mode: active` (now logged as a warning, plus a README checklist). 1.2.2 added `0.2.1-rc.5` to `dshReleases`; 1.2.1 fixed "session-scope auto-allow did nothing in PTC sessions or for dsh-ops tools"; 1.2.0 added **session-scope auto-allow**: current session only, low/medium/high allowed, **deletes, critical and unknown risk always take the official card**.
 
 ## Screenshots
 
@@ -69,10 +69,10 @@ With the default observe-only configuration the plan is reviewed, but each actua
 
 ## Install
 
-npm `latest` points at `1.2.2`; `next` is still `0.2.0-beta.15`. Desktop runs 1.2.2 with active mode enabled. Install:
+npm `latest` points at `1.2.3`; `next` is still `0.2.0-beta.15`. Both the `desktop` and `web` profiles run 1.2.3 with active mode enabled. Install:
 
 ```sh
-dsh plugin --profile <profile> add dsh-approval-ledger@1.2.2
+dsh plugin --profile <profile> add dsh-approval-ledger@1.2.3
 ```
 
 To opt into medium auto-approval explicitly:
@@ -110,6 +110,16 @@ The settings panel gains an "Auto-allow" group and "New sessions auto-allow by d
     mode: active
     autoAllowSessions: true   # default for new sessions only; deletes/critical/unknown stay manual
 ```
+
+### Auto-allow is on but approvals still ask
+
+Check these three in order; together they cover every case seen so far:
+
+1. **The profile has no `mode: active`.** The settings switch cannot change `mode` (it is YAML-only), and a missing `mode` means `observe`: the plugin only records "would allow", every call still gets the official card, and `/approvals auto on` is rejected. Since 1.2.3 the plugin logs an explicit warning for this combination, and the switch's description says so.
+2. **The session started before you enabled it.** `autoAllowSessions` only seeds sessions that start afterwards; a running session needs `/approvals auto on` once (a plugin reload re-captures the new default automatically).
+3. **Wrong profile.** `desktop`, `web`, and any profile you create each have their own `cordis.patch.yml`; the config is not shared. If you run `dsh web`, edit `~/.dsh/profiles/web/cordis.patch.yml`.
+
+Fastest check: the first two lines of `/approvals auto` say whether allow is currently active and which mode is in effect; `no (observe mode)` means case 1.
 
 ## Alert settings
 

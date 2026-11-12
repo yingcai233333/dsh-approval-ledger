@@ -10,6 +10,7 @@
  * from YAML alone.
  */
 import { sanitizeConfig } from './config.js'
+import { sessionAutoBlockedReason } from './config.js'
 import { Config } from './config-schema.js'
 import { applyVolatileUpdate, unwrapVolatileConfig } from './config-volatile.js'
 import { registerRuntime } from './plugin/runtime.js'
@@ -92,12 +93,32 @@ export function apply(ctx: Context, rawConfig: unknown): void {
     )
   }
 
+  // `autoAllowSessions` is a settings-panel switch while `mode` is YAML-only, so
+  // a profile can enable the switch and still enforce observe: every approval
+  // keeps asking and nothing says why. Warn once per transition instead of
+  // failing silently. (Reported 2026-11-12: the `web` profile never had a `mode`.)
+  let autoAllowBlocked = sessionAutoBlockedReason(config) !== undefined
+  if (autoAllowBlocked) {
+    ctx.logger.warn(
+      `approval-ledger: autoAllowSessions is on but session auto-allow cannot run (${sessionAutoBlockedReason(config)}); ` +
+        'set "mode: active" in cordis.patch.yml — the settings switch cannot change mode',
+    )
+  }
+
   // The Loader commits a settings change into the running volatile references
   // and emits this event instead of remounting the plugin. Copy the new values
   // into the very object the notifier and turn-end closures already hold.
   ctx.on('loader/volatile-update', () => {
     try {
       applyVolatileUpdate(config, rawConfig)
+      const blocked = sessionAutoBlockedReason(config) !== undefined
+      if (blocked && !autoAllowBlocked) {
+        ctx.logger.warn(
+          `approval-ledger: autoAllowSessions was just enabled but session auto-allow cannot run (${sessionAutoBlockedReason(config)}); ` +
+            'set "mode: active" in cordis.patch.yml',
+        )
+      }
+      autoAllowBlocked = blocked
     } catch (error) {
       ctx.logger.warn(`approval-ledger config hot-update failed: ${String(error)}`)
     }

@@ -20,6 +20,7 @@
 - **参数来源**：PTC inner call 的参数从 `tool/ptc-dispatch-start` 取（`subCallId` 当 callId、`name` 当工具名、`arguments` 为对象或 JSON 字符串），因为这类调用只写 dispatch、不写 `tool/call`；dsh-ops 的 `ops_*` 工具已纳入 `src/core/tools.ts` 的风险分类（`ops_batch`/`ops_load_sdk` 语义不明，保持 `unknown` fail-closed）。
 - **删除意图**：`src/grants/delete-intent.ts` 的 `hasDeleteIntent`；工具名命中 `DELETE_TOOLS` 直接为真，否则把 `prepared.args` 用 `JSON.stringify` 序列化，超过 8192 字符、序列化失败（循环、BigInt、`toJSON` 抛错等）都按删除处理；有界字符串再匹配 `src/risk/commands.ts` 导出的 `DELETE_INTENT_PATTERN`（`rm|rmdir|rd|del|erase|unlink|remove-item|trash|rimraf`、`git clean`、`find -delete`、`.delete(`、`shutil.rmtree`、`os.remove`、`fs.rm`，大小写不敏感）。命令风险引擎复用同一份正则。
 - **observe/auditOnly**：store 不是 `active` 时不放行；`/approvals auto on` 直接返回错误「观察模式不放行」。状态输出会写当前模式、默认/显式来源和豁免项。
+- **「开了开关却不生效」的三个来源（2026-11-12 排查）**：① profile 里没有 `mode: active`（`mode` 是 YAML-only，面板改不了；缺省即 observe，于是每个调用照样弹卡）；② 会话在开启之前就开着，快照仍是 `false`，需要 `/approvals auto on`（插件重载会按新配置重新取快照）；③ 改错了 profile——`desktop` / `web` 各有自己的 `cordis.patch.yml`。1.2.3 起 `apply()` 在 `autoAllowSessions` 为真但 store 不是 `active` 时打一条 `logger.warn`（`sessionAutoBlockedReason()` 纯函数判定，跨越该组合时只警告一次），设置面板的说明文字也写明需要 `mode: active`。
 - **审计兼容**：只使用既有可选字符串 `matchedBy`（上限 160），不新增字段、不改 v1 schema。异常一律 fail-closed 回落 `next()`。
 - **测试**：`test/session-auto.test.ts` 覆盖开关、容量、`forget`/`clear`、快照回落、删除识别正反例、observe 拒绝、放行/豁免的 `matchedBy` 和异常回落。
 
